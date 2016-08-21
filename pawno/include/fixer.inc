@@ -5,7 +5,7 @@
 
 /*
  * fixer.inc
- * Version: 2.1.3 (last updated on 11 August, 2016)
+ * Version: 2.2 (last updated on 21 August, 2016)
  *
  * Please visit the following thread to know about the features/fixes and the credits.
  * Also, support available there and you can also share your suggestions or fixes.
@@ -13,7 +13,6 @@
  *
  * Funtions:
  * native FIXER_AllowUpdate(bool:allow = true);
- * native FIXER_UpdatePlayerSpectateID(playerid, bool:advance = true);
  *
  */
 
@@ -45,9 +44,11 @@ enum
     SPECTATE_TYPE_VEHICLE
 };
 
-static bool:FIX_UPDATER;
+static bool:FIXER_UPDATER;
 
-static const ANIMATIONS[][] =
+static DB:FIXER_g_BlacklistDB;
+
+static const FIXER_ANIMATIONS[][] =
 {
     "AIRPORT",      "Attractors",   "BAR",          "BASEBALL",     "BD_FIRE",
     "BEACH",        "benchpress",   "BF_injection", "BIKED",        "BIKEH",
@@ -76,65 +77,74 @@ static const ANIMATIONS[][] =
     "TRAIN",        "TRUCK",        "UZI",          "VAN",          "VENDING",
     "VORTEX",       "WAYFARER",     "WEAPONS",      "WUZI"
 };
-static p_AnimPrelaodTimer[MAX_PLAYERS][sizeof (ANIMATIONS)];
+static FIXER_p_AnimPrelaodTimer[MAX_PLAYERS][sizeof (FIXER_ANIMATIONS)];
 
-enum E_PLAYER_ATTACHMENT
+enum FIXER_e_PLAYER_ATT
 {
-	bool:	E_PLAYER_ATTACHMENT_USED,
- 			E_PLAYER_ATTACHMENT_MODEL,
-    		E_PLAYER_ATTACHMENT_BONE,
-    Float:	E_PLAYER_ATTACHMENT_X,
-   	Float:	E_PLAYER_ATTACHMENT_Y,
-   	Float:	E_PLAYER_ATTACHMENT_Z,
-   	Float:  E_PLAYER_ATTACHMENT_RX,
-   	Float:  E_PLAYER_ATTACHMENT_RY,
-   	Float:  E_PLAYER_ATTACHMENT_RZ,
-   	Float:  E_PLAYER_ATTACHMENT_SX,
-   	Float:  E_PLAYER_ATTACHMENT_SY,
-   	Float:  E_PLAYER_ATTACHMENT_SZ,
-			E_PLAYER_ATTACHMENT_COLOR1,
-			E_PLAYER_ATTACHMENT_COLOR2
+	bool:	FIXER_e_PLAYER_ATT_USED,
+ 			FIXER_e_PLAYER_ATT_MODEL,
+    		FIXER_e_PLAYER_ATT_BONE,
+    Float:	FIXER_e_PLAYER_ATT_X,
+   	Float:	FIXER_e_PLAYER_ATT_Y,
+   	Float:	FIXER_e_PLAYER_ATT_Z,
+   	Float:  FIXER_e_PLAYER_ATT_RX,
+   	Float:  FIXER_e_PLAYER_ATT_RY,
+   	Float:  FIXER_e_PLAYER_ATT_RZ,
+   	Float:  FIXER_e_PLAYER_ATT_SX,
+   	Float:  FIXER_e_PLAYER_ATT_SY,
+   	Float:  FIXER_e_PLAYER_ATT_SZ,
+			FIXER_e_PLAYER_ATT_COLOR1,
+			FIXER_e_PLAYER_ATT_COLOR2
 };
-static p_Attachment[MAX_PLAYERS][MAX_PLAYER_ATTACHED_OBJECTS][E_PLAYER_ATTACHMENT];
+static FIXER_p_Attachment[MAX_PLAYERS][MAX_PLAYER_ATTACHED_OBJECTS][FIXER_e_PLAYER_ATT];
 
-static p_CheckpointTimer[MAX_PLAYERS][2];
+static FIXER_p_CheckpointTimer[MAX_PLAYERS][2];
 
-static p_Ip[MAX_PLAYERS][18];
+static FIXER_p_Ip[MAX_PLAYERS][18];
 
-static p_Skin[MAX_PLAYERS];
+static FIXER_p_Skin[MAX_PLAYERS];
 
-static p_CurrentWeapon[MAX_PLAYERS];
+static FIXER_p_CurrentWeapon[MAX_PLAYERS];
 
-enum E_WORLD_BOUND
+enum FIXER_e_WORLD_BOUND
 {
-    bool:   E_WORLD_BOUND_CHECK,
-    Float:	E_WORLD_BOUND_PX,
-    Float:	E_WORLD_BOUND_PY,
-    Float:	E_WORLD_BOUND_PZ,
-    Float:	E_WORLD_BOUND_LX,
-    Float:	E_WORLD_BOUND_LY,
-    Float:	E_WORLD_BOUND_UX,
-    Float:	E_WORLD_BOUND_UY
+    bool:   FIXER_e_WORLD_BOUND_CHECK,
+    Float:	FIXER_e_WORLD_BOUND_PX,
+    Float:	FIXER_e_WORLD_BOUND_PY,
+    Float:	FIXER_e_WORLD_BOUND_PZ,
+    Float:	FIXER_e_WORLD_BOUND_LX,
+    Float:	FIXER_e_WORLD_BOUND_LY,
+    Float:	FIXER_e_WORLD_BOUND_UX,
+    Float:	FIXER_e_WORLD_BOUND_UY
 };
-static p_WorldBounds[MAX_PLAYERS][E_WORLD_BOUND];
+static FIXER_p_WorldBounds[MAX_PLAYERS][FIXER_e_WORLD_BOUND];
 
-static p_ToggleSpecTick[MAX_PLAYERS];
-static p_ToggleSpecTimer[MAX_PLAYERS];
+static FIXER_p_ToggleSpecTick[MAX_PLAYERS];
+static FIXER_p_ToggleSpecTimer[MAX_PLAYERS];
 
-static p_LastClickedMapTick[MAX_PLAYERS];
+static FIXER_p_LastClickedMapTick[MAX_PLAYERS];
 
-enum e_SPECTATE_DATA
+enum FIXER_e_SPECTATE_DATA
 {
-	E_SPEC_DATA_ID,
-	E_SPEC_DATA_TYPE,
-	E_SPEC_DATA_MODE
+	FIXER_e_SPEC_DATA_ID,
+	FIXER_e_SPEC_DATA_TYPE,
+	FIXER_e_SPEC_DATA_MODE
 };
-static p_SpecData[MAX_PLAYERS][e_SPECTATE_DATA];
+static FIXER_p_SpecData[MAX_PLAYERS][FIXER_e_SPECTATE_DATA];
 
-static v_LastWheelShotTeam[MAX_VEHICLES][4];
-static v_LastWheelsDamageStatus[MAX_VEHICLES];
+enum FIXER_e_BLACKLIST_DATA
+{
+    bool:	FIXER_e_BLACKLIST_DATA_ACTIVE,
+            FIXER_e_BLACKLIST_DATA_TIMER,
+            FIXER_e_BLACKLIST_DATA_TYPE,
+            FIXER_e_BLACKLIST_DATA_REASON[128]
+};
+static bool:FIXER_p_BlacklistData[MAX_PLAYERS][FIXER_e_BLACKLIST_DATA];
 
-static const Float:PAY_N_SPRAYS[][3] =
+static FIXER_v_LastWheelShotTeam[MAX_VEHICLES][4];
+static FIXER_v_LastWheelsDamageStatus[MAX_VEHICLES];
+
+static const Float:FIXER_PAY_N_SPRAYS[][3] =
 {
 	{1025.05, -1024.23, 32.1},
  	{487.68, -1740.87, 11.13},
@@ -147,11 +157,11 @@ static const Float:PAY_N_SPRAYS[][3] =
     {721.07, -455.94, 16.04},
     {2393.74, 1493.01, 10.52}
 };
-static Float:v_VehicleHealth[MAX_VEHICLES];
+static Float:FIXER_v_VehicleHealth[MAX_VEHICLES];
 
-static v_Interior[MAX_VEHICLES];
+static FIXER_v_Interior[MAX_VEHICLES];
 
-static const VEHICLE_MODS[] =
+static const FIXER_VEHICLE_MODS[] =
 {
 	0b00000011001111000010011100000000, 0b00000000000000000000000000000000, 0b00000000111111111111111000000000, 0b00000000000000000000000000000111, 0b00000000000000000000000000000000, 0b00000000000000000000000000000000,
 	0b00000010000110100010011111111010, 0b00000000000000000000000000000000, 0b00000000111111111111111000000000, 0b00000000000000000000000000000111, 0b00000000000000111100000000000000, 0b00000000000000000000000000000000,
@@ -367,64 +377,83 @@ static const VEHICLE_MODS[] =
 	0b00000010000000000000011100000000, 0b00000000000000000000000000000000, 0b00000000111111111111111000000000, 0b00000000000000000000000000000111, 0b00000000000000000000000000000000, 0b00000000000000000000000000000000
 };
 
-enum E_TOGGLE
+enum FIXER_e_TOGGLE
 {
-	E_TOGGLE_TIRE_POPPING,
-	E_TOGGLE_INTERIOR_WEAPONS,
-	E_TOGGLE_ADMIN_TELEPORT,
-	E_TOGGLE_VEHICLE_FRIENDLYFIRE
+	FIXER_e_TIRE_POPPING,
+	FIXER_e_INTERIOR_WEAPONS,
+	FIXER_e_ADMIN_TELEPORT,
+	FIXER_e_VEHICLE_FRIENDLYFIRE
 };
-static bool:g_Toggle[E_TOGGLE];
+static bool:FIXER_g_Toggle[FIXER_e_TOGGLE];
 
 public OnPlayerConnect(playerid)
 {
-	for (new i, j = sizeof (ANIMATIONS); i < j; i++)
-    	p_AnimPrelaodTimer[playerid][i] = -1;
+	for (new i, j = sizeof (FIXER_ANIMATIONS); i < j; i++)
+    	FIXER_p_AnimPrelaodTimer[playerid][i] = -1;
 
     for (new i; i < MAX_PLAYER_ATTACHED_OBJECTS; i++)
     {
-   	 	p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_USED] = false;
-   	 	p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_MODEL] = 0;
-   	 	p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_BONE] = 0;
-   	 	p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_X] = 0.0;
-   	 	p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_Y] = 0.0;
-   	 	p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_Z] = 0.0;
-   	 	p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_RX] = 0.0;
-   	 	p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_RY] = 0.0;
-   	 	p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_RZ] = 0.0;
-   	 	p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_SX] = 1.0;
-   	 	p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_SY] = 1.0;
-   	 	p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_SZ] = 1.0;
-   	 	p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_COLOR1] = 0;
-   	 	p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_COLOR2] = 0;
+   	 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_USED] = false;
+   	 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_MODEL] = 0;
+   	 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_BONE] = 0;
+   	 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_X] = 0.0;
+   	 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_Y] = 0.0;
+   	 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_Z] = 0.0;
+   	 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_RX] = 0.0;
+   	 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_RY] = 0.0;
+   	 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_RZ] = 0.0;
+   	 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_SX] = 1.0;
+   	 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_SY] = 1.0;
+   	 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_SZ] = 1.0;
+   	 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_COLOR1] = 0;
+   	 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_COLOR2] = 0;
 	}
 
-	GetPlayerIp(playerid, p_Ip[playerid], 18);
+	GetPlayerIp(playerid, FIXER_p_Ip[playerid], 18);
 
-    p_Skin[playerid] = 0;
+    FIXER_p_Skin[playerid] = 0;
 
-    p_CurrentWeapon[playerid] = 0;
+    FIXER_p_CurrentWeapon[playerid] = 0;
 
-	p_WorldBounds[playerid][E_WORLD_BOUND_CHECK] = false;
-	p_WorldBounds[playerid][E_WORLD_BOUND_PX] = 0.0;
-	p_WorldBounds[playerid][E_WORLD_BOUND_PY] = 0.0;
-	p_WorldBounds[playerid][E_WORLD_BOUND_PZ] = 0.0;
-	p_WorldBounds[playerid][E_WORLD_BOUND_LX] = 0.0;
-	p_WorldBounds[playerid][E_WORLD_BOUND_LY] = 0.0;
-	p_WorldBounds[playerid][E_WORLD_BOUND_UX] = 0.0;
-	p_WorldBounds[playerid][E_WORLD_BOUND_UY] = 0.0;
+	FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_CHECK] = false;
+	FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_PX] = 0.0;
+	FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_PY] = 0.0;
+	FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_PZ] = 0.0;
+	FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_LX] = 0.0;
+	FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_LY] = 0.0;
+	FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_UX] = 0.0;
+	FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_UY] = 0.0;
 
-	p_ToggleSpecTick[playerid] = -1;
-	p_ToggleSpecTimer[playerid] = -1;
+	FIXER_p_ToggleSpecTick[playerid] = -1;
+	FIXER_p_ToggleSpecTimer[playerid] = -1;
 
-	p_LastClickedMapTick[playerid] = 0;
+	FIXER_p_LastClickedMapTick[playerid] = 0;
+
+    FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_ACTIVE] = false;
+    FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_TIMER] = -1;
+    FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_TYPE] = 0;
+    FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_REASON][0] = EOS;
 
     DisablePlayerCheckpoint(playerid);
     DisablePlayerRaceCheckpoint(playerid);
 	SetPlayerColor(playerid, 0xFFFFFFFF);
+	
+	new name[MAX_PLAYER_NAME], ip[18];
+    GetPlayerName(playerid, name, sizeof (name));
+	GetPlayerIp(playerid, ip, sizeof (ip));
+	
+	new string[256];
+ 	format(string, sizeof (string), "SELECT * FROM `Participants` WHERE `Username` = '%q' OR `Ip` = '%q'", name, ip);
+ 	new DBResult:result = db_query(FIXER_g_BlacklistDB, string);
+ 	if (db_num_rows(result) > 0)
+ 	{
+		db_free_result(result);
+ 	    return Kick(playerid);
+ 	}
+ 	db_free_result(result);
 
-    #if defined FIX_OnPlayerConnect
-		return FIX_OnPlayerConnect(playerid);
+    #if defined FIXER_OnPlayerConnect
+		return FIXER_OnPlayerConnect(playerid);
 	#else
 		return 1;
 	#endif
@@ -434,14 +463,14 @@ public OnPlayerConnect(playerid)
 #else
 	#define _ALS_OnPlayerConnect
 #endif
-#define OnPlayerConnect FIX_OnPlayerConnect
-#if defined FIX_OnPlayerConnect
-	forward FIX_OnPlayerConnect(playerid);
+#define OnPlayerConnect FIXER_OnPlayerConnect
+#if defined FIXER_OnPlayerConnect
+	forward FIXER_OnPlayerConnect(playerid);
 #endif
 
 public OnPlayerDisconnect(playerid, reason)
 {
-	KillTimer(p_ToggleSpecTimer[playerid]);
+	KillTimer(FIXER_p_ToggleSpecTimer[playerid]);
 
     new Float:cam[3];
 	GetPlayerCameraPos(playerid, cam[0], cam[1], cam[2]);
@@ -460,7 +489,7 @@ public OnPlayerDisconnect(playerid, reason)
 
  	for (new i, j = GetPlayerPoolSize(); i <= j; i++)
 	{
-		if (IsPlayerConnected(i) && i != playerid && p_SpecData[i][E_SPEC_DATA_TYPE] == SPECTATE_TYPE_PLAYER && p_SpecData[i][E_SPEC_DATA_ID] == playerid)
+		if (IsPlayerConnected(i) && i != playerid && FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_TYPE] == SPECTATE_TYPE_PLAYER && FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_ID] == playerid)
 		{
  			if (FIXER_UpdatePlayerSpectateID(i) == INVALID_PLAYER_ID)
  			{
@@ -469,9 +498,43 @@ public OnPlayerDisconnect(playerid, reason)
  			}
   		}
 	}
+	
+	if (FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_ACTIVE])
+	{
+		KillTimer(FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_TIMER]);
+		
+		switch (FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_TYPE])
+		{
+		    case 2:
+		    {
+		        new name[MAX_PLAYER_NAME], ip[18];
+			    GetPlayerName(playerid, name, sizeof (name));
+			    GetPlayerIp(playerid, ip, sizeof (ip));
 
-    #if defined FIX_OnPlayerDisconnect
-       	return FIX_OnPlayerDisconnect(playerid, reason);
+				new string[256];
+			 	format(string, sizeof (string), "INSERT INTO `Participants` (`Username`, `Ip`, `Reason`, `DateStamp`) VALUES ('%q', '%q', '%q', %i)", name, ip, "", getdate());
+			 	db_query(FIXER_g_BlacklistDB, string);
+		    }
+		    
+		    case 3:
+		    {
+		        new name[MAX_PLAYER_NAME], ip[18];
+			    GetPlayerName(playerid, name, sizeof (name));
+			    GetPlayerIp(playerid, ip, sizeof (ip));
+
+				new string[256];
+			 	format(string, sizeof (string), "INSERT INTO `Participants` (`Username`, `Ip`, `Reason`, `DateStamp`) VALUES ('%q', '%q', '%q', %i)", name, ip, FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_REASON], getdate());
+			 	db_query(FIXER_g_BlacklistDB, string);
+		    }
+		}
+
+        FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_ACTIVE] = false;
+		Kick(playerid);
+		return 0;
+	}
+	
+    #if defined FIXER_OnPlayerDisconnect
+       	return FIXER_OnPlayerDisconnect(playerid, reason);
 	#else
 	   	return 1;
 	#endif
@@ -481,21 +544,21 @@ public OnPlayerDisconnect(playerid, reason)
 #else
     #define _ALS_OnPlayerDisconnect
 #endif
-#define OnPlayerDisconnect FIX_OnPlayerDisconnect
-#if defined FIX_OnPlayerDisconnect
-    forward FIX_OnPlayerDisconnect(playerid, reason);
+#define OnPlayerDisconnect FIXER_OnPlayerDisconnect
+#if defined FIXER_OnPlayerDisconnect
+    forward FIXER_OnPlayerDisconnect(playerid, reason);
 #endif
 
 public OnPlayerSpawn(playerid)
 {
 	for (new i, j = GetPlayerPoolSize(); i <= j; i++)
 	{
-		if (IsPlayerConnected(i) && i != playerid && p_SpecData[i][E_SPEC_DATA_TYPE] == SPECTATE_TYPE_PLAYER && p_SpecData[i][E_SPEC_DATA_ID] == playerid)
-			PlayerSpectatePlayer(i, playerid, p_SpecData[i][E_SPEC_DATA_MODE]);
+		if (IsPlayerConnected(i) && i != playerid && FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_TYPE] == SPECTATE_TYPE_PLAYER && FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_ID] == playerid)
+			PlayerSpectatePlayer(i, playerid, FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_MODE]);
  	}
 
- 	#if defined FIX_OnPlayerSpawn
- 		return FIX_OnPlayerSpawn(playerid);
+ 	#if defined FIXER_OnPlayerSpawn
+ 		return FIXER_OnPlayerSpawn(playerid);
 	#else
 		return 1;
 	#endif
@@ -505,21 +568,21 @@ public OnPlayerSpawn(playerid)
 #else
     #define _ALS_OnPlayerSpawn
 #endif
-#define OnPlayerSpawn FIX_OnPlayerSpawn
-#if defined FIX_OnPlayerSpawn
-    forward FIX_OnPlayerSpawn(playerid);
+#define OnPlayerSpawn FIXER_OnPlayerSpawn
+#if defined FIXER_OnPlayerSpawn
+    forward FIXER_OnPlayerSpawn(playerid);
 #endif
 
 public OnPlayerInteriorChange(playerid, newinteriorid, oldinteriorid)
 {
 	for (new i, j = GetPlayerPoolSize(); i <= j; i++)
 	{
-		if (IsPlayerConnected(i) && i != playerid && p_SpecData[i][E_SPEC_DATA_TYPE] == SPECTATE_TYPE_PLAYER && p_SpecData[i][E_SPEC_DATA_ID] == playerid)
+		if (IsPlayerConnected(i) && i != playerid && FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_TYPE] == SPECTATE_TYPE_PLAYER && FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_ID] == playerid)
  			SetPlayerInterior(i, newinteriorid);
   	}
 
-	#if defined FIX_OnPlayerInteriorChange
-	  	return FIX_OnPlayerInteriorChange(playerid, newinteriorid, oldinteriorid);
+	#if defined FIXER_OnPlayerInteriorChange
+	  	return FIXER_OnPlayerInteriorChange(playerid, newinteriorid, oldinteriorid);
 	#else
 	   	return 1;
 	#endif
@@ -529,9 +592,9 @@ public OnPlayerInteriorChange(playerid, newinteriorid, oldinteriorid)
 #else
     #define _ALS_OnPlayerInteriorChange
 #endif
-#define OnPlayerInteriorChange FIX_OnPlayerInteriorChange
-#if defined FIX_OnPlayerInteriorChange
-    forward FIX_OnPlayerInteriorChange(playerid, newinteriorid, oldinteriorid);
+#define OnPlayerInteriorChange FIXER_OnPlayerInteriorChange
+#if defined FIXER_OnPlayerInteriorChange
+    forward FIXER_OnPlayerInteriorChange(playerid, newinteriorid, oldinteriorid);
 #endif
 
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
@@ -556,21 +619,21 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 	{
 	    for (new i; i < MAX_PLAYER_ATTACHED_OBJECTS; i++)
 		{
-			if (! IsPlayerAttachedObjectSlotUsed(playerid, i) && p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_USED])
+			if (! IsPlayerAttachedObjectSlotUsed(playerid, i) && FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_USED])
 		    {
 				SetPlayerAttachedObject(playerid, i,
-											p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_MODEL],
-											p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_BONE],
-											p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_X], p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_Y], p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_Z],
-										 	p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_RX], p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_RY], p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_RZ],
-										 	p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_SX], p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_SY], p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_SZ],
-											p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_COLOR1], p_Attachment[playerid][i][E_PLAYER_ATTACHMENT_COLOR2]);
+											FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_MODEL],
+											FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_BONE],
+											FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_X], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_Y], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_Z],
+										 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_RX], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_RY], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_RZ],
+										 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_SX], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_SY], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_SZ],
+											FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_COLOR1], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_COLOR2]);
 			}
 		}
 	}
 
-	#if defined FIX_OnPlayerKeyStateChange
-       	return FIX_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
+	#if defined FIXER_OnPlayerKeyStateChange
+       	return FIXER_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
 	#else
 	   	return 1;
 	#endif
@@ -580,33 +643,36 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 #else
     #define _ALS_OnPlayerKeyStateChange
 #endif
-#define OnPlayerKeyStateChange FIX_OnPlayerKeyStateChange
-#if defined FIX_OnPlayerKeyStateChange
-    forward FIX_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
+#define OnPlayerKeyStateChange FIXER_OnPlayerKeyStateChange
+#if defined FIXER_OnPlayerKeyStateChange
+    forward FIXER_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
 #endif
 
 public OnPlayerUpdate(playerid)
 {
-	if (!FIX_UPDATER)
+    if (FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_ACTIVE])
+		return 0;
+		
+	if (!FIXER_UPDATER)
 	{
-	    #if defined FIX_OnPlayerUpdate
-			return FIX_OnPlayerUpdate(playerid);
+	    #if defined FIXER_OnPlayerUpdate
+			return FIXER_OnPlayerUpdate(playerid);
 		#else
 			return 1;
 		#endif
 	}
 
-	if (!g_Toggle[E_TOGGLE_INTERIOR_WEAPONS] && GetPlayerInterior(playerid) > 0 && GetPlayerWeapon(playerid) > 0)
+	if (!FIXER_g_Toggle[FIXER_e_INTERIOR_WEAPONS] && GetPlayerInterior(playerid) > 0 && GetPlayerWeapon(playerid) > 0)
 	{
-	    p_CurrentWeapon[playerid] = 0;
+	    FIXER_p_CurrentWeapon[playerid] = 0;
 		SetPlayerArmedWeapon(playerid, 0);
 	}
 
-	if (p_LastClickedMapTick[playerid] > 0)
+	if (FIXER_p_LastClickedMapTick[playerid] > 0)
 	{
-		if ((FIX_GetTickCount() - p_LastClickedMapTick[playerid]) >= 1000)
+		if ((FIXER_GetTickCount() - FIXER_p_LastClickedMapTick[playerid]) >= 1000)
 		{
-	    	p_LastClickedMapTick[playerid] = 0;
+	    	FIXER_p_LastClickedMapTick[playerid] = 0;
 
 	    	new Float:x, Float:y, Float:z;
 	    	GetPlayerPos(playerid, x, y, z);
@@ -614,7 +680,7 @@ public OnPlayerUpdate(playerid)
 		}
 	}
 
-	if (p_WorldBounds[playerid][E_WORLD_BOUND_CHECK])
+	if (FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_CHECK])
 	{
 		new ud, lr, keys;
 		GetPlayerKeys(playerid, keys, ud, lr);
@@ -623,15 +689,15 @@ public OnPlayerUpdate(playerid)
 			new Float:x, Float:y, Float:z;
 			GetPlayerPos(playerid, x, y, z);
 
-			if (p_WorldBounds[playerid][E_WORLD_BOUND_LX] < x < p_WorldBounds[playerid][E_WORLD_BOUND_UX] && p_WorldBounds[playerid][E_WORLD_BOUND_LY] < y < p_WorldBounds[playerid][E_WORLD_BOUND_UY])
+			if (FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_LX] < x < FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_UX] && FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_LY] < y < FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_UY])
 			{
-				p_WorldBounds[playerid][E_WORLD_BOUND_PX] = x;
-				p_WorldBounds[playerid][E_WORLD_BOUND_PY] = y;
-				p_WorldBounds[playerid][E_WORLD_BOUND_PZ] = z;
+				FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_PX] = x;
+				FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_PY] = y;
+				FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_PZ] = z;
 			}
 			else
 			{
-				SetPlayerPos(playerid, p_WorldBounds[playerid][E_WORLD_BOUND_PX], p_WorldBounds[playerid][E_WORLD_BOUND_PY], p_WorldBounds[playerid][E_WORLD_BOUND_PZ]);
+				SetPlayerPos(playerid, FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_PX], FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_PY], FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_PZ]);
 				GameTextForPlayer(playerid, "~w~~h~Saty within the ~r~world boundries", 5000, 3);
 			}
 		}
@@ -640,46 +706,46 @@ public OnPlayerUpdate(playerid)
 	if (GetPlayerState(playerid) == PLAYER_STATE_DRIVER)
 	{
 		new vehicleid = GetPlayerVehicleID(playerid);
-		if (v_VehicleHealth[vehicleid] > 100.0)
+		if (FIXER_v_VehicleHealth[vehicleid] > 100.0)
 		{
 			new Float:health;
 			GetVehicleHealth(vehicleid, health);
 
-			if (v_VehicleHealth[vehicleid] < health)
+			if (FIXER_v_VehicleHealth[vehicleid] < health)
 			{
-				for (new i, j = sizeof (PAY_N_SPRAYS); i < j; i++)
+				for (new i, j = sizeof (FIXER_PAY_N_SPRAYS); i < j; i++)
 		    	{
-		       		if (IsPlayerInRangeOfPoint(playerid, 10.0, PAY_N_SPRAYS[i][0], PAY_N_SPRAYS[i][1], PAY_N_SPRAYS[i][2]))
+		       		if (IsPlayerInRangeOfPoint(playerid, 10.0, FIXER_PAY_N_SPRAYS[i][0], FIXER_PAY_N_SPRAYS[i][1], FIXER_PAY_N_SPRAYS[i][2]))
 		            {
 		               	CallRemoteFunction("OnVehicleRespray", "iiii", playerid, vehicleid, -1, -1);
 		                break;
 		            }
 		        }
 
-				v_VehicleHealth[vehicleid] = health;
+				FIXER_v_VehicleHealth[vehicleid] = health;
 			}
 		}
 	}
 
-	switch (p_SpecData[playerid][E_SPEC_DATA_TYPE])
+	switch (FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_TYPE])
 	{
 	    case SPECTATE_TYPE_PLAYER:
 	    {
-	        new target_worldid = GetPlayerVirtualWorld(p_SpecData[playerid][E_SPEC_DATA_ID]);
+	        new target_worldid = GetPlayerVirtualWorld(FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_ID]);
 	        if (GetPlayerVirtualWorld(playerid) != target_worldid)
 	        	SetPlayerVirtualWorld(playerid, target_worldid);
 	    }
 
 	    case SPECTATE_TYPE_VEHICLE:
 	    {
-	        new target_interiorid = v_Interior[p_SpecData[playerid][E_SPEC_DATA_ID]];
+	        new target_interiorid = FIXER_v_Interior[FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_ID]];
 	        if (GetPlayerInterior(playerid) != target_interiorid)
 	        	SetPlayerInterior(playerid, target_interiorid);
 	    }
 	}
 
-	#if defined FIX_OnPlayerUpdate
-		return FIX_OnPlayerUpdate(playerid);
+	#if defined FIXER_OnPlayerUpdate
+		return FIXER_OnPlayerUpdate(playerid);
 	#else
 		return 1;
 	#endif
@@ -689,23 +755,23 @@ public OnPlayerUpdate(playerid)
 #else
 	#define _ALS_OnPlayerUpdate
 #endif
-#define OnPlayerUpdate FIX_OnPlayerUpdate
-#if defined FIX_OnPlayerUpdate
-	forward FIX_OnPlayerUpdate(playerid);
+#define OnPlayerUpdate FIXER_OnPlayerUpdate
+#if defined FIXER_OnPlayerUpdate
+	forward FIXER_OnPlayerUpdate(playerid);
 #endif
 
 public OnPlayerDeath(playerid, killerid, reason)
 {
-	if (!FIX_UPDATER)
+	if (!FIXER_UPDATER)
 	{
-	    #if defined FIX_OnPlayerDeath
-			return FIX_OnPlayerDeath(playerid, killerid, reason);
+	    #if defined FIXER_OnPlayerDeath
+			return FIXER_OnPlayerDeath(playerid, killerid, reason);
 		#else
 			return 1;
 		#endif
 	}
 
-    p_LastClickedMapTick[playerid] = 0;
+    FIXER_p_LastClickedMapTick[playerid] = 0;
 
     new Float:cam[3];
 	GetPlayerCameraPos(playerid, cam[0], cam[1], cam[2]);
@@ -724,15 +790,15 @@ public OnPlayerDeath(playerid, killerid, reason)
 
 	for (new i, j = GetPlayerPoolSize(); i <= j; i++)
 	{
-		if (IsPlayerConnected(i) && i != playerid && p_SpecData[i][E_SPEC_DATA_TYPE] == SPECTATE_TYPE_PLAYER && p_SpecData[i][E_SPEC_DATA_ID] == playerid)
+		if (IsPlayerConnected(i) && i != playerid && FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_TYPE] == SPECTATE_TYPE_PLAYER && FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_ID] == playerid)
 		{
 			SetPlayerCameraPos(i, cam[0], cam[1], cam[2]);
 			SetPlayerCameraLookAt(i, fpos[0], fpos[1], fpos[2]);
 		}
  	}
 
-	#if defined FIX_OnPlayerDeath
-		return FIX_OnPlayerDeath(playerid, killerid, reason);
+	#if defined FIXER_OnPlayerDeath
+		return FIXER_OnPlayerDeath(playerid, killerid, reason);
 	#else
 		return 1;
 	#endif
@@ -742,9 +808,9 @@ public OnPlayerDeath(playerid, killerid, reason)
 #else
 	#define _ALS_OnPlayerDeath
 #endif
-#define OnPlayerDeath FIX_OnPlayerDeath
-#if defined FIX_OnPlayerDeath
-	forward FIX_OnPlayerDeath(playerid, killerid, reason);
+#define OnPlayerDeath FIXER_OnPlayerDeath
+#if defined FIXER_OnPlayerDeath
+	forward FIXER_OnPlayerDeath(playerid, killerid, reason);
 #endif
 
 public OnVehicleMod(playerid, vehicleid, componentid)
@@ -756,12 +822,12 @@ public OnVehicleMod(playerid, vehicleid, componentid)
 		{
 			case 1000..1191:
 			{
-				if (VEHICLE_MODS[(modelid - 400) * 6 + (componentid - 1000 >>> 5)] & 1 << (componentid - 1000 & 0b00011111))
+				if (FIXER_VEHICLE_MODS[(modelid - 400) * 6 + (componentid - 1000 >>> 5)] & 1 << (componentid - 1000 & 0b00011111))
 				{
-					GetVehicleHealth(vehicleid, v_VehicleHealth[vehicleid]);
+					GetVehicleHealth(vehicleid, FIXER_v_VehicleHealth[vehicleid]);
 
-					#if defined FIX_OnVehicleMod
-						return FIX_OnVehicleMod(playerid, vehicleid, componentid);
+					#if defined FIXER_OnVehicleMod
+						return FIXER_OnVehicleMod(playerid, vehicleid, componentid);
 					#else
 						return 1;
 					#endif
@@ -771,10 +837,10 @@ public OnVehicleMod(playerid, vehicleid, componentid)
 			{
 				if (modelid == 576)
 				{
-					GetVehicleHealth(vehicleid, v_VehicleHealth[vehicleid]);
+					GetVehicleHealth(vehicleid, FIXER_v_VehicleHealth[vehicleid]);
 
-					#if defined FIX_OnVehicleMod
-						return FIX_OnVehicleMod(playerid, vehicleid, componentid);
+					#if defined FIXER_OnVehicleMod
+						return FIXER_OnVehicleMod(playerid, vehicleid, componentid);
 					#else
 						return 1;
 					#endif
@@ -792,17 +858,17 @@ public OnVehicleMod(playerid, vehicleid, componentid)
 #else
 	#define _ALS_OnVehicleMod
 #endif
-#define OnVehicleMod FIX_OnVehicleMod
-#if defined FIX_OnVehicleMod
-	forward FIX_OnVehicleMod(playerid, vehicleid, componentid);
+#define OnVehicleMod FIXER_OnVehicleMod
+#if defined FIXER_OnVehicleMod
+	forward FIXER_OnVehicleMod(playerid, vehicleid, componentid);
 #endif
 
 public OnVehicleRespray(playerid, vehicleid, color1, color2)
 {
-	GetVehicleHealth(vehicleid, v_VehicleHealth[vehicleid]);
+	GetVehicleHealth(vehicleid, FIXER_v_VehicleHealth[vehicleid]);
 
-	#if defined FIX_OnVehicleRespray
-		return FIX_OnVehicleRespray(playerid, vehicleid, color1, color2);
+	#if defined FIXER_OnVehicleRespray
+		return FIXER_OnVehicleRespray(playerid, vehicleid, color1, color2);
 	#else
 		return 1;
 	#endif
@@ -812,19 +878,19 @@ public OnVehicleRespray(playerid, vehicleid, color1, color2)
 #else
 	#define _ALS_OnVehicleRespray
 #endif
-#define OnVehicleRespray FIX_OnVehicleRespray
-#if defined FIX_OnVehicleRespray
-	forward FIX_OnVehicleRespray(playerid, vehicleid, color1, color2);
+#define OnVehicleRespray FIXER_OnVehicleRespray
+#if defined FIXER_OnVehicleRespray
+	forward FIXER_OnVehicleRespray(playerid, vehicleid, color1, color2);
 #endif
 
 public OnVehicleSpawn(vehicleid)
 {
-	GetVehicleHealth(vehicleid, v_VehicleHealth[vehicleid]);
+	GetVehicleHealth(vehicleid, FIXER_v_VehicleHealth[vehicleid]);
 
-	if (!FIX_UPDATER)
+	if (!FIXER_UPDATER)
 	{
-	    #if defined FIX_OnVehicleSpawn
-			return FIX_OnVehicleSpawn(vehicleid);
+	    #if defined FIXER_OnVehicleSpawn
+			return FIXER_OnVehicleSpawn(vehicleid);
 		#else
 			return 1;
 		#endif
@@ -832,12 +898,12 @@ public OnVehicleSpawn(vehicleid)
 
     for (new i, j = GetPlayerPoolSize(); i <= j; i++)
 	{
-		if (IsPlayerConnected(i) && p_SpecData[i][E_SPEC_DATA_TYPE] == SPECTATE_TYPE_VEHICLE && p_SpecData[i][E_SPEC_DATA_ID] == vehicleid)
-			PlayerSpectateVehicle(i, vehicleid, p_SpecData[i][E_SPEC_DATA_MODE]);
+		if (IsPlayerConnected(i) && FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_TYPE] == SPECTATE_TYPE_VEHICLE && FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_ID] == vehicleid)
+			PlayerSpectateVehicle(i, vehicleid, FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_MODE]);
  	}
 
-	#if defined FIX_OnVehicleSpawn
-		return FIX_OnVehicleSpawn(vehicleid);
+	#if defined FIXER_OnVehicleSpawn
+		return FIXER_OnVehicleSpawn(vehicleid);
 	#else
 		return 1;
 	#endif
@@ -847,19 +913,19 @@ public OnVehicleSpawn(vehicleid)
 #else
 	#define _ALS_OnVehicleSpawn
 #endif
-#define OnVehicleSpawn FIX_OnVehicleSpawn
-#if defined FIX_OnVehicleSpawn
-	forward FIX_OnVehicleSpawn(vehicleid);
+#define OnVehicleSpawn FIXER_OnVehicleSpawn
+#if defined FIXER_OnVehicleSpawn
+	forward FIXER_OnVehicleSpawn(vehicleid);
 #endif
 
 public OnVehicleDeath(vehicleid, killerid)
 {
-	GetVehicleHealth(vehicleid, v_VehicleHealth[vehicleid]);
+	GetVehicleHealth(vehicleid, FIXER_v_VehicleHealth[vehicleid]);
 
-	if (!FIX_UPDATER)
+	if (!FIXER_UPDATER)
 	{
-		#if defined FIX_OnVehicleDeath
-			return FIX_OnVehicleDeath(vehicleid, killerid);
+		#if defined FIXER_OnVehicleDeath
+			return FIXER_OnVehicleDeath(vehicleid, killerid);
 		#else
 			return 1;
 		#endif
@@ -871,15 +937,15 @@ public OnVehicleDeath(vehicleid, killerid)
 
 	for (new i, j = GetPlayerPoolSize(); i <= j; i++)
 	{
-		if (IsPlayerConnected(i) && p_SpecData[i][E_SPEC_DATA_TYPE] == SPECTATE_TYPE_VEHICLE && p_SpecData[i][E_SPEC_DATA_ID] == vehicleid)
+		if (IsPlayerConnected(i) && FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_TYPE] == SPECTATE_TYPE_VEHICLE && FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_ID] == vehicleid)
 		{
 			SetPlayerCameraPos(i, pos[0], pos[1], pos[2]);
 			SetPlayerCameraLookAt(i, pos[0], pos[1], pos[2]);
 		}
  	}
 
-	#if defined FIX_OnVehicleDeath
-		return FIX_OnVehicleDeath(vehicleid, killerid);
+	#if defined FIXER_OnVehicleDeath
+		return FIXER_OnVehicleDeath(vehicleid, killerid);
 	#else
 		return 1;
 	#endif
@@ -889,23 +955,23 @@ public OnVehicleDeath(vehicleid, killerid)
 #else
 	#define _ALS_OnVehicleDeath
 #endif
-#define OnVehicleDeath FIX_OnVehicleDeath
-#if defined FIX_OnVehicleDeath
-	forward FIX_OnVehicleDeath(vehicleid, killerid);
+#define OnVehicleDeath FIXER_OnVehicleDeath
+#if defined FIXER_OnVehicleDeath
+	forward FIXER_OnVehicleDeath(vehicleid, killerid);
 #endif
 
 public OnVehicleDamageStatusUpdate(vehicleid, playerid)
 {
-	if (!FIX_UPDATER)
+	if (!FIXER_UPDATER)
 	{
-		#if defined FIX_OnVehicleDamageStatusUpd
-			return FIX_OnVehicleDamageStatusUpd(vehicleid, playerid);
+		#if defined FIXER_OnVehicleDamageStatusUpd
+			return FIXER_OnVehicleDamageStatusUpd(vehicleid, playerid);
 		#else
 			return 1;
 		#endif
 	}
 
-	if (! g_Toggle[E_TOGGLE_TIRE_POPPING])
+	if (! FIXER_g_Toggle[FIXER_e_TIRE_POPPING])
 	{
 	    new _panels, _doors, _lights, _tires;
 	    GetVehicleDamageStatus(vehicleid, _panels, _doors, _lights, _tires);
@@ -918,20 +984,20 @@ public OnVehicleDamageStatusUpdate(vehicleid, playerid)
 	{
 	    for (new i; i < 4; i++)
 	    {
-			if (GetPlayerTeam(playerid) != NO_TEAM && v_LastWheelShotTeam[vehicleid][i] != NO_TEAM && GetPlayerTeam(playerid) == v_LastWheelShotTeam[vehicleid][i])
+			if (GetPlayerTeam(playerid) != NO_TEAM && FIXER_v_LastWheelShotTeam[vehicleid][i] != NO_TEAM && GetPlayerTeam(playerid) == FIXER_v_LastWheelShotTeam[vehicleid][i])
 			{
 	    		new _panels, _doors, _lights, _tires;
 	    		GetVehicleDamageStatus(vehicleid, _panels, _doors, _lights, _tires);
 
-				_tires = v_LastWheelsDamageStatus[vehicleid];
+				_tires = FIXER_v_LastWheelsDamageStatus[vehicleid];
 
 			    UpdateVehicleDamageStatus(vehicleid, _panels, _doors, _lights, _tires);
 		    }
 	    }
 	}
 
-	#if defined FIX_OnVehicleDamageStatusUpd
-		return FIX_OnVehicleDamageStatusUpd(vehicleid, playerid);
+	#if defined FIXER_OnVehicleDamageStatusUpd
+		return FIXER_OnVehicleDamageStatusUpd(vehicleid, playerid);
 	#else
 		return 1;
 	#endif
@@ -941,9 +1007,9 @@ public OnVehicleDamageStatusUpdate(vehicleid, playerid)
 #else
 	#define _ALS_OnVehicleDamageStatusUpd
 #endif
-#define OnVehicleDamageStatusUpdate FIX_OnVehicleDamageStatusUpd
-#if defined FIX_OnVehicleDamageStatusUpd
-	forward FIX_OnVehicleDamageStatusUpd(vehicleid, playerid);
+#define OnVehicleDamageStatusUpdate FIXER_OnVehicleDamageStatusUpd
+#if defined FIXER_OnVehicleDamageStatusUpd
+	forward FIXER_OnVehicleDamageStatusUpd(vehicleid, playerid);
 #endif
 
 public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY, Float:fZ)
@@ -956,10 +1022,10 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 	if (! (-20000.0 <= z <= 20000.0))
  		return Kick(playerid);
 
-	if (!FIX_UPDATER)
+	if (!FIXER_UPDATER)
 	{
-	    #if defined FIX_OnPlayerWeaponShot
-			return FIX_OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, fX, fY, fZ);
+	    #if defined FIXER_OnPlayerWeaponShot
+			return FIXER_OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, fX, fY, fZ);
 		#else
 			return 1;
 		#endif
@@ -974,28 +1040,28 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 
 		if (fX >= fSet[0] - 2.4 && fX <= fSet[0] && fY >= fSet[1] - 0.4 && fY <= fSet[1] + 0.4 && fZ >= fSet[2] - 0.4 && fZ <= fSet[2] + 0.4)
 	 	{
-			v_LastWheelShotTeam[hitid][0] = GetPlayerTeam(playerid);
-			GetVehicleDamageStatus(hitid, v_LastWheelsDamageStatus[hitid], v_LastWheelsDamageStatus[hitid], v_LastWheelsDamageStatus[hitid], v_LastWheelsDamageStatus[hitid]);
+			FIXER_v_LastWheelShotTeam[hitid][0] = GetPlayerTeam(playerid);
+			GetVehicleDamageStatus(hitid, FIXER_v_LastWheelsDamageStatus[hitid], FIXER_v_LastWheelsDamageStatus[hitid], FIXER_v_LastWheelsDamageStatus[hitid], FIXER_v_LastWheelsDamageStatus[hitid]);
 	    }
 	    else if (fX >= fSet[0] - 0.4 && fX <= fSet[0] + 0.4 && fY >= fSet[1] - 0.4 && fY <= fSet[1] + 0.4 && fZ >= fSet[2] - 0.4 && fZ <= fSet[2] + 0.4)
 	    {
-			v_LastWheelShotTeam[hitid][0] = GetPlayerTeam(playerid);
-			GetVehicleDamageStatus(hitid, v_LastWheelsDamageStatus[hitid], v_LastWheelsDamageStatus[hitid], v_LastWheelsDamageStatus[hitid], v_LastWheelsDamageStatus[hitid]);
+			FIXER_v_LastWheelShotTeam[hitid][0] = GetPlayerTeam(playerid);
+			GetVehicleDamageStatus(hitid, FIXER_v_LastWheelsDamageStatus[hitid], FIXER_v_LastWheelsDamageStatus[hitid], FIXER_v_LastWheelsDamageStatus[hitid], FIXER_v_LastWheelsDamageStatus[hitid]);
 	    }
 	    else if (fX >= fSet[3] - 2.4 && fX <= fSet[3] && fY >= fSet[4] - 0.4 && fY <= fSet[4] + 0.4 && fZ >= fSet[5] - 0.4 && fZ <= fSet[5] + 0.4)
 	    {
-			v_LastWheelShotTeam[hitid][0] = GetPlayerTeam(playerid);
-			GetVehicleDamageStatus(hitid, v_LastWheelsDamageStatus[hitid], v_LastWheelsDamageStatus[hitid], v_LastWheelsDamageStatus[hitid], v_LastWheelsDamageStatus[hitid]);
+			FIXER_v_LastWheelShotTeam[hitid][0] = GetPlayerTeam(playerid);
+			GetVehicleDamageStatus(hitid, FIXER_v_LastWheelsDamageStatus[hitid], FIXER_v_LastWheelsDamageStatus[hitid], FIXER_v_LastWheelsDamageStatus[hitid], FIXER_v_LastWheelsDamageStatus[hitid]);
 	    }
 	    else if (fX >= fSet[3] - 0.4 && fX <= fSet[3] + 0.4 && fY >= fSet[4] - 0.4 && fY <= fSet[4] + 0.4 && fZ >= fSet[5] - 0.4 && fZ <= fSet[5] + 0.4)
 	    {
-			v_LastWheelShotTeam[hitid][0] = GetPlayerTeam(playerid);
-			GetVehicleDamageStatus(hitid, v_LastWheelsDamageStatus[hitid], v_LastWheelsDamageStatus[hitid], v_LastWheelsDamageStatus[hitid], v_LastWheelsDamageStatus[hitid]);
+			FIXER_v_LastWheelShotTeam[hitid][0] = GetPlayerTeam(playerid);
+			GetVehicleDamageStatus(hitid, FIXER_v_LastWheelsDamageStatus[hitid], FIXER_v_LastWheelsDamageStatus[hitid], FIXER_v_LastWheelsDamageStatus[hitid], FIXER_v_LastWheelsDamageStatus[hitid]);
 	    }
     }
 
-    #if defined FIX_OnPlayerWeaponShot
-		return FIX_OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, fX, fY, fZ);
+    #if defined FIXER_OnPlayerWeaponShot
+		return FIXER_OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, fX, fY, fZ);
 	#else
 		return 1;
 	#endif
@@ -1005,14 +1071,14 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 #else
     #define _ALS_OnPlayerWeaponShot
 #endif
-#define OnPlayerWeaponShot FIX_OnPlayerWeaponShot
-#if defined FIX_OnPlayerWeaponShot
-	forward FIX_OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY, Float:fZ);
+#define OnPlayerWeaponShot FIXER_OnPlayerWeaponShot
+#if defined FIXER_OnPlayerWeaponShot
+	forward FIXER_OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY, Float:fZ);
 #endif
 
 public OnPlayerClickMap(playerid, Float:fX, Float:fY, Float:fZ)
 {
-	if (!FIX_UPDATER)
+	if (!FIXER_UPDATER)
 	{
 	    #if defined S_OnPlayerClickMap
 			return S_OnPlayerClickMap(playerid, Float:fX, Float:fY, Float:fZ);
@@ -1021,12 +1087,12 @@ public OnPlayerClickMap(playerid, Float:fX, Float:fY, Float:fZ)
 		#endif
 	}
 
-	if (g_Toggle[E_TOGGLE_ADMIN_TELEPORT])
+	if (FIXER_g_Toggle[FIXER_e_ADMIN_TELEPORT])
 	{
 	    if (IsPlayerAdmin(playerid))
 	    {
     		SetPlayerPosFindZ(playerid, fX, fY, 500.0);
-			p_LastClickedMapTick[playerid] = 0;
+			FIXER_p_LastClickedMapTick[playerid] = 0;
 		}
 	}
 
@@ -1053,18 +1119,18 @@ public OnPlayerStateChange(playerid, newstate, oldstate)
 	    new model = GetVehicleModel(GetPlayerVehicleID(playerid));
 		if (GetPlayerWeapon(playerid) == 34 && (model == 520 || model == 425))
 		{
-	    	p_CurrentWeapon[playerid] = 0;
+	    	FIXER_p_CurrentWeapon[playerid] = 0;
 	    	SetPlayerArmedWeapon(playerid, 0);
 			return 0;
 		}
 		else
-			p_CurrentWeapon[playerid] = GetPlayerWeapon(playerid);
+			FIXER_p_CurrentWeapon[playerid] = GetPlayerWeapon(playerid);
 	}
 
-	if (!FIX_UPDATER)
+	if (!FIXER_UPDATER)
 	{
-		#if defined FIX_OnPlayerStateChange
-			return FIX_OnPlayerStateChange(playerid, newstate, oldstate);
+		#if defined FIXER_OnPlayerStateChange
+			return FIXER_OnPlayerStateChange(playerid, newstate, oldstate);
 		#else
 			return 1;
 		#endif
@@ -1089,7 +1155,7 @@ public OnPlayerStateChange(playerid, newstate, oldstate)
 
 		for (new i, j = GetPlayerPoolSize(); i <= j; i++)
 		{
-			if (IsPlayerConnected(i) && i != playerid && p_SpecData[i][E_SPEC_DATA_TYPE] == SPECTATE_TYPE_PLAYER && p_SpecData[i][E_SPEC_DATA_ID] == playerid)
+			if (IsPlayerConnected(i) && i != playerid && FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_TYPE] == SPECTATE_TYPE_PLAYER && FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_ID] == playerid)
 			{
 	 			if (FIXER_UpdatePlayerSpectateID(i) == INVALID_PLAYER_ID)
 	 			{
@@ -1103,13 +1169,13 @@ public OnPlayerStateChange(playerid, newstate, oldstate)
 	{
 		for (new i, j = GetPlayerPoolSize(); i <= j; i++)
 		{
-			if (IsPlayerConnected(i) && i != playerid && p_SpecData[i][E_SPEC_DATA_TYPE] == SPECTATE_TYPE_PLAYER && p_SpecData[i][E_SPEC_DATA_ID] == playerid)
-	 			FIX_PlayerSpectatePlayer(i, playerid, p_SpecData[i][E_SPEC_DATA_MODE]);
+			if (IsPlayerConnected(i) && i != playerid && FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_TYPE] == SPECTATE_TYPE_PLAYER && FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_ID] == playerid)
+	 			FIXER_PlayerSpectatePlayer(i, playerid, FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_MODE]);
 	  	}
   	}
 
-	#if defined FIX_OnPlayerStateChange
-		return FIX_OnPlayerStateChange(playerid, newstate, oldstate);
+	#if defined FIXER_OnPlayerStateChange
+		return FIXER_OnPlayerStateChange(playerid, newstate, oldstate);
 	#else
 		return 1;
 	#endif
@@ -1119,9 +1185,9 @@ public OnPlayerStateChange(playerid, newstate, oldstate)
 #else
 	#define _ALS_OnPlayerStateChange
 #endif
-#define OnPlayerStateChange FIX_OnPlayerStateChange
-#if defined FIX_OnPlayerStateChange
-	forward FIX_OnPlayerStateChange(playerid, newstate, oldstate);
+#define OnPlayerStateChange FIXER_OnPlayerStateChange
+#if defined FIXER_OnPlayerStateChange
+	forward FIXER_OnPlayerStateChange(playerid, newstate, oldstate);
 #endif
 
 #if ! defined FILTERSCRIPT
@@ -1130,23 +1196,26 @@ public OnPlayerStateChange(playerid, newstate, oldstate)
 	public OnFilterScriptInit()
 #endif
 {
-	g_Toggle[E_TOGGLE_TIRE_POPPING] = true;
-	g_Toggle[E_TOGGLE_INTERIOR_WEAPONS] = true;
-	g_Toggle[E_TOGGLE_ADMIN_TELEPORT] = false;
-	g_Toggle[E_TOGGLE_VEHICLE_FRIENDLYFIRE] = false;
+	FIXER_g_BlacklistDB = db_open("bans.db");
+	db_query(FIXER_g_BlacklistDB, "CREATE TABLE IF NOT EXISTS `Participants` (`Username` STRING, `Ip` STRING, `Reason` STRING, `DateStamp` INTEGER)");
+
+	FIXER_g_Toggle[FIXER_e_TIRE_POPPING] = true;
+	FIXER_g_Toggle[FIXER_e_INTERIOR_WEAPONS] = true;
+	FIXER_g_Toggle[FIXER_e_ADMIN_TELEPORT] = false;
+	FIXER_g_Toggle[FIXER_e_VEHICLE_FRIENDLYFIRE] = false;
 
 	for (new i; i < MAX_VEHICLES; i++)
-		v_VehicleHealth[i] = 0.0;
+		FIXER_v_VehicleHealth[i] = 0.0;
 
 	#if ! defined FILTERSCRIPT
-		#if defined FIX_OnGameModeInit
-			return FIX_OnGameModeInit();
+		#if defined FIXER_OnGameModeInit
+			return FIXER_OnGameModeInit();
 		#else
 			return 1;
 		#endif
 	#else
-		#if defined FIX_OnFilterScriptInit
-			return FIX_OnFilterScriptInit();
+		#if defined FIXER_OnFilterScriptInit
+			return FIXER_OnFilterScriptInit();
 		#else
 			return 1;
 		#endif
@@ -1158,9 +1227,9 @@ public OnPlayerStateChange(playerid, newstate, oldstate)
 	#else
 		#define _ALS_OnGameModeInit
 	#endif
-	#define OnGameModeInit FIX_OnGameModeInit
-	#if defined FIX_OnGameModeInit
-		forward FIX_OnGameModeInit();
+	#define OnGameModeInit FIXER_OnGameModeInit
+	#if defined FIXER_OnGameModeInit
+		forward FIXER_OnGameModeInit();
 	#endif
 #else
 	#if defined _ALS_OnFilterScriptInit
@@ -1168,13 +1237,57 @@ public OnPlayerStateChange(playerid, newstate, oldstate)
 	#else
 		#define _ALS_OnFilterScriptInit
 	#endif
-	#define OnFilterScriptInit FIX_OnFilterScriptInit
-	#if defined FIX_OnFilterScriptInit
-		forward FIX_OnFilterScriptInit();
+	#define OnFilterScriptInit FIXER_OnFilterScriptInit
+	#if defined FIXER_OnFilterScriptInit
+		forward FIXER_OnFilterScriptInit();
 	#endif
 #endif
 
-stock FIX_ClearAnimations(playerid, forcesync = 0)
+#if ! defined FILTERSCRIPT
+	public OnGameModeExit()
+#else
+	public OnFilterScriptExit()
+#endif
+{
+	db_close(FIXER_g_BlacklistDB);
+
+	#if ! defined FILTERSCRIPT
+		#if defined FIXER_OnGameModeExit
+			return FIXER_OnGameModeExit();
+		#else
+			return 1;
+		#endif
+	#else
+		#if defined FIXER_OnFilterScriptExit
+			return FIXER_OnFilterScriptExit();
+		#else
+			return 1;
+		#endif
+	#endif
+}
+#if ! defined FILTERSCRIPT
+	#if defined _ALS_OnGameModeExit
+		#undef OnGameModeExit
+	#else
+		#define _ALS_OnGameModeExit
+	#endif
+	#define OnGameModeExit FIXER_OnGameModeExit
+	#if defined FIXER_OnGameModeExit
+		forward FIXER_OnGameModeExit();
+	#endif
+#else
+	#if defined _ALS_OnFilterScriptExit
+		#undef OnFilterScriptExit
+	#else
+		#define _ALS_OnFilterScriptExit
+	#endif
+	#define OnFilterScriptExit FIXER_OnFilterScriptExit
+	#if defined FIXER_OnFilterScriptExit
+		forward FIXER_OnFilterScriptExit();
+	#endif
+#endif
+
+stock FIXER_ClearFIXER_ANIMATIONS(playerid, forcesync = 0)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
@@ -1182,7 +1295,7 @@ stock FIX_ClearAnimations(playerid, forcesync = 0)
 	if (IsPlayerInAnyVehicle(playerid))
 		return ApplyAnimation(playerid, "PED", "CAR_SIT", 4.0, 0, 0, 0, 0, 1, forcesync);
 
-	new ret = ClearAnimations(playerid, forcesync);
+	new ret = ClearFIXER_ANIMATIONS(playerid, forcesync);
 
 	ApplyAnimation(playerid, "PED", "IDLE_STANCE", 4.0, 0, 0, 0, 0, 1, forcesync);
 	ApplyAnimation(playerid, "PED", "IDLE_CHAT", 4.0, 0, 0, 0, 0, 1, forcesync);
@@ -1190,27 +1303,27 @@ stock FIX_ClearAnimations(playerid, forcesync = 0)
 
 	return ret;
 }
-#if defined _ALS_ClearAnimations
-    #undef ClearAnimations
+#if defined _ALS_ClearFIXER_ANIMATIONS
+    #undef ClearFIXER_ANIMATIONS
 #else
-    #define _ALS_ClearAnimations
+    #define _ALS_ClearFIXER_ANIMATIONS
 #endif
-#define ClearAnimations FIX_ClearAnimations
+#define ClearFIXER_ANIMATIONS FIXER_ClearFIXER_ANIMATIONS
 
-stock FIX_ApplyAnimation(playerid, animlib[], animname[], Float:fDelta, loop, lockx, locky, freeze, time, forcesync = 0, delay = 250)
+stock FIXER_ApplyAnimation(playerid, animlib[], animname[], Float:fDelta, loop, lockx, locky, freeze, time, forcesync = 0, delay = 250)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
 
-	for (new i, j = sizeof(ANIMATIONS); i < j; i ++)
+	for (new i, j = sizeof(FIXER_ANIMATIONS); i < j; i ++)
 	{
-		if (!strcmp(animlib, ANIMATIONS[i], true))
+		if (!strcmp(animlib, FIXER_ANIMATIONS[i], true))
 	    {
-		    if (p_AnimPrelaodTimer[playerid][i] <= 0)
+		    if (FIXER_p_AnimPrelaodTimer[playerid][i] <= 0)
 			{
-				KillTimer(p_AnimPrelaodTimer[playerid][i]);
-				p_AnimPrelaodTimer[playerid][i] = SetTimerEx("__OnAnimPreload", delay, false, "issfiiiiii", playerid, animlib, animname, fDelta, loop, lockx, locky, freeze, time, forcesync);
-				CallRemoteFunction("__OnAnimProcessed", "iii", playerid, i, p_AnimPrelaodTimer[playerid][i]);
+				KillTimer(FIXER_p_AnimPrelaodTimer[playerid][i]);
+				FIXER_p_AnimPrelaodTimer[playerid][i] = SetTimerEx("FIXER_OnAnimPreload", delay, false, "issfiiiiii", playerid, animlib, animname, fDelta, loop, lockx, locky, freeze, time, forcesync);
+				CallRemoteFunction("FIXER_OnAnimProcessed", "iii", playerid, i, FIXER_p_AnimPrelaodTimer[playerid][i]);
 			}
 	        return ApplyAnimation(playerid, animlib, animname, fDelta, loop, lockx, locky, freeze, time, forcesync);
 	    }
@@ -1223,47 +1336,47 @@ stock FIX_ApplyAnimation(playerid, animlib[], animname[], Float:fDelta, loop, lo
 #else
   	#define _ALS_ApplyAnimation
 #endif
-#define ApplyAnimation FIX_ApplyAnimation
+#define ApplyAnimation FIXER_ApplyAnimation
 
-forward __OnAnimPreload(playerid, animlib[], animname[], Float:fDelta, loop, lockx, locky, freeze, time, forcesync);
-public 	__OnAnimPreload(playerid, animlib[], animname[], Float:fDelta, loop, lockx, locky, freeze, time, forcesync)
+forward FIXER_OnAnimPreload(playerid, animlib[], animname[], Float:fDelta, loop, lockx, locky, freeze, time, forcesync);
+public 	FIXER_OnAnimPreload(playerid, animlib[], animname[], Float:fDelta, loop, lockx, locky, freeze, time, forcesync)
 {
     ApplyAnimation(playerid, animlib, animname, fDelta, loop, lockx, locky, freeze, time, forcesync);
 }
 
-forward __OnAnimProcessed(playerid, i, set);
-public	__OnAnimProcessed(playerid, i, set)
+forward FIXER_OnAnimProcessed(playerid, i, set);
+public	FIXER_OnAnimProcessed(playerid, i, set)
 {
-    p_AnimPrelaodTimer[playerid][i] = set;
+    FIXER_p_AnimPrelaodTimer[playerid][i] = set;
 }
 
-stock FIX_SetPlayerAttachedObject(playerid, index, modelid, bone, Float:fOffsetX = 0.0, Float:fOffsetY = 0.0, Float:fOffsetZ = 0.0, Float:fRotX = 0.0, Float:fRotY = 0.0, Float:fRotZ = 0.0, Float:fScaleX = 1.0, Float:fScaleY = 1.0, Float:fScaleZ = 1.0, materialcolor1 = 0, materialcolor2 = 0)
+stock FIXER_SetPlayerAttachedObject(playerid, index, modelid, bone, Float:fOffsetX = 0.0, Float:fOffsetY = 0.0, Float:fOffsetZ = 0.0, Float:fRotX = 0.0, Float:fRotY = 0.0, Float:fRotZ = 0.0, Float:fScaleX = 1.0, Float:fScaleY = 1.0, Float:fScaleZ = 1.0, materialcolor1 = 0, materialcolor2 = 0)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
 
 	if (SetPlayerAttachedObject(playerid, index, modelid, bone, fOffsetX, fOffsetY, fOffsetZ, fRotX, fRotY, fRotZ, fScaleX, fScaleY, fScaleZ, materialcolor1, materialcolor2))
 	{
-		p_Attachment[playerid][index][E_PLAYER_ATTACHMENT_MODEL] = modelid;
+		FIXER_p_Attachment[playerid][index][FIXER_e_PLAYER_ATT_MODEL] = modelid;
 
-		p_Attachment[playerid][index][E_PLAYER_ATTACHMENT_BONE] = bone;
+		FIXER_p_Attachment[playerid][index][FIXER_e_PLAYER_ATT_BONE] = bone;
 
-		p_Attachment[playerid][index][E_PLAYER_ATTACHMENT_X] = fOffsetX;
-		p_Attachment[playerid][index][E_PLAYER_ATTACHMENT_Y] = fOffsetY;
-		p_Attachment[playerid][index][E_PLAYER_ATTACHMENT_Z] = fOffsetZ;
+		FIXER_p_Attachment[playerid][index][FIXER_e_PLAYER_ATT_X] = fOffsetX;
+		FIXER_p_Attachment[playerid][index][FIXER_e_PLAYER_ATT_Y] = fOffsetY;
+		FIXER_p_Attachment[playerid][index][FIXER_e_PLAYER_ATT_Z] = fOffsetZ;
 
-		p_Attachment[playerid][index][E_PLAYER_ATTACHMENT_RX] = fRotX;
-		p_Attachment[playerid][index][E_PLAYER_ATTACHMENT_RY] = fRotY;
-		p_Attachment[playerid][index][E_PLAYER_ATTACHMENT_RZ] = fRotZ;
+		FIXER_p_Attachment[playerid][index][FIXER_e_PLAYER_ATT_RX] = fRotX;
+		FIXER_p_Attachment[playerid][index][FIXER_e_PLAYER_ATT_RY] = fRotY;
+		FIXER_p_Attachment[playerid][index][FIXER_e_PLAYER_ATT_RZ] = fRotZ;
 
-		p_Attachment[playerid][index][E_PLAYER_ATTACHMENT_SX] = fScaleX;
-		p_Attachment[playerid][index][E_PLAYER_ATTACHMENT_SY] = fScaleY;
-		p_Attachment[playerid][index][E_PLAYER_ATTACHMENT_SZ] = fScaleZ;
+		FIXER_p_Attachment[playerid][index][FIXER_e_PLAYER_ATT_SX] = fScaleX;
+		FIXER_p_Attachment[playerid][index][FIXER_e_PLAYER_ATT_SY] = fScaleY;
+		FIXER_p_Attachment[playerid][index][FIXER_e_PLAYER_ATT_SZ] = fScaleZ;
 
-		p_Attachment[playerid][index][E_PLAYER_ATTACHMENT_COLOR1] = materialcolor1;
-		p_Attachment[playerid][index][E_PLAYER_ATTACHMENT_COLOR2] = materialcolor2;
+		FIXER_p_Attachment[playerid][index][FIXER_e_PLAYER_ATT_COLOR1] = materialcolor1;
+		FIXER_p_Attachment[playerid][index][FIXER_e_PLAYER_ATT_COLOR2] = materialcolor2;
 
-		p_Attachment[playerid][index][E_PLAYER_ATTACHMENT_USED] = true;
+		FIXER_p_Attachment[playerid][index][FIXER_e_PLAYER_ATT_USED] = true;
 
 		return 1;
 	}
@@ -1275,16 +1388,16 @@ stock FIX_SetPlayerAttachedObject(playerid, index, modelid, bone, Float:fOffsetX
 #else
 	#define _ALS_SetPlayerAttachedObject
 #endif
-#define SetPlayerAttachedObject FIX_SetPlayerAttachedObject
+#define SetPlayerAttachedObject FIXER_SetPlayerAttachedObject
 
-stock FIX_RemovePlayerAttachedObject(playerid, index)
+stock FIXER_RemovePlayerAttached(playerid, index)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
 
 	if (RemovePlayerAttachedObject(playerid, index))
 	{
-		p_Attachment[playerid][index][E_PLAYER_ATTACHMENT_USED] = false;
+		FIXER_p_Attachment[playerid][index][FIXER_e_PLAYER_ATT_USED] = false;
 		return 1;
 	}
 
@@ -1295,18 +1408,18 @@ stock FIX_RemovePlayerAttachedObject(playerid, index)
 #else
     #define _ALS_RemovePlayerAttachedObject
 #endif
-#define RemovePlayerAttachedObject FIX_RemovePlayerAttachedObject
+#define RemovePlayerAttachedObject FIXER_RemovePlayerAttached
 
-stock FIX_SetPlayerCheckpoint(playerid, Float:x, Float:y, Float:z, Float:size)
+stock FIXER_SetPlayerCheckpoint(playerid, Float:x, Float:y, Float:z, Float:size)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
 
 	DisablePlayerCheckpoint(playerid);
 
-   	if (p_CheckpointTimer[playerid][0])
-    	KillTimer(p_CheckpointTimer[playerid][0]);
-    p_CheckpointTimer[playerid][0] = SetTimerEx("OnPlayerCheckpointSet", 250, false, "iifffffff", playerid, -1, x, y, z, size, 0.0, 0.0, 0.0);
+   	if (FIXER_p_CheckpointTimer[playerid][0])
+    	KillTimer(FIXER_p_CheckpointTimer[playerid][0]);
+    FIXER_p_CheckpointTimer[playerid][0] = SetTimerEx("OnPlayerCheckpointSet", 250, false, "iifffffff", playerid, -1, x, y, z, size, 0.0, 0.0, 0.0);
 
 	return 1;
 }
@@ -1315,18 +1428,18 @@ stock FIX_SetPlayerCheckpoint(playerid, Float:x, Float:y, Float:z, Float:size)
 #else
 	#define _ALS_SetPlayerCheckpoint
 #endif
-#define SetPlayerCheckpoint FIX_SetPlayerCheckpoint
+#define SetPlayerCheckpoint FIXER_SetPlayerCheckpoint
 
-stock FIX_SetPlayerRaceCheckpoint(playerid, type, Float:x, Float:y, Float:z, Float:nextx, Float:nexty, Float:nextz, Float:size)
+stock FIXER_SetPlayerRaceCheckpoint(playerid, type, Float:x, Float:y, Float:z, Float:nextx, Float:nexty, Float:nextz, Float:size)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
 
 	DisablePlayerRaceCheckpoint(playerid);
 
-    if (p_CheckpointTimer[playerid][1])
-    	KillTimer(p_CheckpointTimer[playerid][1]);
-    p_CheckpointTimer[playerid][1] = SetTimerEx("OnPlayerCheckpointSet", 250, false, "iifffffff", playerid, type, x, y, z, size, nextx, nexty, nextz);
+    if (FIXER_p_CheckpointTimer[playerid][1])
+    	KillTimer(FIXER_p_CheckpointTimer[playerid][1]);
+    FIXER_p_CheckpointTimer[playerid][1] = SetTimerEx("OnPlayerCheckpointSet", 250, false, "iifffffff", playerid, type, x, y, z, size, nextx, nexty, nextz);
 
 	return 1;
 }
@@ -1335,7 +1448,7 @@ stock FIX_SetPlayerRaceCheckpoint(playerid, type, Float:x, Float:y, Float:z, Flo
 #else
 	#define _ALS_SetPlayerRaceCheckpoint
 #endif
-#define SetPlayerRaceCheckpoint FIX_SetPlayerRaceCheckpoint
+#define SetPlayerRaceCheckpoint FIXER_SetPlayerRaceCheckpoint
 
 forward OnPlayerCheckpointSet(playerid, type, Float:x, Float:y, Float:z, Float:size, Float:nextx, Float:nexty, Float:nextz);
 public 	OnPlayerCheckpointSet(playerid, type, Float:x, Float:y, Float:z, Float:size, Float:nextx, Float:nexty, Float:nextz)
@@ -1345,24 +1458,24 @@ public 	OnPlayerCheckpointSet(playerid, type, Float:x, Float:y, Float:z, Float:s
 	else
 		SetPlayerRaceCheckpoint(playerid, type, x, y, z, nextx, nexty, nextz, size);
 
-	p_CheckpointTimer[playerid][1] = 0;
+	FIXER_p_CheckpointTimer[playerid][1] = 0;
 }
 
-stock FIX_GetPlayerIp(playerid, ip[], len)
+stock FIXER_GetPlayerIp(playerid, ip[], len)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
 
-	return strcat((ip[0] = EOS, ip), p_Ip[playerid], len);
+	return strcat((ip[0] = EOS, ip), FIXER_p_Ip[playerid], len);
 }
 #if defined _ALS_GetPlayerIp
 	#undef GetPlayerIp
 #else
 	#define _ALS_GetPlayerIp
 #endif
-#define GetPlayerIp FIX_GetPlayerIp
+#define GetPlayerIp FIXER_GetPlayerIp
 
-stock FIX_SetPlayerSkin(playerid, skinid)
+stock FIXER_SetPlayerSkin(playerid, skinid)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
@@ -1378,7 +1491,7 @@ stock FIX_SetPlayerSkin(playerid, skinid)
 
 		new ret = SetPlayerSkin(playerid, skinid);
 
-		CallRemoteFunction("__OnPlayerSkinSet", "ii", playerid, skinid);
+		CallRemoteFunction("FIXER_OnPlayerSkinSet", "ii", playerid, skinid);
 
 		PutPlayerInVehicle(playerid, vehicleid, seatid);
 
@@ -1392,29 +1505,29 @@ stock FIX_SetPlayerSkin(playerid, skinid)
 #else
 	#define _ALS_SetPlayerSkin
 #endif
-#define SetPlayerSkin FIX_SetPlayerSkin
+#define SetPlayerSkin FIXER_SetPlayerSkin
 
-forward __OnPlayerSkinSet(playerid, skinid);
-public  __OnPlayerSkinSet(playerid, skinid)
+forward FIXER_OnPlayerSkinSet(playerid, skinid);
+public  FIXER_OnPlayerSkinSet(playerid, skinid)
 {
-	p_Skin[playerid] = skinid;
+	FIXER_p_Skin[playerid] = skinid;
 }
 
-stock FIX_GetPlayerSkin(playerid)
+stock FIXER_GetPlayerSkin(playerid)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
 
-	return p_Skin[playerid];
+	return FIXER_p_Skin[playerid];
 }
 #if defined _ALS_GetPlayerSkin
 	#undef GetPlayerSkin
 #else
 	#define _ALS_GetPlayerSkin
 #endif
-#define GetPlayerSkin FIX_GetPlayerSkin
+#define GetPlayerSkin FIXER_GetPlayerSkin
 
-stock FIX_SetPlayerArmedWeapon(playerid, weaponid)
+stock FIXER_SetPlayerArmedWeapon(playerid, weaponid)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
@@ -1422,11 +1535,11 @@ stock FIX_SetPlayerArmedWeapon(playerid, weaponid)
     new model = GetVehicleModel(GetPlayerVehicleID(playerid));
 	if (weaponid == 34 && (model == 520 || model == 425))
 	{
-    	p_CurrentWeapon[playerid] = 0;
+    	FIXER_p_CurrentWeapon[playerid] = 0;
 		return SetPlayerArmedWeapon(playerid, 0);
 	}
 
-    p_CurrentWeapon[playerid] = weaponid;
+    FIXER_p_CurrentWeapon[playerid] = weaponid;
     return SetPlayerArmedWeapon(playerid, weaponid);
 }
 #if defined _ALS_SetPlayerArmedWeapon
@@ -1434,14 +1547,14 @@ stock FIX_SetPlayerArmedWeapon(playerid, weaponid)
 #else
     #define _ALS_SetPlayerArmedWeapon
 #endif
-#define SetPlayerArmedWeapon FIX_SetPlayerArmedWeapon
+#define SetPlayerArmedWeapon FIXER_SetPlayerArmedWeapon
 
-stock FIX_GivePlayerWeapon(playerid, weaponid, ammo)
+stock FIXER_GivePlayerWeapon(playerid, weaponid, ammo)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
 
-    p_CurrentWeapon[playerid] = weaponid;
+    FIXER_p_CurrentWeapon[playerid] = weaponid;
     return GivePlayerWeapon(playerid, weaponid, ammo);
 }
 #if defined _ALS_GivePlayerWeapon
@@ -1449,35 +1562,35 @@ stock FIX_GivePlayerWeapon(playerid, weaponid, ammo)
 #else
     #define _ALS_GivePlayerWeapon
 #endif
-#define GivePlayerWeapon FIX_GivePlayerWeapon
+#define GivePlayerWeapon FIXER_GivePlayerWeapon
 
-stock FIX_GetPlayerWeapon(playerid)
+stock FIXER_GetPlayerWeapon(playerid)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
 
-    return p_CurrentWeapon[playerid];
+    return FIXER_p_CurrentWeapon[playerid];
 }
 #if defined _ALS_GetPlayerWeapon
    #undef GetPlayerWeapon
 #else
     #define _ALS_GetPlayerWeapon
 #endif
-#define GetPlayerWeapon FIX_GetPlayerWeapon
+#define GetPlayerWeapon FIXER_GetPlayerWeapon
 
-stock FIX_SetPlayerWorldBounds(playerid, Float:x_max, Float:x_min, Float:y_max, Float:y_min)
+stock FIXER_SetPlayerWorldBounds(playerid, Float:x_max, Float:x_min, Float:y_max, Float:y_min)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
 
 	new ret = SetPlayerWorldBounds(playerid, x_max, x_min, y_max, y_min);
 	if (ret)
-		CallRemoteFunction("__OnPlayerWorldBoundSet", "iffff", playerid, x_max, x_min, y_max, y_min);
+		CallRemoteFunction("FIXER_OnPlayerWorldBoundSet", "iffff", playerid, x_max, x_min, y_max, y_min);
 
 	if (x_max == x_min || y_max == y_min)
-		p_WorldBounds[playerid][E_WORLD_BOUND_CHECK] = false;
+		FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_CHECK] = false;
 	else
-		p_WorldBounds[playerid][E_WORLD_BOUND_CHECK] = true;
+		FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_CHECK] = true;
 
 	return ret;
 }
@@ -1486,10 +1599,10 @@ stock FIX_SetPlayerWorldBounds(playerid, Float:x_max, Float:x_min, Float:y_max, 
 #else
 	#define _ALS_SetPlayerWorldBounds
 #endif
-#define SetPlayerWorldBounds FIX_SetPlayerWorldBounds
+#define SetPlayerWorldBounds FIXER_SetPlayerWorldBounds
 
-forward __OnPlayerWorldBoundSet(playerid, Float:x_max, Float:x_min, Float:y_max, Float:y_min);
-public 	__OnPlayerWorldBoundSet(playerid, Float:x_max, Float:x_min, Float:y_max, Float:y_min)
+forward FIXER_OnPlayerWorldBoundSet(playerid, Float:x_max, Float:x_min, Float:y_max, Float:y_min);
+public 	FIXER_OnPlayerWorldBoundSet(playerid, Float:x_max, Float:x_min, Float:y_max, Float:y_min)
 {
 	new Float:tmp;
 
@@ -1507,36 +1620,36 @@ public 	__OnPlayerWorldBoundSet(playerid, Float:x_max, Float:x_min, Float:y_max,
 		y_max = tmp;
 	}
 
-   	p_WorldBounds[playerid][E_WORLD_BOUND_CHECK] = false;
+   	FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_CHECK] = false;
 
-	p_WorldBounds[playerid][E_WORLD_BOUND_LX] = x_min;
-	p_WorldBounds[playerid][E_WORLD_BOUND_UX] = x_max;
+	FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_LX] = x_min;
+	FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_UX] = x_max;
 
-	p_WorldBounds[playerid][E_WORLD_BOUND_LY] = y_min;
-	p_WorldBounds[playerid][E_WORLD_BOUND_UY] = y_max;
+	FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_LY] = y_min;
+	FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_UY] = y_max;
 
 	GetPlayerPos(playerid, tmp, tmp, tmp),
-	p_WorldBounds[playerid][E_WORLD_BOUND_PX] = (x_max - x_min) / 2 + x_min;
-	p_WorldBounds[playerid][E_WORLD_BOUND_PY] = (y_max - y_min) / 2 + y_min;
-	p_WorldBounds[playerid][E_WORLD_BOUND_PZ] = tmp;
+	FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_PX] = (x_max - x_min) / 2 + x_min;
+	FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_PY] = (y_max - y_min) / 2 + y_min;
+	FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_PZ] = tmp;
 }
 
-stock FIX_TogglePlayerSpectating(playerid, toggle)
+stock FIXER_TogglePlayerSpectating(playerid, toggle)
 {
 	new ret = TogglePlayerSpectating(playerid, toggle);
 	if (ret)
 	{
-		p_ToggleSpecTick[playerid] = FIX_GetTickCount();
-		KillTimer(p_ToggleSpecTimer[playerid]);
+		FIXER_p_ToggleSpecTick[playerid] = FIXER_GetTickCount();
+		KillTimer(FIXER_p_ToggleSpecTimer[playerid]);
 
-	    p_SpecData[playerid][E_SPEC_DATA_ID] = INVALID_PLAYER_ID;
+	    FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_ID] = INVALID_PLAYER_ID;
 
 	    if (toggle)
-	    	p_SpecData[playerid][E_SPEC_DATA_TYPE] = SPECTATE_TYPE_ENABLED;
+	    	FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_TYPE] = SPECTATE_TYPE_ENABLED;
 		else
-	    	p_SpecData[playerid][E_SPEC_DATA_TYPE] = SPECTATE_TYPE_DISABLED;
+	    	FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_TYPE] = SPECTATE_TYPE_DISABLED;
 
-	    p_SpecData[playerid][E_SPEC_DATA_MODE] = 0;
+	    FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_MODE] = 0;
 	}
 
 	return ret;
@@ -1546,17 +1659,17 @@ stock FIX_TogglePlayerSpectating(playerid, toggle)
 #else
 	#define _ALS_TogglePlayerSpectating
 #endif
-#define TogglePlayerSpectating FIX_TogglePlayerSpectating
+#define TogglePlayerSpectating FIXER_TogglePlayerSpectating
 
-stock FIX_SetPlayerCameraPos(playerid, Float:x, Float:y, Float:z, delay = 350)
+stock FIXER_SetPlayerCameraPos(playerid, Float:x, Float:y, Float:z, delay = 350)
 {
 	new ret = SetPlayerCameraPos(playerid, x, y, z);
 	if (ret)
 	{
-	    if (p_ToggleSpecTick[playerid] != -1 && (FIX_GetTickCount() - p_ToggleSpecTick[playerid]) <= 600)
+	    if (FIXER_p_ToggleSpecTick[playerid] != -1 && (FIXER_GetTickCount() - FIXER_p_ToggleSpecTick[playerid]) <= 600)
 	    {
-			KillTimer(p_ToggleSpecTimer[playerid]);
-			p_ToggleSpecTimer[playerid] = SetTimerEx("__OnPlayerCameraSet", delay, false, "ifffi", playerid, x, y, z, -1);
+			KillTimer(FIXER_p_ToggleSpecTimer[playerid]);
+			FIXER_p_ToggleSpecTimer[playerid] = SetTimerEx("FIXER_OnPlayerCameraSet", delay, false, "ifffi", playerid, x, y, z, -1);
 		}
 	}
 
@@ -1567,17 +1680,17 @@ stock FIX_SetPlayerCameraPos(playerid, Float:x, Float:y, Float:z, delay = 350)
 #else
 	#define _ALS_SetPlayerCameraPos
 #endif
-#define SetPlayerCameraPos FIX_SetPlayerCameraPos
+#define SetPlayerCameraPos FIXER_SetPlayerCameraPos
 
-stock FIX_SetPlayerCameraLookAt(playerid, Float:x, Float:y, Float:z, cut = CAMERA_CUT, delay = 350)
+stock FIXER_SetPlayerCameraLookAt(playerid, Float:x, Float:y, Float:z, cut = CAMERA_CUT, delay = 350)
 {
 	new ret = SetPlayerCameraLookAt(playerid, x, y, z, cut);
 	if (ret)
 	{
-	    if (p_ToggleSpecTick[playerid] != -1 && (FIX_GetTickCount() - p_ToggleSpecTick[playerid]) <= 600)
+	    if (FIXER_p_ToggleSpecTick[playerid] != -1 && (FIXER_GetTickCount() - FIXER_p_ToggleSpecTick[playerid]) <= 600)
 	    {
-			KillTimer(p_ToggleSpecTimer[playerid]);
-			p_ToggleSpecTimer[playerid] = SetTimerEx("OnPlayerCameraSet", delay, false, "ifffi", playerid, x, y, z, cut);
+			KillTimer(FIXER_p_ToggleSpecTimer[playerid]);
+			FIXER_p_ToggleSpecTimer[playerid] = SetTimerEx("OnPlayerCameraSet", delay, false, "ifffi", playerid, x, y, z, cut);
 		}
 	}
 
@@ -1588,27 +1701,27 @@ stock FIX_SetPlayerCameraLookAt(playerid, Float:x, Float:y, Float:z, cut = CAMER
 #else
 	#define _ALS_SetPlayerCameraLookAt
 #endif
-#define SetPlayerCameraLookAt FIX_SetPlayerCameraLookAt
+#define SetPlayerCameraLookAt FIXER_SetPlayerCameraLookAt
 
-forward __OnPlayerCameraSet(playerid, Float:x, Float:y, Float:z, cut);
-public  __OnPlayerCameraSet(playerid, Float:x, Float:y, Float:z, cut)
+forward FIXER_OnPlayerCameraSet(playerid, Float:x, Float:y, Float:z, cut);
+public  FIXER_OnPlayerCameraSet(playerid, Float:x, Float:y, Float:z, cut)
 {
     if (cut == -1)
 		SetPlayerCameraPos(playerid, x, y, z);
     else
 		SetPlayerCameraLookAt(playerid, x, y, z, cut);
 
-    p_ToggleSpecTick[playerid] = -1;
-    p_ToggleSpecTimer[playerid] = 0;
+    FIXER_p_ToggleSpecTick[playerid] = -1;
+    FIXER_p_ToggleSpecTimer[playerid] = 0;
 }
 
-stock FIX_TogglePlayerControllable(playerid, toggle)
+stock FIXER_TogglePlayerControllable(playerid, toggle)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
 
 	if (! toggle)
-		ClearAnimations(playerid, 1);
+		ClearFIXER_ANIMATIONS(playerid, 1);
 
 	return TogglePlayerControllable(playerid, toggle);
 }
@@ -1617,9 +1730,9 @@ stock FIX_TogglePlayerControllable(playerid, toggle)
 #else
     #define _ALS_TogglePlayerControllable
 #endif
-#define TogglePlayerControllable FIX_TogglePlayerControllable
+#define TogglePlayerControllable FIXER_TogglePlayerControllable
 
-stock FIX_PutPlayerInVehicle(playerid, vehicleid, seatid)
+stock FIXER_PutPlayerInVehicle(playerid, vehicleid, seatid)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
@@ -1638,9 +1751,9 @@ stock FIX_PutPlayerInVehicle(playerid, vehicleid, seatid)
 #else
     #define _ALS_PutPlayerInVehicle
 #endif
-#define PutPlayerInVehicle FIX_PutPlayerInVehicle
+#define PutPlayerInVehicle FIXER_PutPlayerInVehicle
 
-stock FIX_SpawnPlayer(playerid)
+stock FIXER_SpawnPlayer(playerid)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
@@ -1659,9 +1772,9 @@ stock FIX_SpawnPlayer(playerid)
 #else
 	#define _ALS_SpawnPlayer
 #endif
-#define SpawnPlayer FIX_SpawnPlayer
+#define SpawnPlayer FIXER_SpawnPlayer
 
-stock FIX_SetPlayerName(playerid, const name[])
+stock FIXER_SetPlayerName(playerid, const name[])
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
    		return 0;
@@ -1695,15 +1808,15 @@ stock FIX_SetPlayerName(playerid, const name[])
 #else
 	#define _ALS_SetPlayerName
 #endif
-#define SetPlayerName FIX_SetPlayerName
+#define SetPlayerName FIXER_SetPlayerName
 
-stock FIX_SetPlayerSpecialAction(playerid, actionid)
+stock FIXER_SetPlayerSpecialAction(playerid, actionid)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
 
 	if (actionid == SPECIAL_ACTION_USEJETPACK)
-		ClearAnimations(playerid, 1);
+		ClearFIXER_ANIMATIONS(playerid, 1);
 
 	return SetPlayerSpecialAction(playerid, actionid);
 }
@@ -1712,9 +1825,9 @@ stock FIX_SetPlayerSpecialAction(playerid, actionid)
 #else
     #define _ALS_SetPlayerSpecialAction
 #endif
-#define SetPlayerSpecialAction FIX_SetPlayerSpecialAction
+#define SetPlayerSpecialAction FIXER_SetPlayerSpecialAction
 
-stock FIX_SetPlayerPos(playerid, Float:x, Float:y, Float:z)
+stock FIXER_SetPlayerPos(playerid, Float:x, Float:y, Float:z)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
@@ -1738,13 +1851,13 @@ stock FIX_SetPlayerPos(playerid, Float:x, Float:y, Float:z)
 #else
 	#define _ALS_SetPlayerPos
 #endif
-#define SetPlayerPos FIX_SetPlayerPos
+#define SetPlayerPos FIXER_SetPlayerPos
 
-stock FIX_CreateVehicle(vehicletype, Float:x, Float:y, Float:z, Float:rotation, color1, color2, respawn_delay, addsiren = 0)
+stock FIXER_CreateVehicle(vehicletype, Float:x, Float:y, Float:z, Float:rotation, color1, color2, respawn_delay, addsiren = 0)
 {
 	new ret = CreateVehicle(vehicletype, x, y, z, rotation, color1, color2, respawn_delay, addsiren);
 	if (ret != INVALID_VEHICLE_ID)
-		v_VehicleHealth[ret] = 1000.0;
+		FIXER_v_VehicleHealth[ret] = 1000.0;
 	return ret;
 }
 #if defined _ALS_CreateVehicle
@@ -1752,13 +1865,13 @@ stock FIX_CreateVehicle(vehicletype, Float:x, Float:y, Float:z, Float:rotation, 
 #else
 	#define _ALS_CreateVehicle
 #endif
-#define CreateVehicle FIX_CreateVehicle
+#define CreateVehicle FIXER_CreateVehicle
 
-stock FIX_AddStaticVehicle(vehicletype, Float:x, Float:y, Float:z, Float:rotation, color1, color2)
+stock FIXER_AddStaticVehicle(vehicletype, Float:x, Float:y, Float:z, Float:rotation, color1, color2)
 {
 	new ret = AddStaticVehicle(vehicletype, x, y, z, rotation, color1, color2);
 	if (ret != INVALID_VEHICLE_ID)
-    	v_VehicleHealth[ret] = 1000.0;
+    	FIXER_v_VehicleHealth[ret] = 1000.0;
 	return ret;
 }
 #if defined _ALS_AddStaticVehicle
@@ -1766,13 +1879,13 @@ stock FIX_AddStaticVehicle(vehicletype, Float:x, Float:y, Float:z, Float:rotatio
 #else
 	#define _ALS_AddStaticVehicle
 #endif
-#define AddStaticVehicle FIX_AddStaticVehicle
+#define AddStaticVehicle FIXER_AddStaticVehicle
 
-stock FIX_AddStaticVehicleEx(vehicletype, Float:x, Float:y, Float:z, Float:rotation, color1, color2, respawn_delay, addsiren = 0)
+stock FIXER_AddStaticVehicleEx(vehicletype, Float:x, Float:y, Float:z, Float:rotation, color1, color2, respawn_delay, addsiren = 0)
 {
 	new ret = AddStaticVehicleEx(vehicletype, x, y, z, rotation, color1, color2, respawn_delay, addsiren);
 	if (ret != INVALID_VEHICLE_ID)
-    	v_VehicleHealth[ret] = 1000.0;
+    	FIXER_v_VehicleHealth[ret] = 1000.0;
 	return ret;
 }
 #if defined _ALS_AddStaticVehicleEx
@@ -1780,13 +1893,13 @@ stock FIX_AddStaticVehicleEx(vehicletype, Float:x, Float:y, Float:z, Float:rotat
 #else
 	#define _ALS_AddStaticVehicleEx
 #endif
-#define AddStaticVehicleEx FIX_AddStaticVehicleEx
+#define AddStaticVehicleEx FIXER_AddStaticVehicleEx
 
-stock FIX_SetVehicleHealth(vehicleid, Float:health)
+stock FIXER_SetVehicleHealth(vehicleid, Float:health)
 {
 	new ret = SetVehicleHealth(vehicleid, health);
 	if (ret)
-    	v_VehicleHealth[vehicleid] = health;
+    	FIXER_v_VehicleHealth[vehicleid] = health;
 	return ret;
 }
 #if defined _ALS_SetVehicleHealth
@@ -1794,11 +1907,11 @@ stock FIX_SetVehicleHealth(vehicleid, Float:health)
 #else
 	#define _ALS_SetVehicleHealth
 #endif
-#define SetVehicleHealth FIX_SetVehicleHealth
+#define SetVehicleHealth FIXER_SetVehicleHealth
 
-stock FIX_EnableTirePopping(toggle)
+stock FIXER_EnableTirePopping(toggle)
 {
-    g_Toggle[E_TOGGLE_TIRE_POPPING] = bool:toggle;
+    FIXER_g_Toggle[FIXER_e_TIRE_POPPING] = bool:toggle;
 	return 1;
 }
 #if defined _ALS_EnableTirePopping
@@ -1806,11 +1919,11 @@ stock FIX_EnableTirePopping(toggle)
 #else
 	#define _ALS_EnableTirePopping
 #endif
-#define EnableTirePopping FIX_EnableTirePopping
+#define EnableTirePopping FIXER_EnableTirePopping
 
-stock FIX_AllowInteriorWeapons(toggle)
+stock FIXER_AllowInteriorWeapons(toggle)
 {
-    g_Toggle[E_TOGGLE_INTERIOR_WEAPONS] = bool:toggle;
+    FIXER_g_Toggle[FIXER_e_INTERIOR_WEAPONS] = bool:toggle;
     return 1;
 }
 #if defined _ALS_AllowInteriorWeapons
@@ -1818,11 +1931,11 @@ stock FIX_AllowInteriorWeapons(toggle)
 #else
 	#define _ALS_AllowInteriorWeapons
 #endif
-#define AllowInteriorWeapons FIX_AllowInteriorWeapons
+#define AllowInteriorWeapons FIXER_AllowInteriorWeapons
 
-stock FIX_AllowAdminTeleport(toggle)
+stock FIXER_AllowAdminTeleport(toggle)
 {
-    g_Toggle[E_TOGGLE_ADMIN_TELEPORT] = bool:toggle;
+    FIXER_g_Toggle[FIXER_e_ADMIN_TELEPORT] = bool:toggle;
     return 1;
 }
 #if defined _ALS_AllowAdminTeleport
@@ -1830,11 +1943,11 @@ stock FIX_AllowAdminTeleport(toggle)
 #else
 	#define _ALS_AllowAdminTeleport
 #endif
-#define AllowAdminTeleport FIX_AllowAdminTeleport
+#define AllowAdminTeleport FIXER_AllowAdminTeleport
 
-stock FIX_EnableVehicleFriendlyFire(toggle = 1)
+stock FIXER_EnableVehicleFriendlyFire(toggle = 1)
 {
-    g_Toggle[E_TOGGLE_VEHICLE_FRIENDLYFIRE] = bool:toggle;
+    FIXER_g_Toggle[FIXER_e_VEHICLE_FRIENDLYFIRE] = bool:toggle;
     return 1;
 }
 #if defined _ALS_EnableVehicleFriendlyFire
@@ -1842,9 +1955,9 @@ stock FIX_EnableVehicleFriendlyFire(toggle = 1)
 #else
 	#define _ALS_EnableVehicleFriendlyFire
 #endif
-#define EnableVehicleFriendlyFire FIX_EnableVehicleFriendlyFire
+#define EnableVehicleFriendlyFire FIXER_EnableVehicleFriendlyFire
 
-stock Text:FIX_TextDrawCreate(Float:x, Float:y, text[])
+stock Text:FIXER_TextDrawCreate(Float:x, Float:y, text[])
 {
 	if (text[0] == '\0' || (text[0] == '\1' && text[1] == '\0'))
 		return TextDrawCreate(x, y, "_");
@@ -1856,9 +1969,9 @@ stock Text:FIX_TextDrawCreate(Float:x, Float:y, text[])
 #else
 	#define _ALS_TextDrawCreate
 #endif
-#define TextDrawCreate FIX_TextDrawCreate
+#define TextDrawCreate FIXER_TextDrawCreate
 
-stock PlayerText:FIX_CreatePlayerTextDraw(playerid, Float:x, Float:y, text[])
+stock PlayerText:FIXER_CreatePlayerTextDraw(playerid, Float:x, Float:y, text[])
 {
 	if (playerid < 0 || playerid >= MAX_PLAYERS)
 		return PlayerText:INVALID_TEXT_DRAW;
@@ -1873,9 +1986,9 @@ stock PlayerText:FIX_CreatePlayerTextDraw(playerid, Float:x, Float:y, text[])
 #else
 	#define _ALS_CreatePlayerTextDraw
 #endif
-#define CreatePlayerTextDraw FIX_CreatePlayerTextDraw
+#define CreatePlayerTextDraw FIXER_CreatePlayerTextDraw
 
-stock FIX_TextDrawSetString(Text:text, string[])
+stock FIXER_TextDrawSetString(Text:text, string[])
 {
 	if (string[0] == '\0' || (string[0] == '\1' && string[1] == '\0'))
 		return TextDrawSetString(text, "_");
@@ -1887,9 +2000,9 @@ stock FIX_TextDrawSetString(Text:text, string[])
 #else
 	#define _ALS_TextDrawSetString
 #endif
-#define TextDrawSetString FIX_TextDrawSetString
+#define TextDrawSetString FIXER_TextDrawSetString
 
-stock FIX_PlayerTextDrawSetString(playerid, PlayerText:text, string[])
+stock FIXER_PlayerTextDrawSetString(playerid, PlayerText:text, string[])
 {
 	if (playerid < 0 || playerid >= MAX_PLAYERS)
 		return -1;
@@ -1904,9 +2017,9 @@ stock FIX_PlayerTextDrawSetString(playerid, PlayerText:text, string[])
 #else
 	#define _ALS_PlayerTextDrawSetString
 #endif
-#define PlayerTextDrawSetString FIX_PlayerTextDrawSetString
+#define PlayerTextDrawSetString FIXER_PlayerTextDrawSetString
 
-stock FIX_GameTextForPlayer(playerid, string[], time, style)
+stock FIXER_GameTextForPlayer(playerid, string[], time, style)
 {
 	if (string[0] == '\0' || (string[0] == '\1' && string[1] == '\0'))
 		return GameTextForPlayer(playerid, "_", time, style);
@@ -1918,9 +2031,9 @@ stock FIX_GameTextForPlayer(playerid, string[], time, style)
 #else
 	#define _ALS_GameTextForPlayer
 #endif
-#define GameTextForPlayer FIX_GameTextForPlayer
+#define GameTextForPlayer FIXER_GameTextForPlayer
 
-stock FIX_GameTextForAll(string[], time, style)
+stock FIXER_GameTextForAll(string[], time, style)
 {
 	if (string[0] == '\0' || (string[0] == '\1' && string[1] == '\0'))
 		return GameTextForAll("_", time, style);
@@ -1932,9 +2045,9 @@ stock FIX_GameTextForAll(string[], time, style)
 #else
 	#define _ALS_GameTextForAll
 #endif
-#define GameTextForAll FIX_GameTextForAll
+#define GameTextForAll FIXER_GameTextForAll
 
-stock FIX_GetWeaponName(weaponid, weapon[], len)
+stock FIXER_GetWeaponName(weaponid, weapon[], len)
 {
 	switch (weaponid)
 	{
@@ -1972,9 +2085,9 @@ stock FIX_GetWeaponName(weaponid, weapon[], len)
 #else
     #define _ALS_GetWeaponName
 #endif
-#define GetWeaponName FIX_GetWeaponName
+#define GetWeaponName FIXER_GetWeaponName
 
-stock FIX_GangZoneCreate(Float:minx, Float:miny, Float:maxx, Float:maxy)
+stock FIXER_GangZoneCreate(Float:minx, Float:miny, Float:maxx, Float:maxy)
 {
 	if (minx > maxx)
 	{
@@ -1997,9 +2110,9 @@ stock FIX_GangZoneCreate(Float:minx, Float:miny, Float:maxx, Float:maxy)
 #else
 	#define _ALS_GangZoneCreate
 #endif
-#define GangZoneCreate FIX_GangZoneCreate
+#define GangZoneCreate FIXER_GangZoneCreate
 
-stock FIX_random(max)
+stock FIXER_random(max)
 {
 	if (max < 0)
 		return -random(-max);
@@ -2011,9 +2124,9 @@ stock FIX_random(max)
 #else
 	#define _ALS_random
 #endif
-#define random FIX_random
+#define random FIXER_random
 
-stock FIX_strins(string[], const substr[], pos, maxlength = sizeof(string))
+stock FIXER_strins(string[], const substr[], pos, maxlength = sizeof(string))
 {
 	if (string[0] > 255)
 	{
@@ -2052,9 +2165,9 @@ stock FIX_strins(string[], const substr[], pos, maxlength = sizeof(string))
 #else
 	#define _ALS_strins
 #endif
-#define strins FIX_strins
+#define strins FIXER_strins
 
-stock FIX_valstr(dest[], value, bool:pack = false)
+stock FIXER_valstr(dest[], value, bool:pack = false)
 {
 	static const __cellmin[] = !"-2147483648";
 
@@ -2070,9 +2183,9 @@ stock FIX_valstr(dest[], value, bool:pack = false)
 #else
 	#define _ALS_valstr
 #endif
-#define valstr FIX_valstr
+#define valstr FIXER_valstr
 
-stock FIX_strcmp(const string1[], const string2[], bool:ignorecase = false, length = cellmax)
+stock FIXER_strcmp(const string1[], const string2[], bool:ignorecase = false, length = cellmax)
 {
 	if (string1[0])
 	{
@@ -2094,9 +2207,9 @@ stock FIX_strcmp(const string1[], const string2[], bool:ignorecase = false, leng
 #else
 	#define _ALS_strcmp
 #endif
-#define strcmp FIX_strcmp
+#define strcmp FIXER_strcmp
 
-stock FIX_GetTickCount()
+stock FIXER_GetTickCount()
 {
 	new ret = GetTickCount();
 
@@ -2110,9 +2223,9 @@ stock FIX_GetTickCount()
 #else
 	#define _ALS_GetTickCount
 #endif
-#define GetTickCount FIX_GetTickCount
+#define GetTickCount FIXER_GetTickCount
 
-stock FIX_tickcount(&granularity = 0)
+stock FIXER_tickcount(&granularity = 0)
 {
 	new ret = tickcount(granularity);
 
@@ -2126,9 +2239,9 @@ stock FIX_tickcount(&granularity = 0)
 #else
 	#define _ALS_tickcount
 #endif
-#define tickcount FIX_tickcount
+#define tickcount FIXER_tickcount
 
-stock FIX_PlayerSpectatePlayer(playerid, targetplayerid, mode = SPECTATE_MODE_NORMAL)
+stock FIXER_PlayerSpectatePlayer(playerid, targetplayerid, mode = SPECTATE_MODE_NORMAL)
 {
 	if (targetplayerid == playerid)
 	    return 0;
@@ -2139,9 +2252,9 @@ stock FIX_PlayerSpectatePlayer(playerid, targetplayerid, mode = SPECTATE_MODE_NO
 	if (!IsPlayerConnected(targetplayerid))
 	    return 0;
 
-	p_SpecData[playerid][E_SPEC_DATA_ID] = targetplayerid;
- 	p_SpecData[playerid][E_SPEC_DATA_TYPE] = SPECTATE_TYPE_PLAYER;
-  	p_SpecData[playerid][E_SPEC_DATA_MODE] = mode;
+	FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_ID] = targetplayerid;
+ 	FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_TYPE] = SPECTATE_TYPE_PLAYER;
+  	FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_MODE] = mode;
 
 	SetPlayerInterior(playerid, GetPlayerInterior(targetplayerid));
 	SetPlayerVirtualWorld(playerid, GetPlayerVirtualWorld(targetplayerid));
@@ -2158,9 +2271,9 @@ stock FIX_PlayerSpectatePlayer(playerid, targetplayerid, mode = SPECTATE_MODE_NO
 #else
     #define _ALS_PlayerSpectatePlayer
 #endif
-#define PlayerSpectatePlayer FIX_PlayerSpectatePlayer
+#define PlayerSpectatePlayer FIXER_PlayerSpectatePlayer
 
-stock FIX_PlayerSpectateVehicle(playerid, targetvehicleid, mode = SPECTATE_MODE_NORMAL)
+stock FIXER_PlayerSpectateVehicle(playerid, targetvehicleid, mode = SPECTATE_MODE_NORMAL)
 {
 	if (!IsPlayerConnected(playerid))
 	    return 0;
@@ -2168,11 +2281,11 @@ stock FIX_PlayerSpectateVehicle(playerid, targetvehicleid, mode = SPECTATE_MODE_
 	if (!IsValidVehicle(targetvehicleid))
 	    return 0;
 
-	p_SpecData[playerid][E_SPEC_DATA_ID] = targetvehicleid;
- 	p_SpecData[playerid][E_SPEC_DATA_TYPE] = SPECTATE_TYPE_VEHICLE;
- 	p_SpecData[playerid][E_SPEC_DATA_MODE] = mode;
+	FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_ID] = targetvehicleid;
+ 	FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_TYPE] = SPECTATE_TYPE_VEHICLE;
+ 	FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_MODE] = mode;
 
-	SetPlayerInterior(playerid, v_Interior[targetvehicleid]);
+	SetPlayerInterior(playerid, FIXER_v_Interior[targetvehicleid]);
 	SetPlayerVirtualWorld(playerid, GetVehicleVirtualWorld(targetvehicleid));
 
 	return PlayerSpectateVehicle(playerid, targetvehicleid, mode);
@@ -2182,11 +2295,11 @@ stock FIX_PlayerSpectateVehicle(playerid, targetvehicleid, mode = SPECTATE_MODE_
 #else
     #define _ALS_PlayerSpectateVehicle
 #endif
-#define PlayerSpectateVehicle FIX_PlayerSpectateVehicle
+#define PlayerSpectateVehicle FIXER_PlayerSpectateVehicle
 
-stock FIXER_UpdatePlayerSpectateID(playerid, bool:advance = true)
+stock static FIXER_UpdatePlayerSpectateID(playerid, bool:advance = true)
 {
-	switch (p_SpecData[playerid][E_SPEC_DATA_TYPE])
+	switch (FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_TYPE])
 	{
 	    case SPECTATE_TYPE_PLAYER:
 	    {
@@ -2196,7 +2309,7 @@ stock FIXER_UpdatePlayerSpectateID(playerid, bool:advance = true)
 			if (advance)
 			{
    			SPEC_NEXT_PLAYER:
-                for (new i = (p_SpecData[playerid][E_SPEC_DATA_ID] + 1), j = GetPlayerPoolSize(); IsPlayerConnected(i); i++)
+                for (new i = (FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_ID] + 1), j = GetPlayerPoolSize(); IsPlayerConnected(i); i++)
                 {
                     count++;
 
@@ -2218,7 +2331,7 @@ stock FIXER_UpdatePlayerSpectateID(playerid, bool:advance = true)
 			else
 			{
 			SPEC_PERVIOUS_PLAYER:
-                for (new i = (p_SpecData[playerid][E_SPEC_DATA_ID] - 1); IsPlayerConnected(i); i--)
+                for (new i = (FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_ID] - 1); IsPlayerConnected(i); i--)
                 {
                     count++;
 
@@ -2241,15 +2354,15 @@ stock FIXER_UpdatePlayerSpectateID(playerid, bool:advance = true)
 			if (targetid == INVALID_PLAYER_ID)
    				return INVALID_PLAYER_ID;
 
-            p_SpecData[playerid][E_SPEC_DATA_ID] = targetid;
+            FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_ID] = targetid;
 
 			SetPlayerInterior(playerid, GetPlayerInterior(targetid));
 			SetPlayerVirtualWorld(playerid, GetPlayerVirtualWorld(targetid));
 
 			if (IsPlayerInAnyVehicle(targetid))
-				PlayerSpectateVehicle(playerid, GetPlayerVehicleID(targetid), p_SpecData[playerid][E_SPEC_DATA_MODE]);
+				PlayerSpectateVehicle(playerid, GetPlayerVehicleID(targetid), FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_MODE]);
 			else
-			    PlayerSpectatePlayer(playerid, targetid, p_SpecData[playerid][E_SPEC_DATA_MODE]);
+			    PlayerSpectatePlayer(playerid, targetid, FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_MODE]);
 
    			return targetid;
 		}
@@ -2262,7 +2375,7 @@ stock FIXER_UpdatePlayerSpectateID(playerid, bool:advance = true)
 			if (advance)
 			{
    			SPEC_NEXT_VEHICLE:
-                for (new i = (p_SpecData[playerid][E_SPEC_DATA_ID] + 1), j = GetVehiclePoolSize(); ; i++)
+                for (new i = (FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_ID] + 1), j = GetVehiclePoolSize(); ; i++)
                 {
                 	if (!IsValidVehicle(i))
                 		continue;
@@ -2284,7 +2397,7 @@ stock FIXER_UpdatePlayerSpectateID(playerid, bool:advance = true)
 			else
 			{
 			SPEC_PERVIOUS_VEHICLE:
-                for (new i = (p_SpecData[playerid][E_SPEC_DATA_ID] - 1); ; i--)
+                for (new i = (FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_ID] - 1); ; i--)
                 {
                 	if (!IsValidVehicle(i))
                 		continue;
@@ -2307,12 +2420,12 @@ stock FIXER_UpdatePlayerSpectateID(playerid, bool:advance = true)
 			if (targetid == INVALID_VEHICLE_ID)
 	   			return INVALID_VEHICLE_ID;
 
-			p_SpecData[playerid][E_SPEC_DATA_ID] = targetid;
+			FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_ID] = targetid;
 
-			SetPlayerInterior(playerid, v_Interior[targetid]);
+			SetPlayerInterior(playerid, FIXER_v_Interior[targetid]);
 			SetPlayerVirtualWorld(playerid, GetVehicleVirtualWorld(targetid));
 
-			PlayerSpectateVehicle(playerid, targetid, p_SpecData[playerid][E_SPEC_DATA_MODE]);
+			PlayerSpectateVehicle(playerid, targetid, FIXER_p_SpecData[playerid][FIXER_e_SPEC_DATA_MODE]);
 			return targetid;
 		}
 	}
@@ -2320,9 +2433,9 @@ stock FIXER_UpdatePlayerSpectateID(playerid, bool:advance = true)
 	return -1;
 }
 
-stock FIX_LinkVehicleToInterior(vehicleid, interiorid)
+stock FIXER_LinkVehicleToInterior(vehicleid, interiorid)
 {
-	CallRemoteFunction("__OnVehicleInteriorSet", "ii", vehicleid, interiorid);
+	CallRemoteFunction("FIXER_OnVehicleInteriorSet", "ii", vehicleid, interiorid);
 	return LinkVehicleToInterior(vehicleid, interiorid);
 }
 #if defined _ALS_LinkVehicleToInterior
@@ -2330,15 +2443,15 @@ stock FIX_LinkVehicleToInterior(vehicleid, interiorid)
 #else
 	#define _ALS_LinkVehicleToInterior
 #endif
-#define LinkVehicleToInterior FIX_LinkVehicleToInterior
+#define LinkVehicleToInterior FIXER_LinkVehicleToInterior
 
-forward __OnVehicleInteriorSet(vehicleid, interiorid);
-public  __OnVehicleInteriorSet(vehicleid, interiorid)
+forward FIXER_OnVehicleInteriorSet(vehicleid, interiorid);
+public  FIXER_OnVehicleInteriorSet(vehicleid, interiorid)
 {
- 	v_Interior[vehicleid] = interiorid;
+ 	FIXER_v_Interior[vehicleid] = interiorid;
 }
 
-stock FIX_GetPlayerWeaponData(playerid, slot, &weapons, &ammo)
+stock FIXER_GetPlayerWeaponData(playerid, slot, &weapons, &ammo)
 {
 	new ret = GetPlayerWeaponData(playerid, slot, weapons, ammo);
 	if (ret)
@@ -2353,9 +2466,86 @@ stock FIX_GetPlayerWeaponData(playerid, slot, &weapons, &ammo)
 #else
 	#define _ALS_GetPlayerWeaponData
 #endif
-#define GetPlayerWeaponData FIX_GetPlayerWeaponData
+#define GetPlayerWeaponData FIXER_GetPlayerWeaponData
+
+stock FIXER_Kick(playerid, delay = 150)
+{
+	if (FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_ACTIVE])
+	    return 1;
+
+	FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_ACTIVE] = true;
+	FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_TIMER] = SetTimerEx("FIXER_OnPlayerDelayKicked", ((delay <= 0) ? (150) : (delay)), false, "i", playerid);
+	FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_TYPE] = 1;
+	FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_REASON][0] = EOS;
+	return 1;
+}
+#if defined _ALS_Kick
+	#undef Kick
+#else
+	#define _ALS_Kick
+#endif
+#define Kick FIXER_Kick
+
+stock FIXER_Ban(playerid, delay = 150)
+{
+	if (FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_ACTIVE])
+	    return 1;
+
+	FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_ACTIVE] = true;
+	FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_TIMER] = SetTimerEx("FIXER_OnPlayerDelayKicked", ((delay <= 0) ? (150) : (delay)), false, "i", playerid);
+	FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_TYPE] = 2;
+	FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_REASON][0] = EOS;
+	
+    new name[MAX_PLAYER_NAME], ip[18];
+    GetPlayerName(playerid, name, sizeof (name));
+    GetPlayerIp(playerid, ip, sizeof (ip));
+
+	new string[256];
+ 	format(string, sizeof (string), "INSERT INTO `Participants` (`Username`, `Ip`, `Reason`, `DateStamp`) VALUES ('%q', '%q', '%q', %i)", name, ip, "", getdate());
+ 	db_query(FIXER_g_BlacklistDB, string);
+	return 1;
+}
+#if defined _ALS_Ban
+	#undef Ban
+#else
+	#define _ALS_Ban
+#endif
+#define Ban FIXER_Ban
+
+stock FIXER_BanEx(playerid, const reason[], delay = 150)
+{
+	if (FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_ACTIVE])
+	    return 1;
+
+	FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_ACTIVE] = true;
+	FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_TIMER] = SetTimerEx("FIXER_OnPlayerDelayKicked", ((delay <= 0) ? (150) : (delay)), false, "i", playerid);
+	FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_TYPE] = 3;
+	format(FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_REASON], 128, reason);
+
+    new name[MAX_PLAYER_NAME], ip[18];
+    GetPlayerName(playerid, name, sizeof (name));
+    GetPlayerIp(playerid, ip, sizeof (ip));
+
+	new string[256];
+ 	format(string, sizeof (string), "INSERT INTO `Participants` (`Username`, `Ip`, `Reason`, `DateStamp`) VALUES ('%q', '%q', '%q', %i)", name, ip, FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_REASON], getdate());
+ 	db_query(FIXER_g_BlacklistDB, string);
+	return 1;
+}
+#if defined _ALS_BanEx
+	#undef BanEx
+#else
+	#define _ALS_BanEx
+#endif
+#define BanEx FIXER_BanEx
+
+forward FIXER_OnPlayerDelayKicked(playerid);
+public  FIXER_OnPlayerDelayKicked(playerid)
+{
+    FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_ACTIVE] = false;
+	Kick(playerid);
+}
 
 stock FIXER_AllowUpdate(bool:allow = true)
 {
-	FIX_UPDATER = allow;
+	FIXER_UPDATER = allow;
 }
