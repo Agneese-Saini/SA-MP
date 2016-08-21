@@ -6,7 +6,7 @@
 /*
  * gangzones.inc
  * Version: 2.0 (last updated on 21 August, 2016)
- * By Gammix
+ * By Gammix 
  *
  * Functions:
    native GangZoneCreate(Float:minx, Float:miny, Float:maxx, Float:maxy, color = -1, Float:bordersize = 1.0, bordercolor = 0x00000060, interior = -1, virtualworld = -1);
