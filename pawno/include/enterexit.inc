@@ -105,32 +105,35 @@ stock DestroyEnterExit(id)
 
 public OnPlayerEnterDynamicArea(playerid, areaid)
 {
-	for (new i; i < MAX_ENTER_EXITS; i++)
+	if (!IsPlayerInAnyVehicle(playerid))
 	{
-    	if (ENX_g_Data[i][ENX_e_DATA_VALID])
+		for (new i; i < MAX_ENTER_EXITS; i++)
 		{
-		    if (areaid == ENX_g_Data[i][ENX_e_DATA_AREAID])
+	    	if (ENX_g_Data[i][ENX_e_DATA_VALID])
 			{
-			    #if defined OnPlayerEnterExit
-			    	if (OnPlayerEnterExit(playerid, i) <= 0)
-			    	    return 1;
-				#endif
-
-		 		TogglePlayerControllable(playerid, false);
-
-            	ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_TD] = CreatePlayerTextDraw(playerid, 0.000000, 1.000000, "blankscreen");
-				PlayerTextDrawBackgroundColor(playerid, ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_TD], 255);
-				PlayerTextDrawLetterSize(playerid, ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_TD], 0.000000, 51.099998);
-				PlayerTextDrawColor(playerid, ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_TD], -1);
-				PlayerTextDrawUseBox(playerid, ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_TD], 1);
-				PlayerTextDrawBoxColor(playerid, ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_TD], 0);
-				PlayerTextDrawTextSize(playerid, ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_TD], 640.000000, 0.000000);
-				PlayerTextDrawShow(playerid, ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_TD]);
-				
-				ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_ALPHA] = 0;
-				ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_TIMERID] = SetTimerEx("ENX_OnFadeUpdate", 100, true, "iii", playerid, i, 0);
-
-				return 1;
+			    if (areaid == ENX_g_Data[i][ENX_e_DATA_AREAID])
+				{
+				    #if defined OnPlayerEnterExit
+				    	if (OnPlayerEnterExit(playerid, i) <= 0)
+				    	    return 1;
+					#endif
+	
+			 		TogglePlayerControllable(playerid, false);
+	
+	            	ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_TD] = CreatePlayerTextDraw(playerid, 0.000000, 1.000000, "blankscreen");
+					PlayerTextDrawBackgroundColor(playerid, ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_TD], 255);
+					PlayerTextDrawLetterSize(playerid, ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_TD], 0.000000, 51.099998);
+					PlayerTextDrawColor(playerid, ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_TD], -1);
+					PlayerTextDrawUseBox(playerid, ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_TD], 1);
+					PlayerTextDrawBoxColor(playerid, ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_TD], 0);
+					PlayerTextDrawTextSize(playerid, ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_TD], 640.000000, 0.000000);
+					PlayerTextDrawShow(playerid, ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_TD]);
+					
+					ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_ALPHA] = 0;
+					ENX_p_Fader[playerid][ENX_e_PLAYER_FADER_TIMERID] = SetTimerEx("ENX_OnFadeUpdate", 100, true, "iii", playerid, i, 0);
+	
+					return 1;
+				}
 			}
 		}
 	}
