@@ -1,9 +1,7 @@
 # SA-MP-Files
-This is all my contributions to SAMP.
+This is all my supported list and source of SAMP libraries.
 
 # What this includes:
-* <b>filterscripts</b>
-  * gadmin.pwn
 * <b>pawno/include/</b>
   * ban.inc
   * dialogs.inc
