@@ -2093,7 +2093,7 @@ stock SS_CreateVehicle(vehicletype, Float:x, Float:y, Float:z, Float:rotation, c
 
 stock SS_AddStaticVehicle(vehicletype, Float:x, Float:y, Float:z, Float:rotation, color1, color2)
 {
-	new ret = AddStaticVehicle(vehicletype, x, y, z, rotation, color1, color2, respawn_delay);
+	new ret = AddStaticVehicle(vehicletype, x, y, z, rotation, color1, color2);
 	if (ret != INVALID_VEHICLE_ID)
    		CallRemoteFunction("__OnVehicleHealthSet", "if", ret, 1000.0);
 
