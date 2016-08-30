@@ -5,7 +5,7 @@
 
 /*
  * fixer.inc
- * Version: 2.2 (last updated on 21 August, 2016)
+ * Version: 2.2.1 (last updated on 30 August, 2016)
  *
  * Please visit the following thread to know about the features/fixes and the credits.
  * Also, support available there and you can also share your suggestions or fixes.
@@ -1287,7 +1287,7 @@ public OnPlayerStateChange(playerid, newstate, oldstate)
 	#endif
 #endif
 
-stock FIXER_ClearFIXER_ANIMATIONS(playerid, forcesync = 0)
+stock FIXER_ClearAnimations(playerid, forcesync = 0)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
@@ -1308,7 +1308,7 @@ stock FIXER_ClearFIXER_ANIMATIONS(playerid, forcesync = 0)
 #else
     #define _ALS_ClearFIXER_ANIMATIONS
 #endif
-#define ClearFIXER_ANIMATIONS FIXER_ClearFIXER_ANIMATIONS
+#define ClearFIXER_ANIMATIONS FIXER_ClearAnimations
 
 stock FIXER_ApplyAnimation(playerid, animlib[], animname[], Float:fDelta, loop, lockx, locky, freeze, time, forcesync = 0, delay = 250)
 {
