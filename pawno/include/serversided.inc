@@ -1,6 +1,6 @@
 /*
  * serversided.inc
- * Version: 1.9.3 (last updated on 12 August, 2016)
+ * Version: 1.9.4 (last updated on 30 August, 2016)
  * By Gammix
  *
  * Functions:
@@ -57,7 +57,6 @@ enum E_VENDING_MACHINE
 	Float:	E_VENDING_MACHINE_RZ,
 	Float:	E_VENDING_MACHINE_FX,
 	Float:	E_VENDING_MACHINE_FY,
-	        E_VENDING_MACHINE_OBJECT,
 	        E_VENDING_MACHINE_TIMER
 };
 static gVendingMachine[][E_VENDING_MACHINE] =
@@ -147,6 +146,7 @@ static gVendingMachine[][E_VENDING_MACHINE] =
 	{1775, 	17, 	-32.44, -186.69, 1003.63, 	0.00, 0.00, 180.00, 	-32.46, -185.69},
 	{1775, 	16, 	-35.72, -140.22, 1003.63, 	0.00, 0.00, 180.00, 	-35.74, -139.22}
 };
+static pVendingMachineObject[MAX_PLAYERS][sizeof (gVendingMachine)];
 
 enum E_WEAPON
 {
@@ -674,7 +674,15 @@ public OnPlayerConnect(playerid)
 		RemoveBuildingForPlayer(playerid, 1776, 0.0, 0.0, 0.0, 20000.0);
 		RemoveBuildingForPlayer(playerid, 1977, 0.0, 0.0, 0.0, 20000.0);
 		for (new i, j = sizeof(gVendingMachine); i < j; i++)
+		{
 			RemoveBuildingForPlayer(playerid, gVendingMachine[i][E_VENDING_MACHINE_MODEL], gVendingMachine[i][E_VENDING_MACHINE_X], gVendingMachine[i][E_VENDING_MACHINE_Y], gVendingMachine[i][E_VENDING_MACHINE_Z], 1.0);
+
+	        #if defined STREAMER_TYPE_OBJECT
+				pVendingMachineObject[playerid][i] = CreateDynamicObject(gVendingMachine[i][E_VENDING_MACHINE_MODEL], gVendingMachine[i][E_VENDING_MACHINE_X], gVendingMachine[i][E_VENDING_MACHINE_Y], gVendingMachine[i][E_VENDING_MACHINE_Z], gVendingMachine[i][E_VENDING_MACHINE_RX], gVendingMachine[i][E_VENDING_MACHINE_RY], gVendingMachine[i][E_VENDING_MACHINE_RZ], .interiorid = gVendingMachine[i][E_VENDING_MACHINE_INTERIOR]);
+			#else
+			 	pVendingMachineObject[playerid][i] = CreateObject(gVendingMachine[i][E_VENDING_MACHINE_MODEL], gVendingMachine[i][E_VENDING_MACHINE_X], gVendingMachine[i][E_VENDING_MACHINE_Y], gVendingMachine[i][E_VENDING_MACHINE_Z], gVendingMachine[i][E_VENDING_MACHINE_RX], gVendingMachine[i][E_VENDING_MACHINE_RY], gVendingMachine[i][E_VENDING_MACHINE_RZ]);
+			#endif
+		}
 	}
 
 	#if defined SS_OnPlayerConnect
@@ -691,6 +699,33 @@ public OnPlayerConnect(playerid)
 #define OnPlayerConnect SS_OnPlayerConnect
 #if defined SS_OnPlayerConnect
 	forward SS_OnPlayerConnect(playerid);
+#endif
+
+public OnPlayerDisconnect(playerid, reason)
+{
+    for (new i, j = sizeof (gVendingMachine); i < j; i++)
+	{
+	    #if defined STREAMER_TYPE_OBJECT
+			DestroyDynamicObject(pVendingMachineObject[playerid][i]);
+		#else
+		 	DestroyObject(pVendingMachineObject[playerid][i]);
+	 	#endif
+	}
+
+    #if defined SS_OnPlayerDisconnect
+       	return SS_OnPlayerDisconnect(playerid, reason);
+	#else
+	   	return 1;
+	#endif
+}
+#if defined _ALS_OnPlayerDisconnect
+    #undef OnPlayerDisconnect
+#else
+    #define _ALS_OnPlayerDisconnect
+#endif
+#define OnPlayerDisconnect SS_OnPlayerDisconnect
+#if defined SS_OnPlayerDisconnect
+    forward SS_OnPlayerDisconnect(playerid, reason);
 #endif
 
 public OnPlayerRequestClass(playerid, classid)
@@ -731,20 +766,29 @@ public OnPlayerRequestSpawn(playerid)
 
 		new slot;
 		slot = SS_GetWeaponSlot(gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON1][0]);
-		pWeaponData[playerid][slot][0] = gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON1][0];
-		pWeaponData[playerid][slot][1] = gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON2][0];
-		GivePlayerWeapon(playerid, gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON1][0], gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON1][1]);
-
+		if (slot != -1)
+		{
+			pWeaponData[playerid][slot][0] = gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON1][0];
+			pWeaponData[playerid][slot][1] = gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON2][0];
+			GivePlayerWeapon(playerid, gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON1][0], gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON1][1]);
+		}
+		
 		slot = SS_GetWeaponSlot(gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON2][0]);
-		pWeaponData[playerid][slot][0] = gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON2][0];
-		pWeaponData[playerid][slot][1] = gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON2][0];
-		GivePlayerWeapon(playerid, gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON2][0], gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON2][1]);
-
+		if (slot != -1)
+		{
+			pWeaponData[playerid][slot][0] = gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON2][0];
+			pWeaponData[playerid][slot][1] = gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON2][0];
+			GivePlayerWeapon(playerid, gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON2][0], gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON2][1]);
+		}
+	
 		slot = SS_GetWeaponSlot(gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON3][0]);
-		pWeaponData[playerid][slot][0] = gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON3][0];
-		pWeaponData[playerid][slot][1] = gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON3][0];
-		GivePlayerWeapon(playerid, gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON3][0], gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON3][1]);
-
+		if (slot != -1)
+		{
+			pWeaponData[playerid][slot][0] = gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON3][0];
+			pWeaponData[playerid][slot][1] = gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON3][0];
+			GivePlayerWeapon(playerid, gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON3][0], gClassData[pClassId[playerid]][E_SPAWN_DATA_WEAPON3][1]);
+		}
+		
 		if (gClassData[pClassId[playerid]][E_SPAWN_DATA_TEAM] != NO_TEAM + 1)
 			pTeamId[playerid] = gClassData[pClassId[playerid]][E_SPAWN_DATA_TEAM];
 	}
@@ -781,20 +825,29 @@ public OnPlayerSpawn(playerid)
 
 	new slot;
 	slot = SS_GetWeaponSlot(pSpawnData[playerid][E_SPAWN_DATA_WEAPON1][0]);
-	pWeaponData[playerid][slot][0] = pSpawnData[playerid][E_SPAWN_DATA_WEAPON1][0];
-	pWeaponData[playerid][slot][1] = pSpawnData[playerid][E_SPAWN_DATA_WEAPON2][0];
-	GivePlayerWeapon(playerid, pSpawnData[playerid][E_SPAWN_DATA_WEAPON1][0], pSpawnData[playerid][E_SPAWN_DATA_WEAPON1][1]);
-
+	if (slot != -1)
+	{
+		pWeaponData[playerid][slot][0] = pSpawnData[playerid][E_SPAWN_DATA_WEAPON1][0];
+		pWeaponData[playerid][slot][1] = pSpawnData[playerid][E_SPAWN_DATA_WEAPON2][0];
+		GivePlayerWeapon(playerid, pSpawnData[playerid][E_SPAWN_DATA_WEAPON1][0], pSpawnData[playerid][E_SPAWN_DATA_WEAPON1][1]);
+	}
+	
 	slot = SS_GetWeaponSlot(pSpawnData[playerid][E_SPAWN_DATA_WEAPON2][0]);
-	pWeaponData[playerid][slot][0] = pSpawnData[playerid][E_SPAWN_DATA_WEAPON2][0];
-	pWeaponData[playerid][slot][1] = pSpawnData[playerid][E_SPAWN_DATA_WEAPON2][0];
-	GivePlayerWeapon(playerid, pSpawnData[playerid][E_SPAWN_DATA_WEAPON2][0], pSpawnData[playerid][E_SPAWN_DATA_WEAPON2][1]);
-
+	if (slot != -1)
+	{
+		pWeaponData[playerid][slot][0] = pSpawnData[playerid][E_SPAWN_DATA_WEAPON2][0];
+		pWeaponData[playerid][slot][1] = pSpawnData[playerid][E_SPAWN_DATA_WEAPON2][0];
+		GivePlayerWeapon(playerid, pSpawnData[playerid][E_SPAWN_DATA_WEAPON2][0], pSpawnData[playerid][E_SPAWN_DATA_WEAPON2][1]);
+	}
+	
 	slot = SS_GetWeaponSlot(pSpawnData[playerid][E_SPAWN_DATA_WEAPON3][0]);
-	pWeaponData[playerid][slot][0] = pSpawnData[playerid][E_SPAWN_DATA_WEAPON3][0];
-	pWeaponData[playerid][slot][1] = pSpawnData[playerid][E_SPAWN_DATA_WEAPON3][0];
-	GivePlayerWeapon(playerid, pSpawnData[playerid][E_SPAWN_DATA_WEAPON3][0], pSpawnData[playerid][E_SPAWN_DATA_WEAPON3][1]);
-
+	if (slot != -1)
+	{
+		pWeaponData[playerid][slot][0] = pSpawnData[playerid][E_SPAWN_DATA_WEAPON3][0];
+		pWeaponData[playerid][slot][1] = pSpawnData[playerid][E_SPAWN_DATA_WEAPON3][0];
+		GivePlayerWeapon(playerid, pSpawnData[playerid][E_SPAWN_DATA_WEAPON3][0], pSpawnData[playerid][E_SPAWN_DATA_WEAPON3][1]);
+	}
+	
 	if (pSpawnData[playerid][E_SPAWN_DATA_TEAM] != NO_TEAM + 1)
 		pTeamId[playerid] = pSpawnData[playerid][E_SPAWN_DATA_TEAM];
 
@@ -838,10 +891,10 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 						for (new i, j = sizeof (gVendingMachine); i < j; i++)
 						{
 						    #if defined STREAMER_TYPE_OBJECT
-							    if (IsValidDynamicObject(gVendingMachine[i][E_VENDING_MACHINE_OBJECT]))
+							    if (IsValidDynamicObject(pVendingMachineObject[playerid][i]))
 							    	continue;
 							#else
-							    if (IsValidObject(gVendingMachine[i][E_VENDING_MACHINE_OBJECT]))
+							    if (IsValidObject(pVendingMachineObject[playerid][i]))
 							    	continue;
 							#endif
 
@@ -1267,7 +1320,7 @@ public OnPlayerUpdate(playerid)
 			}
 		}
 	}
-	
+
 	#if defined SS_OnPlayerUpdate
 		return SS_OnPlayerUpdate(playerid);
 	#else
@@ -1465,7 +1518,7 @@ public OnVehicleDamageStatusUpdate(vehicleid, playerid)
 	GetVehicleHealth(vehicleid, health);
 	if (health < vHealth[vehicleid])
 		vHealth[vehicleid] = health;
-	
+
 	#if defined SS_OnVehicleDamageStatusUpd
 		return SS_OnVehicleDamageStatusUpd(vehicleid, playerid);
 	#else
@@ -1506,19 +1559,6 @@ stock SS_Init()
 	for (new i; i < MAX_VEHICLES; i++)
 		vHealth[i] = 1000.0;
 
-	for (new i, j = sizeof (gVendingMachine); i < j; i++)
-	{
-		#if defined STREAMER_TYPE_OBJECT
-			if (! IsValidDynamicObject(gVendingMachine[i][E_VENDING_MACHINE_OBJECT]))
-				gVendingMachine[i][E_VENDING_MACHINE_OBJECT] = CreateDynamicObject(gVendingMachine[i][E_VENDING_MACHINE_MODEL], gVendingMachine[i][E_VENDING_MACHINE_X], gVendingMachine[i][E_VENDING_MACHINE_Y], gVendingMachine[i][E_VENDING_MACHINE_Z], gVendingMachine[i][E_VENDING_MACHINE_RX], gVendingMachine[i][E_VENDING_MACHINE_RY], gVendingMachine[i][E_VENDING_MACHINE_RZ], .interiorid = gVendingMachine[i][E_VENDING_MACHINE_INTERIOR]);
-		#else
-		 	if (! IsValidObject(gVendingMachine[i][E_VENDING_MACHINE_OBJECT]))
-				gVendingMachine[i][E_VENDING_MACHINE_OBJECT] = CreateObject(gVendingMachine[i][E_VENDING_MACHINE_MODEL], gVendingMachine[i][E_VENDING_MACHINE_X], gVendingMachine[i][E_VENDING_MACHINE_Y], gVendingMachine[i][E_VENDING_MACHINE_Z], gVendingMachine[i][E_VENDING_MACHINE_RX], gVendingMachine[i][E_VENDING_MACHINE_RY], gVendingMachine[i][E_VENDING_MACHINE_RZ]);
-		#endif
-
-		CallRemoteFunction("__SetVendingMachine", "ii", i, gVendingMachine[i][E_VENDING_MACHINE_OBJECT]);
-	}
-
 	print("[serversided.inc] - Include has been initiated.");
 	return 1;
 }
@@ -1529,18 +1569,6 @@ stock SS_Exit()
 	    return 0;
 
 	SS_ALLOW_UPDATE = false;
-
-    for (new i, j = sizeof (gVendingMachine); i < j; i++)
-	{
-	    #if defined STREAMER_TYPE_OBJECT
-			DestroyDynamicObject(gVendingMachine[i][E_VENDING_MACHINE_OBJECT]);
-		#else
-		 	DestroyObject(gVendingMachine[i][E_VENDING_MACHINE_OBJECT]);
-	 	#endif
-
-		CallRemoteFunction("__SetVendingMachine", "ii", i, INVALID_OBJECT_ID);
-	}
-
 	return 1;
 }
 
@@ -1568,9 +1596,9 @@ stock SS_RemoveBuildingForPlayer(playerid, modelid, Float:fX, Float:fY, Float:fZ
 		    if (DISTANCE(fX, fY, 0.0, gVendingMachine[i][E_VENDING_MACHINE_X], gVendingMachine[i][E_VENDING_MACHINE_Y], 0.0) <= fRadius)
 		    {
 		        #if defined STREAMER_TYPE_OBJECT
-				    DestroyDynamicObject(gVendingMachine[i][E_VENDING_MACHINE_OBJECT]);
+				    DestroyDynamicObject(pVendingMachineObject[playerid][i]);
 				#else
-				    DestroyObject(gVendingMachine[i][E_VENDING_MACHINE_OBJECT]);
+				    DestroyObject(pVendingMachineObject[playerid][i]);
 				#endif
 
 				return 1;
@@ -2069,12 +2097,6 @@ stock SS_SendDeathMessage(playerid, killerid, reason)
     #define _ALS_SendDeathMessage
 #endif
 #define SendDeathMessage SS_SendDeathMessage
-
-forward __SetVendingMachine(i, set);
-public	__SetVendingMachine(i, set)
-{
-    gVendingMachine[i][E_VENDING_MACHINE_OBJECT] = set;
-}
 
 stock SS_CreateVehicle(vehicletype, Float:x, Float:y, Float:z, Float:rotation, color1, color2, respawn_delay, addsiren = 0)
 {
