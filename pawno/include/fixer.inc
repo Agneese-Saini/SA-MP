@@ -16,23 +16,23 @@
  *
  */
 
-#if ! defined KEY_AIM
+#if !defined KEY_AIM
 	#define KEY_AIM (128)
 #endif
 
-#if ! defined SPECIAL_ACTION_PISSING
+#if !defined SPECIAL_ACTION_PISSING
 	#define SPECIAL_ACTION_PISSING (68)
 #endif
 
-#if ! defined getgravity
+#if !defined getgravity
 	native Float:getgravity();
 #endif
 
-#if ! defined gpci
+#if !defined gpci
 	native gpci(playerid, serial[], maxlen);
 #endif
 
-#if ! defined IsValidVehicle
+#if !defined IsValidVehicle
 	native IsValidVehicle(vehicleid);
 #endif
 
@@ -819,7 +819,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 	    {
 	    	new bool:ret = true;
 			#if defined FIXER_OnPlayerKeyStateChange
-		       	ret = FIXER_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
+		       	ret = bool:FIXER_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
 			#endif
 		    if (ret)
 		    {
@@ -834,7 +834,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 	    {
 	    	new bool:ret = true;
 			#if defined FIXER_OnPlayerKeyStateChange
-		       	ret = FIXER_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
+		       	ret = bool:FIXER_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
 			#endif
 		    if (ret)
 		    {
