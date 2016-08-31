@@ -5,7 +5,7 @@
 
 /*
  * fixer.inc
- * Version: 2.2.1 (last updated on 30 August, 2016)
+ * Version: 2.3 [BETA] (last updated on 31 August, 2016)
  *
  * Please visit the following thread to know about the features/fixes and the credits.
  * Also, support available there and you can also share your suggestions or fixes.
@@ -140,6 +140,28 @@ enum FIXER_e_BLACKLIST_DATA
             FIXER_e_BLACKLIST_DATA_REASON[128]
 };
 static bool:FIXER_p_BlacklistData[MAX_PLAYERS][FIXER_e_BLACKLIST_DATA];
+
+enum FIXER_e_SYNC_DATA
+{
+	bool:	FIXER_e_SYNC_DATA_ACTIVE,
+	Float:  FIXER_e_SYNC_DATA_POS[4],
+	Float:  FIXER_e_SYNC_DATA_HEALTH,
+	Float:  FIXER_e_SYNC_DATA_ARMOR,
+			FIXER_e_SYNC_DATA_SKIN,
+			FIXER_e_SYNC_DATA_COLOR,
+			FIXER_e_SYNC_DATA_TEAM,
+			FIXER_e_SYNC_DATA_WEAPONS[14],
+			FIXER_e_SYNC_DATA_AMMOS[14]
+};
+static FIXER_p_SyncData[MAX_PLAYERS][FIXER_e_SYNC_DATA];
+
+enum FIXER_e_GBUG_DATA
+{
+	bool:   FIXER_e_GBUG_DATA_ACTIVE,
+    Float:	FIXER_e_GBUG_DATA_VPOS[3],
+	        FIXER_e_GBUG_DATA_TICKCOUNT
+};
+static FIXER_p_GbugData[MAX_PLAYERS][FIXER_e_GBUG_DATA];
 
 static FIXER_v_LastWheelShotTeam[MAX_VEHICLES][4];
 static FIXER_v_LastWheelsDamageStatus[MAX_VEHICLES];
@@ -386,8 +408,156 @@ enum FIXER_e_TOGGLE
 };
 static bool:FIXER_g_Toggle[FIXER_e_TOGGLE];
 
+static PlayerText:FIXER_ptxt_GameText[MAX_PLAYERS][7];
+static FIXER_p_GameTextTimer[MAX_PLAYERS][7];
+static FIXER_p_GameTextFader[MAX_PLAYERS][7];
+
+stock FIXER_AllowUpdate(bool:allow = true)
+{
+	FIXER_UPDATER = allow;
+
+	if (allow)
+	{
+		FIXER_g_BlacklistDB = db_open("bans.db");
+		db_query(FIXER_g_BlacklistDB, "CREATE TABLE IF NOT EXISTS `Members` (`Username` STRING, `Ip` STRING, `Reason` STRING, `DateStamp` INTEGER)");
+
+		FIXER_g_Toggle[FIXER_e_TIRE_POPPING] = true;
+		FIXER_g_Toggle[FIXER_e_INTERIOR_WEAPONS] = true;
+		FIXER_g_Toggle[FIXER_e_ADMIN_TELEPORT] = false;
+		FIXER_g_Toggle[FIXER_e_VEHICLE_FRIENDLYFIRE] = false;
+
+		for (new i; i < MAX_VEHICLES; i++)
+			FIXER_v_VehicleHealth[i] = 0.0;
+
+		for (new i, j = GetPlayerPoolSize(); i <= j; i++)
+		{
+		    if (IsPlayerConnected(i))
+		    	OnPlayerConnect(i);
+		}
+	}
+	else
+	{
+		db_close(FIXER_g_BlacklistDB);
+	}
+}
+
 public OnPlayerConnect(playerid)
 {
+	if (FIXER_UPDATER)
+	{
+	    // Style 7 (vehicle name)
+		FIXER_ptxt_GameText[playerid][0] = CreatePlayerTextDraw(playerid, 608.000000, 344.000000, " "),
+		PlayerTextDrawLetterSize(playerid, FIXER_ptxt_GameText[playerid][0], 1.000000, 3.000000),
+		PlayerTextDrawAlignment(playerid, FIXER_ptxt_GameText[playerid][0], 3),
+		PlayerTextDrawColor(playerid, FIXER_ptxt_GameText[playerid][0], 0x36682CFF),
+		PlayerTextDrawSetShadow(playerid, FIXER_ptxt_GameText[playerid][0], 0),
+		PlayerTextDrawSetOutline(playerid, FIXER_ptxt_GameText[playerid][0], 2),
+		PlayerTextDrawBackgroundColor(playerid, FIXER_ptxt_GameText[playerid][0], 0x000000AA),
+		PlayerTextDrawFont(playerid, FIXER_ptxt_GameText[playerid][0], 2),
+		PlayerTextDrawSetProportional(playerid, FIXER_ptxt_GameText[playerid][0], 1),
+		PlayerTextDrawUseBox(playerid, FIXER_ptxt_GameText[playerid][0], true),
+		PlayerTextDrawBoxColor(playerid, FIXER_ptxt_GameText[playerid][0], 0x00000000),
+		PlayerTextDrawTextSize(playerid, FIXER_ptxt_GameText[playerid][0], 10.0, 200.0);
+
+		FIXER_p_GameTextTimer[playerid][0] = -1;
+
+		// Style 8 (location name)
+		FIXER_ptxt_GameText[playerid][1] = CreatePlayerTextDraw(playerid, 608.000000, 386.500000, " "),
+		PlayerTextDrawLetterSize(playerid, FIXER_ptxt_GameText[playerid][1], 1.200000, 3.799998),
+		PlayerTextDrawAlignment(playerid, FIXER_ptxt_GameText[playerid][1], 3),
+		PlayerTextDrawColor(playerid, FIXER_ptxt_GameText[playerid][1], 0xACCBF1FF),
+		PlayerTextDrawSetShadow(playerid, FIXER_ptxt_GameText[playerid][1], 0),
+		PlayerTextDrawSetOutline(playerid, FIXER_ptxt_GameText[playerid][1], 2),
+		PlayerTextDrawBackgroundColor(playerid, FIXER_ptxt_GameText[playerid][1], 0x000000AA),
+		PlayerTextDrawFont(playerid, FIXER_ptxt_GameText[playerid][1], 0),
+		PlayerTextDrawSetProportional(playerid, FIXER_ptxt_GameText[playerid][1], 1),
+		PlayerTextDrawUseBox(playerid, FIXER_ptxt_GameText[playerid][1], true),
+		PlayerTextDrawBoxColor(playerid, FIXER_ptxt_GameText[playerid][1], 0x00000000),
+		PlayerTextDrawTextSize(playerid, FIXER_ptxt_GameText[playerid][1], 10.0, 200.0);
+
+		FIXER_p_GameTextTimer[playerid][1] = -1;
+
+		// Style 9 (radio name)
+		FIXER_ptxt_GameText[playerid][2] = CreatePlayerTextDraw(playerid, 320.000000, 22.000000, " "),
+		PlayerTextDrawLetterSize(playerid, FIXER_ptxt_GameText[playerid][2], 0.600000, 1.899999),
+		PlayerTextDrawAlignment(playerid, FIXER_ptxt_GameText[playerid][2], 2),
+		PlayerTextDrawColor(playerid, FIXER_ptxt_GameText[playerid][2], 0x906210FF),
+		PlayerTextDrawSetShadow(playerid, FIXER_ptxt_GameText[playerid][2], 0),
+		PlayerTextDrawSetOutline(playerid, FIXER_ptxt_GameText[playerid][2], 1),
+		PlayerTextDrawBackgroundColor(playerid, FIXER_ptxt_GameText[playerid][2], 0x000000AA),
+		PlayerTextDrawFont(playerid, FIXER_ptxt_GameText[playerid][2], 2),
+		PlayerTextDrawSetProportional(playerid, FIXER_ptxt_GameText[playerid][2], 1),
+		PlayerTextDrawUseBox(playerid, FIXER_ptxt_GameText[playerid][2], true),
+		PlayerTextDrawBoxColor(playerid, FIXER_ptxt_GameText[playerid][2], 0x00000000),
+		PlayerTextDrawTextSize(playerid, FIXER_ptxt_GameText[playerid][2], 200.0, 620.0);
+
+		FIXER_p_GameTextTimer[playerid][2] = -1;
+
+		// Style 10 (radio switch)
+		FIXER_ptxt_GameText[playerid][3] = CreatePlayerTextDraw(playerid, 320.000000, 22.000000, " "),
+		PlayerTextDrawLetterSize(playerid, FIXER_ptxt_GameText[playerid][3], 0.600000, 1.899999),
+		PlayerTextDrawAlignment(playerid, FIXER_ptxt_GameText[playerid][3], 2),
+		PlayerTextDrawColor(playerid, FIXER_ptxt_GameText[playerid][3], 0x969696FF),
+		PlayerTextDrawSetShadow(playerid, FIXER_ptxt_GameText[playerid][3], 0),
+		PlayerTextDrawSetOutline(playerid, FIXER_ptxt_GameText[playerid][3], 1),
+		PlayerTextDrawBackgroundColor(playerid, FIXER_ptxt_GameText[playerid][3], 0x000000AA),
+		PlayerTextDrawFont(playerid, FIXER_ptxt_GameText[playerid][3], 2),
+		PlayerTextDrawSetProportional(playerid, FIXER_ptxt_GameText[playerid][3], 1),
+		PlayerTextDrawUseBox(playerid, FIXER_ptxt_GameText[playerid][3], true),
+		PlayerTextDrawBoxColor(playerid, FIXER_ptxt_GameText[playerid][3], 0x00000000),
+		PlayerTextDrawTextSize(playerid, FIXER_ptxt_GameText[playerid][3], 200.0, 620.0);
+
+		FIXER_p_GameTextTimer[playerid][3] = -1;
+
+		// Style 11 (positive money)
+		FIXER_ptxt_GameText[playerid][4] = CreatePlayerTextDraw(playerid, 607.000000, 78.000000, " "),
+		PlayerTextDrawLetterSize(playerid, FIXER_ptxt_GameText[playerid][4], 0.550000, 2.150000),
+		PlayerTextDrawAlignment(playerid, FIXER_ptxt_GameText[playerid][4], 3),
+		PlayerTextDrawColor(playerid, FIXER_ptxt_GameText[playerid][4], 0x36682CFF),
+		PlayerTextDrawSetShadow(playerid, FIXER_ptxt_GameText[playerid][4], 0),
+		PlayerTextDrawSetOutline(playerid, FIXER_ptxt_GameText[playerid][4], 2),
+		PlayerTextDrawBackgroundColor(playerid, FIXER_ptxt_GameText[playerid][4], 0x000000FF),
+		PlayerTextDrawFont(playerid, FIXER_ptxt_GameText[playerid][4], 3),
+		PlayerTextDrawSetProportional(playerid, FIXER_ptxt_GameText[playerid][4], 1),
+		PlayerTextDrawUseBox(playerid, FIXER_ptxt_GameText[playerid][4], true),
+		PlayerTextDrawBoxColor(playerid, FIXER_ptxt_GameText[playerid][4], 0x00000000),
+		PlayerTextDrawTextSize(playerid, FIXER_ptxt_GameText[playerid][4], 10.0, 200.0);
+
+		FIXER_p_GameTextTimer[playerid][4] = -1;
+
+		// Style 12 (negative money)
+		FIXER_ptxt_GameText[playerid][5] = CreatePlayerTextDraw(playerid, 607.000000, 78.000000, " "),
+		PlayerTextDrawLetterSize(playerid, FIXER_ptxt_GameText[playerid][5], 0.550000, 2.150000),
+		PlayerTextDrawAlignment(playerid, FIXER_ptxt_GameText[playerid][5], 3),
+		PlayerTextDrawColor(playerid, FIXER_ptxt_GameText[playerid][5], 0xB4191DFF),
+		PlayerTextDrawSetShadow(playerid, FIXER_ptxt_GameText[playerid][5], 0),
+		PlayerTextDrawSetOutline(playerid, FIXER_ptxt_GameText[playerid][5], 2),
+		PlayerTextDrawBackgroundColor(playerid, FIXER_ptxt_GameText[playerid][5], 0x000000FF),
+		PlayerTextDrawFont(playerid, FIXER_ptxt_GameText[playerid][5], 3),
+		PlayerTextDrawSetProportional(playerid, FIXER_ptxt_GameText[playerid][5], 1),
+		PlayerTextDrawUseBox(playerid, FIXER_ptxt_GameText[playerid][5], true),
+		PlayerTextDrawBoxColor(playerid, FIXER_ptxt_GameText[playerid][5], 0x00000000),
+		PlayerTextDrawTextSize(playerid, FIXER_ptxt_GameText[playerid][5], 10.0, 200.0);
+
+		FIXER_p_GameTextTimer[playerid][5] = -1;
+
+		// Style 13 (stunt)
+		FIXER_ptxt_GameText[playerid][6] = CreatePlayerTextDraw(playerid, 380.000000, 341.000000, " "),
+		PlayerTextDrawLetterSize(playerid, FIXER_ptxt_GameText[playerid][6], 0.579999, 2.400000),
+		PlayerTextDrawTextSize(playerid, FIXER_ptxt_GameText[playerid][6], 40.000000, 460.000000),
+		PlayerTextDrawAlignment(playerid, FIXER_ptxt_GameText[playerid][6], 2),
+		PlayerTextDrawColor(playerid, FIXER_ptxt_GameText[playerid][6], 0xD7D3CCFF),
+		PlayerTextDrawUseBox(playerid, FIXER_ptxt_GameText[playerid][6], true),
+		PlayerTextDrawBoxColor(playerid, FIXER_ptxt_GameText[playerid][6], 0),
+		PlayerTextDrawSetShadow(playerid, FIXER_ptxt_GameText[playerid][6], 2),
+		PlayerTextDrawSetOutline(playerid, FIXER_ptxt_GameText[playerid][6], 0),
+		PlayerTextDrawBackgroundColor(playerid, FIXER_ptxt_GameText[playerid][6], 0x000000AA),
+		PlayerTextDrawFont(playerid, FIXER_ptxt_GameText[playerid][6], 1),
+		PlayerTextDrawSetProportional(playerid, FIXER_ptxt_GameText[playerid][6], 1);
+
+		FIXER_p_GameTextTimer[playerid][6] = -1;
+	}
+
 	for (new i, j = sizeof (FIXER_ANIMATIONS); i < j; i++)
     	FIXER_p_AnimPrelaodTimer[playerid][i] = -1;
 
@@ -436,19 +606,45 @@ public OnPlayerConnect(playerid)
 
     DisablePlayerCheckpoint(playerid);
     DisablePlayerRaceCheckpoint(playerid);
+	SetSpawnInfo(playerid, NO_TEAM, 0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0, 0, 0, 0);
+	ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
 	SetPlayerColor(playerid, 0xFFFFFFFF);
+
+	FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_ACTIVE] = false;
+	FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_POS][0] = 0.0;
+	FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_POS][1] = 0.0;
+	FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_POS][2] = 0.0;
+	FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_POS][3] = 0.0;
+	FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_HEALTH] = 100.0;
+	FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_ARMOR] = 0.0;
+	FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_SKIN] = 0;
+	FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_COLOR] = 0xFFFFFFFF;
+	FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_TEAM] = NO_TEAM;
+	for (new i; i < 14; i++)
+	{
+		FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_WEAPONS][i] = 0;
+		FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_AMMOS][i] = 0;
+	}
 	
+	FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_ACTIVE] = false;
+	FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_VPOS][0] = 0.0;
+	FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_VPOS][1] = 0.0;
+	FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_VPOS][2] = 0.0;
+	FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_TICKCOUNT] = 0;
+
 	new name[MAX_PLAYER_NAME], ip[18];
     GetPlayerName(playerid, name, sizeof (name));
 	GetPlayerIp(playerid, ip, sizeof (ip));
-	
+
 	new string[256];
- 	format(string, sizeof (string), "SELECT * FROM `Participants` WHERE `Username` = '%q' OR `Ip` = '%q'", name, ip);
+ 	format(string, sizeof (string), "SELECT * FROM `Members` WHERE `Username` = '%q' OR `Ip` = '%q'", name, ip);
  	new DBResult:result = db_query(FIXER_g_BlacklistDB, string);
  	if (db_num_rows(result) > 0)
  	{
 		db_free_result(result);
- 	    return Kick(playerid);
+		
+		if (CallRemoteFunction("OnBannedPlayerConnect", "i", playerid) >= 1)
+			return Kick(playerid);
  	}
  	db_free_result(result);
 
@@ -468,6 +664,10 @@ public OnPlayerConnect(playerid)
 	forward FIXER_OnPlayerConnect(playerid);
 #endif
 
+#if defined OnBannedPlayerConnect
+	forward OnBannedPlayerConnect(playerid);
+#endif
+
 public OnPlayerDisconnect(playerid, reason)
 {
 	KillTimer(FIXER_p_ToggleSpecTimer[playerid]);
@@ -478,14 +678,10 @@ public OnPlayerDisconnect(playerid, reason)
 	new Float:fpos[3];
 	GetPlayerPos(playerid, fpos[0], fpos[1], fpos[2]);
 
-	if (! GetPlayerInterior(playerid))
-	{
+	if (!GetPlayerInterior(playerid))
 		cam[2] += 5.0;
- 	}
  	else
- 	{
- 	    cam[2] += 0.5;
- 	}
+ 		cam[2] += 0.5;
 
  	for (new i, j = GetPlayerPoolSize(); i <= j; i++)
 	{
@@ -498,11 +694,11 @@ public OnPlayerDisconnect(playerid, reason)
  			}
   		}
 	}
-	
+
 	if (FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_ACTIVE])
 	{
 		KillTimer(FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_TIMER]);
-		
+
 		switch (FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_TYPE])
 		{
 		    case 2:
@@ -512,10 +708,10 @@ public OnPlayerDisconnect(playerid, reason)
 			    GetPlayerIp(playerid, ip, sizeof (ip));
 
 				new string[256];
-			 	format(string, sizeof (string), "INSERT INTO `Participants` (`Username`, `Ip`, `Reason`, `DateStamp`) VALUES ('%q', '%q', '%q', %i)", name, ip, "", getdate());
+			 	format(string, sizeof (string), "INSERT INTO `Members` (`Username`, `Ip`, `Reason`, `DateStamp`) VALUES ('%q', '%q', '%q', %i)", name, ip, "", getdate());
 			 	db_query(FIXER_g_BlacklistDB, string);
 		    }
-		    
+
 		    case 3:
 		    {
 		        new name[MAX_PLAYER_NAME], ip[18];
@@ -523,7 +719,7 @@ public OnPlayerDisconnect(playerid, reason)
 			    GetPlayerIp(playerid, ip, sizeof (ip));
 
 				new string[256];
-			 	format(string, sizeof (string), "INSERT INTO `Participants` (`Username`, `Ip`, `Reason`, `DateStamp`) VALUES ('%q', '%q', '%q', %i)", name, ip, FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_REASON], getdate());
+			 	format(string, sizeof (string), "INSERT INTO `Members` (`Username`, `Ip`, `Reason`, `DateStamp`) VALUES ('%q', '%q', '%q', %i)", name, ip, FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_REASON], getdate());
 			 	db_query(FIXER_g_BlacklistDB, string);
 		    }
 		}
@@ -532,7 +728,7 @@ public OnPlayerDisconnect(playerid, reason)
 		Kick(playerid);
 		return 0;
 	}
-	
+
     #if defined FIXER_OnPlayerDisconnect
        	return FIXER_OnPlayerDisconnect(playerid, reason);
 	#else
@@ -551,6 +747,24 @@ public OnPlayerDisconnect(playerid, reason)
 
 public OnPlayerSpawn(playerid)
 {
+	if (FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_ACTIVE])
+	{
+	    FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_ACTIVE] = false;
+	    
+	    SetPlayerPos(playerid, FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_POS][0], FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_POS][1], FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_POS][2]);
+		SetPlayerFacingAngle(playerid, FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_POS][3]);
+		SetPlayerHealth(playerid, FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_HEALTH]);
+		SetPlayerArmour(playerid, FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_ARMOR]);
+		SetPlayerSkin(playerid, FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_SKIN]);
+		SetPlayerColor(playerid, FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_COLOR]);
+		SetPlayerTeam(playerid, FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_TEAM]);
+		ResetPlayerWeapons(playerid);
+		for (new i; i < 14; i++)
+			GivePlayerWeapon(playerid, FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_WEAPONS][i], FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_AMMOS][i]);
+			
+		return 1;
+	}
+
 	for (new i, j = GetPlayerPoolSize(); i <= j; i++)
 	{
 		if (IsPlayerConnected(i) && i != playerid && FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_TYPE] == SPECTATE_TYPE_PLAYER && FIXER_p_SpecData[i][FIXER_e_SPEC_DATA_ID] == playerid)
@@ -599,39 +813,75 @@ public OnPlayerInteriorChange(playerid, newinteriorid, oldinteriorid)
 
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 {
-	if ((newkeys & (KEY_AIM)) == (KEY_AIM))
+	if (GetPlayerState(playerid) == PLAYER_STATE_SPECTATING)
 	{
-	    switch (GetPlayerWeapon(playerid))
-		{
-			case WEAPON_SNIPER, WEAPON_ROCKETLAUNCHER, WEAPON_HEATSEEKER, WEAPON_CAMERA:
-			{
-			    for (new i; i < MAX_PLAYER_ATTACHED_OBJECTS; i++)
-				{
-					if (IsPlayerAttachedObjectSlotUsed(playerid, i))
-					{
-				    	RemovePlayerAttachedObject(playerid, i);
-					}
-		        }
-		    }
-		}
-	}
-	else if (((newkeys & (KEY_AIM)) != (KEY_AIM)) && ((oldkeys & (KEY_AIM)) == (KEY_AIM)))
-	{
-	    for (new i; i < MAX_PLAYER_ATTACHED_OBJECTS; i++)
-		{
-			if (! IsPlayerAttachedObjectSlotUsed(playerid, i) && FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_USED])
+	    if (newkeys & KEY_FIRE)
+	    {
+	    	new bool:ret = true;
+			#if defined FIXER_OnPlayerKeyStateChange
+		       	ret = FIXER_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
+			#endif
+		    if (ret)
 		    {
-				SetPlayerAttachedObject(playerid, i,
-											FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_MODEL],
-											FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_BONE],
-											FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_X], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_Y], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_Z],
-										 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_RX], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_RY], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_RZ],
-										 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_SX], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_SY], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_SZ],
-											FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_COLOR1], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_COLOR2]);
+                if (FIXER_UpdatePlayerSpectateID(playerid) == INVALID_PLAYER_ID)
+                {
+                    PlayerPlaySound(playerid, 1054, 0.0, 0.0, 0.0);
+                }
+		    }
+		    return ret;
+	    }
+	    else if (newkeys & KEY_AIM)
+	    {
+	    	new bool:ret = true;
+			#if defined FIXER_OnPlayerKeyStateChange
+		       	ret = FIXER_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
+			#endif
+		    if (ret)
+		    {
+                if (FIXER_UpdatePlayerSpectateID(playerid, false) == INVALID_PLAYER_ID)
+                {
+                    PlayerPlaySound(playerid, 1054, 0.0, 0.0, 0.0);
+                }
+		    }
+		    return ret;
+	    }
+	}
+	else
+	{
+		if ((newkeys & (KEY_AIM)) == (KEY_AIM))
+		{
+		    switch (GetPlayerWeapon(playerid))
+			{
+				case WEAPON_SNIPER, WEAPON_ROCKETLAUNCHER, WEAPON_HEATSEEKER, WEAPON_CAMERA:
+				{
+				    for (new i; i < MAX_PLAYER_ATTACHED_OBJECTS; i++)
+					{
+						if (IsPlayerAttachedObjectSlotUsed(playerid, i))
+						{
+					    	RemovePlayerAttachedObject(playerid, i);
+						}
+			        }
+			    }
+			}
+		}
+		else if (((newkeys & (KEY_AIM)) != (KEY_AIM)) && ((oldkeys & (KEY_AIM)) == (KEY_AIM)))
+		{
+		    for (new i; i < MAX_PLAYER_ATTACHED_OBJECTS; i++)
+			{
+				if (!IsPlayerAttachedObjectSlotUsed(playerid, i) && FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_USED])
+			    {
+					SetPlayerAttachedObject(playerid, i,
+												FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_MODEL],
+												FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_BONE],
+												FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_X], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_Y], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_Z],
+											 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_RX], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_RY], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_RZ],
+											 	FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_SX], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_SY], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_SZ],
+												FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_COLOR1], FIXER_p_Attachment[playerid][i][FIXER_e_PLAYER_ATT_COLOR2]);
+				}
 			}
 		}
 	}
-
+	
 	#if defined FIXER_OnPlayerKeyStateChange
        	return FIXER_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
 	#else
@@ -652,7 +902,7 @@ public OnPlayerUpdate(playerid)
 {
     if (FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_ACTIVE])
 		return 0;
-		
+
 	if (!FIXER_UPDATER)
 	{
 	    #if defined FIXER_OnPlayerUpdate
@@ -699,6 +949,33 @@ public OnPlayerUpdate(playerid)
 			{
 				SetPlayerPos(playerid, FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_PX], FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_PY], FIXER_p_WorldBounds[playerid][FIXER_e_WORLD_BOUND_PZ]);
 				GameTextForPlayer(playerid, "~w~~h~Saty within the ~r~world boundries", 5000, 3);
+			}
+		}
+	}
+	
+	if (FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_ACTIVE])
+	{
+	    new Float:x, Float:y, Float:z;
+	    GetPlayerVelocity(playerid, x, y, z);
+	  	if (x == 0 && y == 0 && z == 0)
+	    {
+			FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_ACTIVE] = false;
+			ClearAnimations(playerid);
+		}
+		else
+		{
+			if (GetPlayerSpecialAction(playerid) == SPECIAL_ACTION_ENTER_VEHICLE)
+			{
+				if ((GetTickCount() - FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_TICKCOUNT]) > 350)
+		  		{
+					FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_ACTIVE] = false;
+					ClearAnimations(playerid);
+		        }
+			}
+			else if (GetPlayerDistanceFromPoint(playerid, FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_VPOS][0], FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_VPOS][1], FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_VPOS][2]) > 2.5)
+			{
+				FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_ACTIVE] = false;
+				ClearAnimations(playerid);
 			}
 		}
 	}
@@ -779,14 +1056,10 @@ public OnPlayerDeath(playerid, killerid, reason)
 	new Float:fpos[3];
 	GetPlayerPos(playerid, fpos[0], fpos[1], fpos[2]);
 
-	if (! GetPlayerInterior(playerid))
-	{
+	if (!GetPlayerInterior(playerid))
 		cam[2] += 5.0;
- 	}
  	else
- 	{
- 	    cam[2] += 0.5;
- 	}
+ 		cam[2] += 0.5;
 
 	for (new i, j = GetPlayerPoolSize(); i <= j; i++)
 	{
@@ -971,7 +1244,7 @@ public OnVehicleDamageStatusUpdate(vehicleid, playerid)
 		#endif
 	}
 
-	if (! FIXER_g_Toggle[FIXER_e_TIRE_POPPING])
+	if (!FIXER_g_Toggle[FIXER_e_TIRE_POPPING])
 	{
 	    new _panels, _doors, _lights, _tires;
 	    GetVehicleDamageStatus(vehicleid, _panels, _doors, _lights, _tires);
@@ -1012,6 +1285,52 @@ public OnVehicleDamageStatusUpdate(vehicleid, playerid)
 	forward FIXER_OnVehicleDamageStatusUpd(vehicleid, playerid);
 #endif
 
+public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
+{
+	if (weaponid == WEAPON_KNIFE && _:amount == _:0.0)
+	{
+		if (GetPlayerTeam(playerid) != NO_TEAM && GetPlayerTeam(damagedid) != NO_TEAM && GetPlayerTeam(playerid) == GetPlayerTeam(damagedid))
+		{
+		    FIXER_p_SyncData[damagedid][FIXER_e_SYNC_DATA_ACTIVE] = true;
+
+		    GetPlayerPos(damagedid, FIXER_p_SyncData[damagedid][FIXER_e_SYNC_DATA_POS][0], FIXER_p_SyncData[damagedid][FIXER_e_SYNC_DATA_POS][1], FIXER_p_SyncData[damagedid][FIXER_e_SYNC_DATA_POS][2]);
+			GetPlayerFacingAngle(damagedid, FIXER_p_SyncData[damagedid][FIXER_e_SYNC_DATA_POS][3]);
+			GetPlayerHealth(damagedid, FIXER_p_SyncData[damagedid][FIXER_e_SYNC_DATA_HEALTH]);
+			GetPlayerArmour(damagedid, FIXER_p_SyncData[damagedid][FIXER_e_SYNC_DATA_ARMOR]);
+			FIXER_p_SyncData[damagedid][FIXER_e_SYNC_DATA_SKIN] = GetPlayerSkin(damagedid);
+			FIXER_p_SyncData[damagedid][FIXER_e_SYNC_DATA_COLOR] = GetPlayerColor(damagedid);
+			FIXER_p_SyncData[damagedid][FIXER_e_SYNC_DATA_TEAM] = GetPlayerTeam(damagedid);
+			for (new i; i < 14; i++)
+				GetPlayerWeaponData(damagedid, i, FIXER_p_SyncData[damagedid][FIXER_e_SYNC_DATA_WEAPONS][i], FIXER_p_SyncData[damagedid][FIXER_e_SYNC_DATA_AMMOS][i]);
+				
+			SpawnPlayer(damagedid);
+
+        	GameTextForPlayer(playerid, "~w~~h~Don't knife ~r~teammates", 5000, 3);
+		
+			#if defined FIXER_OnPlayerGiveDamage
+				return FIXER_OnPlayerGiveDamage(playerid, damagedid, amount, weaponid, bodypart);
+			#else
+				return 0;
+			#endif
+		}
+	}
+
+	#if defined FIXER_OnPlayerGiveDamage
+		return FIXER_OnPlayerGiveDamage(playerid, damagedid, amount, weaponid, bodypart);
+	#else
+		return 0;
+	#endif
+}
+#if defined _ALS_OnPlayerGiveDamage
+    #undef OnPlayerGiveDamage
+#else
+    #define _ALS_OnPlayerGiveDamage
+#endif
+#define OnPlayerGiveDamage FIXER_OnPlayerGiveDamage
+#if defined FIXER_OnPlayerGiveDamage
+	forward FIXER_OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart);
+#endif
+			
 public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY, Float:fZ)
 {
 	if (weaponid < 22 || weaponid > 38)
@@ -1019,7 +1338,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 
 	new Float:z;
     GetPlayerPos(playerid, z, z, z);
-	if (! (-20000.0 <= z <= 20000.0))
+	if (!(-20000.0 <= z <= 20000.0))
  		return Kick(playerid);
 
 	if (!FIXER_UPDATER)
@@ -1112,6 +1431,31 @@ public OnPlayerClickMap(playerid, Float:fX, Float:fY, Float:fZ)
 	forward S_OnPlayerClickMap(playerid, Float:fX, Float:fY, Float:fZ);
 #endif
 
+public OnPlayerEnterVehicle(playerid, vehicleid, ispassenger)
+{
+    if (ispassenger)
+   	{
+		FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_ACTIVE] = true;
+		FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_TICKCOUNT] = GetTickCount();
+        GetVehiclePos(vehicleid, FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_VPOS][0], FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_VPOS][1], FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_VPOS][2]);
+	}
+	
+	#if defined FIXER_OnPlayerEnterVehicle
+		return FIXER_OnPlayerEnterVehicle(playerid, vehicleid, ispassenger);
+	#else
+		return 1;
+	#endif
+}
+#if defined _ALS_OnPlayerEnterVehicle
+	#undef OnPlayerEnterVehicle
+#else
+	#define _ALS_OnPlayerEnterVehicle
+#endif
+#define OnPlayerEnterVehicle FIXER_OnPlayerEnterVehicle
+#if defined FIXER_OnPlayerEnterVehicle
+	forward FIXER_OnPlayerEnterVehicle(playerid, vehicleid, ispassenger);
+#endif
+
 public OnPlayerStateChange(playerid, newstate, oldstate)
 {
 	if (newstate == PLAYER_STATE_DRIVER)
@@ -1144,14 +1488,10 @@ public OnPlayerStateChange(playerid, newstate, oldstate)
 		new Float:fpos[3];
 		GetPlayerPos(playerid, fpos[0], fpos[1], fpos[2]);
 
-		if (! GetPlayerInterior(playerid))
-		{
+		if (!GetPlayerInterior(playerid))
 			cam[2] += 5.0;
-	 	}
 	 	else
-	 	{
-	 	    cam[2] += 0.5;
-	 	}
+	 		cam[2] += 0.5;
 
 		for (new i, j = GetPlayerPoolSize(); i <= j; i++)
 		{
@@ -1190,103 +1530,6 @@ public OnPlayerStateChange(playerid, newstate, oldstate)
 	forward FIXER_OnPlayerStateChange(playerid, newstate, oldstate);
 #endif
 
-#if ! defined FILTERSCRIPT
-	public OnGameModeInit()
-#else
-	public OnFilterScriptInit()
-#endif
-{
-	FIXER_g_BlacklistDB = db_open("bans.db");
-	db_query(FIXER_g_BlacklistDB, "CREATE TABLE IF NOT EXISTS `Participants` (`Username` STRING, `Ip` STRING, `Reason` STRING, `DateStamp` INTEGER)");
-
-	FIXER_g_Toggle[FIXER_e_TIRE_POPPING] = true;
-	FIXER_g_Toggle[FIXER_e_INTERIOR_WEAPONS] = true;
-	FIXER_g_Toggle[FIXER_e_ADMIN_TELEPORT] = false;
-	FIXER_g_Toggle[FIXER_e_VEHICLE_FRIENDLYFIRE] = false;
-
-	for (new i; i < MAX_VEHICLES; i++)
-		FIXER_v_VehicleHealth[i] = 0.0;
-
-	#if ! defined FILTERSCRIPT
-		#if defined FIXER_OnGameModeInit
-			return FIXER_OnGameModeInit();
-		#else
-			return 1;
-		#endif
-	#else
-		#if defined FIXER_OnFilterScriptInit
-			return FIXER_OnFilterScriptInit();
-		#else
-			return 1;
-		#endif
-	#endif
-}
-#if ! defined FILTERSCRIPT
-	#if defined _ALS_OnGameModeInit
-		#undef OnGameModeInit
-	#else
-		#define _ALS_OnGameModeInit
-	#endif
-	#define OnGameModeInit FIXER_OnGameModeInit
-	#if defined FIXER_OnGameModeInit
-		forward FIXER_OnGameModeInit();
-	#endif
-#else
-	#if defined _ALS_OnFilterScriptInit
-		#undef OnFilterScriptInit
-	#else
-		#define _ALS_OnFilterScriptInit
-	#endif
-	#define OnFilterScriptInit FIXER_OnFilterScriptInit
-	#if defined FIXER_OnFilterScriptInit
-		forward FIXER_OnFilterScriptInit();
-	#endif
-#endif
-
-#if ! defined FILTERSCRIPT
-	public OnGameModeExit()
-#else
-	public OnFilterScriptExit()
-#endif
-{
-	db_close(FIXER_g_BlacklistDB);
-
-	#if ! defined FILTERSCRIPT
-		#if defined FIXER_OnGameModeExit
-			return FIXER_OnGameModeExit();
-		#else
-			return 1;
-		#endif
-	#else
-		#if defined FIXER_OnFilterScriptExit
-			return FIXER_OnFilterScriptExit();
-		#else
-			return 1;
-		#endif
-	#endif
-}
-#if ! defined FILTERSCRIPT
-	#if defined _ALS_OnGameModeExit
-		#undef OnGameModeExit
-	#else
-		#define _ALS_OnGameModeExit
-	#endif
-	#define OnGameModeExit FIXER_OnGameModeExit
-	#if defined FIXER_OnGameModeExit
-		forward FIXER_OnGameModeExit();
-	#endif
-#else
-	#if defined _ALS_OnFilterScriptExit
-		#undef OnFilterScriptExit
-	#else
-		#define _ALS_OnFilterScriptExit
-	#endif
-	#define OnFilterScriptExit FIXER_OnFilterScriptExit
-	#if defined FIXER_OnFilterScriptExit
-		forward FIXER_OnFilterScriptExit();
-	#endif
-#endif
-
 stock FIXER_ClearAnimations(playerid, forcesync = 0)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
@@ -1295,7 +1538,7 @@ stock FIXER_ClearAnimations(playerid, forcesync = 0)
 	if (IsPlayerInAnyVehicle(playerid))
 		return ApplyAnimation(playerid, "PED", "CAR_SIT", 4.0, 0, 0, 0, 0, 1, forcesync);
 
-	new ret = ClearFIXER_ANIMATIONS(playerid, forcesync);
+	new ret = ClearAnimations(playerid, forcesync);
 
 	ApplyAnimation(playerid, "PED", "IDLE_STANCE", 4.0, 0, 0, 0, 0, 1, forcesync);
 	ApplyAnimation(playerid, "PED", "IDLE_CHAT", 4.0, 0, 0, 0, 0, 1, forcesync);
@@ -1303,12 +1546,12 @@ stock FIXER_ClearAnimations(playerid, forcesync = 0)
 
 	return ret;
 }
-#if defined _ALS_ClearFIXER_ANIMATIONS
-    #undef ClearFIXER_ANIMATIONS
+#if defined _ALS_ClearAnimations
+    #undef ClearAnimations
 #else
-    #define _ALS_ClearFIXER_ANIMATIONS
+    #define _ALS_ClearAnimations
 #endif
-#define ClearFIXER_ANIMATIONS FIXER_ClearAnimations
+#define ClearAnimations FIXER_ClearAnimations
 
 stock FIXER_ApplyAnimation(playerid, animlib[], animname[], Float:fDelta, loop, lockx, locky, freeze, time, forcesync = 0, delay = 250)
 {
@@ -1319,9 +1562,8 @@ stock FIXER_ApplyAnimation(playerid, animlib[], animname[], Float:fDelta, loop, 
 	{
 		if (!strcmp(animlib, FIXER_ANIMATIONS[i], true))
 	    {
-		    if (FIXER_p_AnimPrelaodTimer[playerid][i] <= 0)
+		    if (FIXER_p_AnimPrelaodTimer[playerid][i] == -1)
 			{
-				KillTimer(FIXER_p_AnimPrelaodTimer[playerid][i]);
 				FIXER_p_AnimPrelaodTimer[playerid][i] = SetTimerEx("FIXER_OnAnimPreload", delay, false, "issfiiiiii", playerid, animlib, animname, fDelta, loop, lockx, locky, freeze, time, forcesync);
 				CallRemoteFunction("FIXER_OnAnimProcessed", "iii", playerid, i, FIXER_p_AnimPrelaodTimer[playerid][i]);
 			}
@@ -1720,8 +1962,8 @@ stock FIXER_TogglePlayerControllable(playerid, toggle)
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     	return 0;
 
-	if (! toggle)
-		ClearFIXER_ANIMATIONS(playerid, 1);
+	if (!toggle)
+		ClearAnimations(playerid, 1);
 
 	return TogglePlayerControllable(playerid, toggle);
 }
@@ -1782,7 +2024,7 @@ stock FIXER_SetPlayerName(playerid, const name[])
     new oldname[MAX_PLAYER_NAME];
 	GetPlayerName(playerid, oldname, MAX_PLAYER_NAME);
 
-	if (! strcmp(name, oldname, true))
+	if (!strcmp(name, oldname, true))
 	{
 		if (strcmp(name, oldname, false))
 		{
@@ -1816,7 +2058,7 @@ stock FIXER_SetPlayerSpecialAction(playerid, actionid)
     	return 0;
 
 	if (actionid == SPECIAL_ACTION_USEJETPACK)
-		ClearFIXER_ANIMATIONS(playerid, 1);
+		ClearAnimations(playerid, 1);
 
 	return SetPlayerSpecialAction(playerid, actionid);
 }
@@ -1960,7 +2202,7 @@ stock FIXER_EnableVehicleFriendlyFire(toggle = 1)
 stock Text:FIXER_TextDrawCreate(Float:x, Float:y, text[])
 {
 	if (text[0] == '\0' || (text[0] == '\1' && text[1] == '\0'))
-		return TextDrawCreate(x, y, "_");
+		return TextDrawCreate(x, y, " ");
 
 	return TextDrawCreate(x, y, text);
 }
@@ -1977,7 +2219,7 @@ stock PlayerText:FIXER_CreatePlayerTextDraw(playerid, Float:x, Float:y, text[])
 		return PlayerText:INVALID_TEXT_DRAW;
 
 	if (text[0] == '\0' || (text[0] == '\1' && text[1] == '\0'))
-		return CreatePlayerTextDraw(playerid, x, y, "_");
+		return CreatePlayerTextDraw(playerid, x, y, " ");
 
 	return CreatePlayerTextDraw(playerid, x, y, text);
 }
@@ -1991,7 +2233,7 @@ stock PlayerText:FIXER_CreatePlayerTextDraw(playerid, Float:x, Float:y, text[])
 stock FIXER_TextDrawSetString(Text:text, string[])
 {
 	if (string[0] == '\0' || (string[0] == '\1' && string[1] == '\0'))
-		return TextDrawSetString(text, "_");
+		return TextDrawSetString(text, " ");
 
 	return TextDrawSetString(text, string);
 }
@@ -2008,7 +2250,7 @@ stock FIXER_PlayerTextDrawSetString(playerid, PlayerText:text, string[])
 		return -1;
 
 	if (string[0] == '\0' || (string[0] == '\1' && string[1] == '\0'))
-		return PlayerTextDrawSetString(playerid, text, "_");
+		return PlayerTextDrawSetString(playerid, text, " ");
 
 	return PlayerTextDrawSetString(playerid, text, string);
 }
@@ -2019,10 +2261,76 @@ stock FIXER_PlayerTextDrawSetString(playerid, PlayerText:text, string[])
 #endif
 #define PlayerTextDrawSetString FIXER_PlayerTextDrawSetString
 
+#define FIXER_SetAlpha(%0,%1) \
+	((%0 & ~0xFF) | clamp(%1, 0x00, 0xFF))
+	
 stock FIXER_GameTextForPlayer(playerid, string[], time, style)
 {
 	if (string[0] == '\0' || (string[0] == '\1' && string[1] == '\0'))
-		return GameTextForPlayer(playerid, "_", time, style);
+		return GameTextForPlayer(playerid, " ", time, style);
+
+	switch (style)
+	{
+	    case 7:
+	    {
+	        KillTimer(FIXER_p_GameTextTimer[playerid][0]);
+			FIXER_p_GameTextTimer[playerid][0] = SetTimerEx("__OnGameTextUpdate", 100, true, "iiii", playerid, time, style, 1);
+			PlayerTextDrawColor(playerid, FIXER_ptxt_GameText[playerid][0], FIXER_SetAlpha(0x36682CFF, 0));
+			PlayerTextDrawShow(playerid, FIXER_ptxt_GameText[playerid][0]);
+			FIXER_p_GameTextFader[playerid][0] = 0;
+			return 1;
+	    }
+	    
+	    case 8:
+	    {
+	        KillTimer(FIXER_p_GameTextTimer[playerid][1]);
+			FIXER_p_GameTextTimer[playerid][1] = SetTimerEx("__OnGameTextUpdate", 100, true, "iiii", playerid, time, style, 1);
+			PlayerTextDrawColor(playerid, FIXER_ptxt_GameText[playerid][1], FIXER_SetAlpha(0xACCBF1FF, 0));
+			PlayerTextDrawShow(playerid, FIXER_ptxt_GameText[playerid][1]);
+			FIXER_p_GameTextFader[playerid][1] = 0;
+			return 1;
+	    }
+
+	    case 9:
+	    {
+	        KillTimer(FIXER_p_GameTextTimer[playerid][2]);
+			FIXER_p_GameTextTimer[playerid][2] = SetTimerEx("__OnGameTextUpdate", time, false, "iiii", playerid, 0, style, 0);
+			PlayerTextDrawShow(playerid, FIXER_ptxt_GameText[playerid][2]);
+			return 1;
+	    }
+
+	    case 10:
+	    {
+	        KillTimer(FIXER_p_GameTextTimer[playerid][3]);
+			FIXER_p_GameTextTimer[playerid][3] = SetTimerEx("__OnGameTextUpdate", time, false, "iiii", playerid, 0, style, 0);
+			PlayerTextDrawShow(playerid, FIXER_ptxt_GameText[playerid][3]);
+			return 1;
+	    }
+
+	    case 11:
+	    {
+	        KillTimer(FIXER_p_GameTextTimer[playerid][4]);
+			FIXER_p_GameTextTimer[playerid][4] = SetTimerEx("__OnGameTextUpdate", time, false, "iiii", playerid, 0, style, 0);
+			PlayerTextDrawShow(playerid, FIXER_ptxt_GameText[playerid][4]);
+			return 1;
+	    }
+
+	    case 12:
+	    {
+	        KillTimer(FIXER_p_GameTextTimer[playerid][5]);
+			FIXER_p_GameTextTimer[playerid][5] = SetTimerEx("__OnGameTextUpdate", time, false, "iiii", playerid, 0, style, 0);
+			PlayerTextDrawShow(playerid, FIXER_ptxt_GameText[playerid][5]);
+			return 1;
+	    }
+
+	    case 13:
+	    {
+	        KillTimer(FIXER_p_GameTextTimer[playerid][6]);
+			FIXER_p_GameTextTimer[playerid][6] = SetTimerEx("__OnGameTextUpdate", time, false, "iiii", playerid, 0, style, 0);
+			PlayerTextDrawShow(playerid, FIXER_ptxt_GameText[playerid][6]);
+			return 1;
+	    }
+	}
 
 	return GameTextForPlayer(playerid, string, time, style);
 }
@@ -2033,10 +2341,207 @@ stock FIXER_GameTextForPlayer(playerid, string[], time, style)
 #endif
 #define GameTextForPlayer FIXER_GameTextForPlayer
 
+forward __OnGameTextUpdate(playerid, time, style, status);
+public  __OnGameTextUpdate(playerid, time, style, status)
+{
+	switch (style)
+    {
+		case 7:
+		{
+			switch (status)
+			{
+			    case 1:
+				{
+		    		FIXER_p_GameTextFader[playerid][0] += 10;
+					PlayerTextDrawColor(playerid, FIXER_ptxt_GameText[playerid][0], FIXER_SetAlpha(0x36682CFF, FIXER_p_GameTextFader[playerid][0]));
+					PlayerTextDrawShow(playerid, FIXER_ptxt_GameText[playerid][0]);
+						
+					if (FIXER_p_GameTextFader[playerid][0] >= 255)
+					{
+					    KillTimer(FIXER_p_GameTextTimer[playerid][0]);
+						FIXER_p_GameTextTimer[playerid][0] = SetTimerEx("__OnGameTextUpdate", time, false, "iiii", playerid, time, style, 2);
+					}
+				}
+					
+				case 2:
+					FIXER_p_GameTextTimer[playerid][0] = SetTimerEx("__OnGameTextUpdate", 100, true, "iiii", playerid, time, style, 3);
+					
+				case 3:
+				{
+		    		FIXER_p_GameTextFader[playerid][0] -= 10;
+					PlayerTextDrawColor(playerid, FIXER_ptxt_GameText[playerid][0], FIXER_SetAlpha(0x36682CFF, FIXER_p_GameTextFader[playerid][0]));
+					PlayerTextDrawShow(playerid, FIXER_ptxt_GameText[playerid][0]);
+
+					if (FIXER_p_GameTextFader[playerid][0] <= 0)
+					{
+					    KillTimer(FIXER_p_GameTextTimer[playerid][0]);
+			    		PlayerTextDrawHide(playerid, FIXER_ptxt_GameText[playerid][0]);
+					}
+				}
+			}
+		}
+
+		case 8:
+		{
+			switch (status)
+			{
+			    case 1:
+				{
+		    		FIXER_p_GameTextFader[playerid][1] += 10;
+					PlayerTextDrawColor(playerid, FIXER_ptxt_GameText[playerid][1], FIXER_SetAlpha(0xACCBF1FF, FIXER_p_GameTextFader[playerid][1]));
+					PlayerTextDrawShow(playerid, FIXER_ptxt_GameText[playerid][1]);
+
+					if (FIXER_p_GameTextFader[playerid][1] >= 255)
+					{
+					    KillTimer(FIXER_p_GameTextTimer[playerid][1]);
+						FIXER_p_GameTextTimer[playerid][1] = SetTimerEx("__OnGameTextUpdate", time, false, "iiii", playerid, time, style, 2);
+					}
+				}
+
+				case 2:
+					FIXER_p_GameTextTimer[playerid][1] = SetTimerEx("__OnGameTextUpdate", 100, true, "iiii", playerid, time, style, 3);
+
+				case 3:
+				{
+		    		FIXER_p_GameTextFader[playerid][1] -= 10;
+					PlayerTextDrawColor(playerid, FIXER_ptxt_GameText[playerid][1], FIXER_SetAlpha(0xACCBF1FF, FIXER_p_GameTextFader[playerid][1]));
+					PlayerTextDrawShow(playerid, FIXER_ptxt_GameText[playerid][1]);
+
+					if (FIXER_p_GameTextFader[playerid][1] <= 0)
+					{
+					    KillTimer(FIXER_p_GameTextTimer[playerid][1]);
+			    		PlayerTextDrawHide(playerid, FIXER_ptxt_GameText[playerid][1]);
+					}
+				}
+			}
+		}
+
+		case 9:
+   			PlayerTextDrawHide(playerid, FIXER_ptxt_GameText[playerid][2]);
+
+		case 10:
+   			PlayerTextDrawHide(playerid, FIXER_ptxt_GameText[playerid][3]);
+
+		case 11:
+   			PlayerTextDrawHide(playerid, FIXER_ptxt_GameText[playerid][4]);
+
+		case 12:
+   			PlayerTextDrawHide(playerid, FIXER_ptxt_GameText[playerid][5]);
+
+		case 13:
+   			PlayerTextDrawHide(playerid, FIXER_ptxt_GameText[playerid][6]);
+	}
+}
+
 stock FIXER_GameTextForAll(string[], time, style)
 {
 	if (string[0] == '\0' || (string[0] == '\1' && string[1] == '\0'))
-		return GameTextForAll("_", time, style);
+		return GameTextForAll(" ", time, style);
+
+	switch (style)
+	{
+	    case 7:
+	    {
+	        for (new i, j = GetPlayerPoolSize(); i <= j; i++)
+	        {
+				if (IsPlayerConnected(i))
+				{
+			        KillTimer(FIXER_p_GameTextTimer[i][0]);
+					FIXER_p_GameTextTimer[i][0] = SetTimerEx("__OnGameTextUpdate", 100, true, "iiii", i, time, style, 1);
+					PlayerTextDrawColor(i, FIXER_ptxt_GameText[i][0], FIXER_SetAlpha(0x36682CFF, 0));
+					PlayerTextDrawShow(i, FIXER_ptxt_GameText[i][0]);
+					FIXER_p_GameTextFader[i][0] = 0;
+				}
+			}
+			return 1;
+	    }
+
+	    case 8:
+	    {
+	        for (new i, j = GetPlayerPoolSize(); i <= j; i++)
+	        {
+				if (IsPlayerConnected(i))
+				{
+			        KillTimer(FIXER_p_GameTextTimer[i][1]);
+					FIXER_p_GameTextTimer[i][1] = SetTimerEx("__OnGameTextUpdate", 100, true, "iiii", i, time, style, 1);
+					PlayerTextDrawColor(i, FIXER_ptxt_GameText[i][1], FIXER_SetAlpha(0xACCBF1FF, 0));
+					PlayerTextDrawShow(i, FIXER_ptxt_GameText[i][1]);
+					FIXER_p_GameTextFader[i][1] = 0;
+				}
+			}
+			return 1;
+	    }
+
+	    case 9:
+	    {
+	        for (new i, j = GetPlayerPoolSize(); i <= j; i++)
+	        {
+				if (IsPlayerConnected(i))
+				{
+			        KillTimer(FIXER_p_GameTextTimer[i][2]);
+					FIXER_p_GameTextTimer[i][2] = SetTimerEx("__OnGameTextUpdate", time, false, "iiii", i, 0, style, 0);
+					PlayerTextDrawShow(i, FIXER_ptxt_GameText[i][2]);
+				}
+			}
+			return 1;
+	    }
+
+	    case 10:
+	    {
+	        for (new i, j = GetPlayerPoolSize(); i <= j; i++)
+	        {
+				if (IsPlayerConnected(i))
+				{
+			        KillTimer(FIXER_p_GameTextTimer[i][3]);
+					FIXER_p_GameTextTimer[i][3] = SetTimerEx("__OnGameTextUpdate", time, false, "iiii", i, 0, style, 0);
+					PlayerTextDrawShow(i, FIXER_ptxt_GameText[i][3]);
+				}
+			}
+			return 1;
+	    }
+
+	    case 11:
+	    {
+	        for (new i, j = GetPlayerPoolSize(); i <= j; i++)
+	        {
+				if (IsPlayerConnected(i))
+				{
+			        KillTimer(FIXER_p_GameTextTimer[i][4]);
+					FIXER_p_GameTextTimer[i][4] = SetTimerEx("__OnGameTextUpdate", time, false, "iiii", i, 0, style, 0);
+					PlayerTextDrawShow(i, FIXER_ptxt_GameText[i][4]);
+				}
+			}
+			return 1;
+	    }
+
+	    case 12:
+	    {
+	        for (new i, j = GetPlayerPoolSize(); i <= j; i++)
+	        {
+				if (IsPlayerConnected(i))
+				{
+			        KillTimer(FIXER_p_GameTextTimer[i][5]);
+					FIXER_p_GameTextTimer[i][5] = SetTimerEx("__OnGameTextUpdate", time, false, "iiii", i, 0, style, 0);
+					PlayerTextDrawShow(i, FIXER_ptxt_GameText[i][5]);
+				}
+			}
+			return 1;
+	    }
+
+	    case 13:
+	    {
+	        for (new i, j = GetPlayerPoolSize(); i <= j; i++)
+	        {
+				if (IsPlayerConnected(i))
+				{
+			        KillTimer(FIXER_p_GameTextTimer[i][6]);
+					FIXER_p_GameTextTimer[i][6] = SetTimerEx("__OnGameTextUpdate", time, false, "iiii", i, 0, style, 0);
+					PlayerTextDrawShow(i, FIXER_ptxt_GameText[i][6]);
+				}
+			}
+			return 1;
+	    }
+	}
 
 	return GameTextForAll(string, time, style);
 }
@@ -2103,7 +2608,7 @@ stock FIXER_GangZoneCreate(Float:minx, Float:miny, Float:maxx, Float:maxy)
 	    miny = shift;
 	}
 
-	return GangZoneCreate(floatsub(minx, floatfract(minx)), floatsub(miny, floatfract(miny)), floatsub(maxx, floatfract(maxx)), floatsub(maxy, floatfract(maxy)));
+	return GangZoneCreate(minx, miny, maxx, maxy);
 }
 #if defined _ALS_GangZoneCreate
 	#undef GangZoneCreate
@@ -2495,13 +3000,13 @@ stock FIXER_Ban(playerid, delay = 150)
 	FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_TIMER] = SetTimerEx("FIXER_OnPlayerDelayKicked", ((delay <= 0) ? (150) : (delay)), false, "i", playerid);
 	FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_TYPE] = 2;
 	FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_REASON][0] = EOS;
-	
+
     new name[MAX_PLAYER_NAME], ip[18];
     GetPlayerName(playerid, name, sizeof (name));
     GetPlayerIp(playerid, ip, sizeof (ip));
 
 	new string[256];
- 	format(string, sizeof (string), "INSERT INTO `Participants` (`Username`, `Ip`, `Reason`, `DateStamp`) VALUES ('%q', '%q', '%q', %i)", name, ip, "", getdate());
+ 	format(string, sizeof (string), "INSERT INTO `Members` (`Username`, `Ip`, `Reason`, `DateStamp`) VALUES ('%q', '%q', '%q', %i)", name, ip, "", getdate());
  	db_query(FIXER_g_BlacklistDB, string);
 	return 1;
 }
@@ -2527,7 +3032,7 @@ stock FIXER_BanEx(playerid, const reason[], delay = 150)
     GetPlayerIp(playerid, ip, sizeof (ip));
 
 	new string[256];
- 	format(string, sizeof (string), "INSERT INTO `Participants` (`Username`, `Ip`, `Reason`, `DateStamp`) VALUES ('%q', '%q', '%q', %i)", name, ip, FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_REASON], getdate());
+ 	format(string, sizeof (string), "INSERT INTO `Members` (`Username`, `Ip`, `Reason`, `DateStamp`) VALUES ('%q', '%q', '%q', %i)", name, ip, FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_REASON], getdate());
  	db_query(FIXER_g_BlacklistDB, string);
 	return 1;
 }
@@ -2543,9 +3048,4 @@ public  FIXER_OnPlayerDelayKicked(playerid)
 {
     FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_ACTIVE] = false;
 	Kick(playerid);
-}
-
-stock FIXER_AllowUpdate(bool:allow = true)
-{
-	FIXER_UPDATER = allow;
 }
