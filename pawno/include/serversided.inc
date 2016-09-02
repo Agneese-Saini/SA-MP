@@ -1,3 +1,8 @@
+#if defined serversided_included
+	#endinput
+#endif
+#define serversided_included
+
 /*
  * serversided.inc
  * Version: 1.9.5 (last updated on 1 September, 2016)
@@ -16,6 +21,8 @@
  * Callbacks:
  * public OnPlayerUseVendingMachine(playerid, Float:x, Float:y, Float:z, interior)
  */
+ 
+#tryinclude <streamer>
 
 #define WEAPON_UNARMED (0)
 #define WEAPON_VEHICLE_M4 (19)
