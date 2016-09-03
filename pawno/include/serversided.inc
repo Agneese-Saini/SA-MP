@@ -5,7 +5,7 @@
 
 /*
  * serversided.inc
- * Version: 1.9.5 (last updated on 1 September, 2016)
+ * Version: 1.9.6 (last updated on 3 September, 2016)
  * By Gammix
  *
  * Functions:
@@ -21,7 +21,7 @@
  * Callbacks:
  * public OnPlayerUseVendingMachine(playerid, Float:x, Float:y, Float:z, interior)
  */
- 
+
 #tryinclude <streamer>
 
 #define WEAPON_UNARMED (0)
@@ -487,7 +487,7 @@ stock static bool:SS_ProcessDamage(&playerid, &issuerid, &Float:amount, &weaponi
 			else
 				amount /= 165.0;
 
-	        amount *= SS_p_WeaponDamage[playerid][weaponid];
+	        amount *= SS_p_WeaponDamage[issuerid][weaponid];
 	    }
 
 	    case WEAPON_DROWN:
@@ -495,7 +495,7 @@ stock static bool:SS_ProcessDamage(&playerid, &issuerid, &Float:amount, &weaponi
 	    	if (amount > 10.0)
 				amount = 10.0;
 
-	        amount *= SS_p_WeaponDamage[playerid][weaponid];
+	        amount *= SS_p_WeaponDamage[issuerid][weaponid];
 	    }
 
 		case WEAPON_GRENADE,
@@ -504,7 +504,7 @@ stock static bool:SS_ProcessDamage(&playerid, &issuerid, &Float:amount, &weaponi
 			 WEAPON_SATCHEL,
 			 WEAPON_EXPLOSION:
 		{
-			amount = (amount / 82.5) * SS_p_WeaponDamage[playerid][weaponid];
+			amount = (amount / 82.5) * SS_p_WeaponDamage[issuerid][weaponid];
 		}
 
 		case WEAPON_MOLTOV,
@@ -519,7 +519,7 @@ stock static bool:SS_ProcessDamage(&playerid, &issuerid, &Float:amount, &weaponi
 			 WEAPON_VEHICLE,
 			 WEAPON_HELIBLADES:
 		{
-		    amount = SS_p_WeaponDamage[playerid][weaponid];
+		    amount = SS_p_WeaponDamage[issuerid][weaponid];
 		}
 
 		case WEAPON_SHOTGSPA:
@@ -532,7 +532,7 @@ stock static bool:SS_ProcessDamage(&playerid, &issuerid, &Float:amount, &weaponi
 			if (f > 0.01 && f < 0.99)
 				return false;
 
-	 	    amount = SS_p_WeaponDamage[playerid][weaponid] * bullets;
+	 	    amount = SS_p_WeaponDamage[issuerid][weaponid] * bullets;
 		}
 
 		case WEAPON_SHOTGUN,
@@ -546,7 +546,7 @@ stock static bool:SS_ProcessDamage(&playerid, &issuerid, &Float:amount, &weaponi
 			if (f > 0.01 && f < 0.99)
 				return false;
 
-	 	    amount = SS_p_WeaponDamage[playerid][weaponid] * bullets;
+	 	    amount = SS_p_WeaponDamage[issuerid][weaponid] * bullets;
 		}
 	}
 
@@ -880,6 +880,20 @@ public OnPlayerSpawn(playerid)
 
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 {
+	if (newkeys & KEY_FIRE)
+ 	{
+		if (GetPlayerWeapon(playerid) == WEAPON_SATCHEL)
+		{
+	        new slot = SS_GetWeaponSlot(WEAPON_BOMB);
+			if (slot != -1)
+			{
+				SS_p_WeaponData[playerid][slot][0] = WEAPON_BOMB;
+				SS_p_WeaponData[playerid][slot][1] = 1;
+		    }
+	        GivePlayerWeapon(playerid, WEAPON_BOMB, 1);
+		}
+	}
+	
 	if (SS_ALLOW_UPDATE)
 	{
 	    switch (GetPlayerState(playerid))
