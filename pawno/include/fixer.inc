@@ -5,7 +5,7 @@
 
 /*
  * fixer.inc
- * Version: 2.3 [BETA] (last updated on 31 August, 2016)
+ * Version: 2.3.1 [BETA] (last updated on 5 September, 2016)
  *
  * Please visit the following thread to know about the features/fixes and the credits.
  * Also, support available there and you can also share your suggestions or fixes.
@@ -13,6 +13,7 @@
  *
  * Funtions:
  * native FIXER_AllowUpdate(bool:allow = true);
+ * native UnBan(const name[], const ip[]);
  *
  */
 
@@ -625,7 +626,7 @@ public OnPlayerConnect(playerid)
 		FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_WEAPONS][i] = 0;
 		FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_AMMOS][i] = 0;
 	}
-	
+
 	FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_ACTIVE] = false;
 	FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_VPOS][0] = 0.0;
 	FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_VPOS][1] = 0.0;
@@ -642,7 +643,7 @@ public OnPlayerConnect(playerid)
  	if (db_num_rows(result) > 0)
  	{
 		db_free_result(result);
-		
+
 		if (CallRemoteFunction("OnBannedPlayerConnect", "i", playerid) >= 1)
 			return Kick(playerid);
  	}
@@ -750,7 +751,7 @@ public OnPlayerSpawn(playerid)
 	if (FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_ACTIVE])
 	{
 	    FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_ACTIVE] = false;
-	    
+
 	    SetPlayerPos(playerid, FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_POS][0], FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_POS][1], FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_POS][2]);
 		SetPlayerFacingAngle(playerid, FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_POS][3]);
 		SetPlayerHealth(playerid, FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_HEALTH]);
@@ -761,7 +762,7 @@ public OnPlayerSpawn(playerid)
 		ResetPlayerWeapons(playerid);
 		for (new i; i < 14; i++)
 			GivePlayerWeapon(playerid, FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_WEAPONS][i], FIXER_p_SyncData[playerid][FIXER_e_SYNC_DATA_AMMOS][i]);
-			
+
 		return 1;
 	}
 
@@ -881,7 +882,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 			}
 		}
 	}
-	
+
 	#if defined FIXER_OnPlayerKeyStateChange
        	return FIXER_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
 	#else
@@ -952,7 +953,7 @@ public OnPlayerUpdate(playerid)
 			}
 		}
 	}
-	
+
 	if (FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_ACTIVE])
 	{
 	    new Float:x, Float:y, Float:z;
@@ -1302,11 +1303,11 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
 			FIXER_p_SyncData[damagedid][FIXER_e_SYNC_DATA_TEAM] = GetPlayerTeam(damagedid);
 			for (new i; i < 14; i++)
 				GetPlayerWeaponData(damagedid, i, FIXER_p_SyncData[damagedid][FIXER_e_SYNC_DATA_WEAPONS][i], FIXER_p_SyncData[damagedid][FIXER_e_SYNC_DATA_AMMOS][i]);
-				
+
 			SpawnPlayer(damagedid);
 
         	GameTextForPlayer(playerid, "~w~~h~Don't knife ~r~teammates", 5000, 3);
-		
+
 			#if defined FIXER_OnPlayerGiveDamage
 				return FIXER_OnPlayerGiveDamage(playerid, damagedid, amount, weaponid, bodypart);
 			#else
@@ -1330,7 +1331,7 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
 #if defined FIXER_OnPlayerGiveDamage
 	forward FIXER_OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart);
 #endif
-			
+
 public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY, Float:fZ)
 {
 	if (weaponid < 22 || weaponid > 38)
@@ -1439,7 +1440,7 @@ public OnPlayerEnterVehicle(playerid, vehicleid, ispassenger)
 		FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_TICKCOUNT] = GetTickCount();
         GetVehiclePos(vehicleid, FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_VPOS][0], FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_VPOS][1], FIXER_p_GbugData[playerid][FIXER_e_GBUG_DATA_VPOS][2]);
 	}
-	
+
 	#if defined FIXER_OnPlayerEnterVehicle
 		return FIXER_OnPlayerEnterVehicle(playerid, vehicleid, ispassenger);
 	#else
@@ -2263,7 +2264,7 @@ stock FIXER_PlayerTextDrawSetString(playerid, PlayerText:text, string[])
 
 #define FIXER_SetAlpha(%0,%1) \
 	((%0 & ~0xFF) | clamp(%1, 0x00, 0xFF))
-	
+
 stock FIXER_GameTextForPlayer(playerid, string[], time, style)
 {
 	if (string[0] == '\0' || (string[0] == '\1' && string[1] == '\0'))
@@ -2280,7 +2281,7 @@ stock FIXER_GameTextForPlayer(playerid, string[], time, style)
 			FIXER_p_GameTextFader[playerid][0] = 0;
 			return 1;
 	    }
-	    
+
 	    case 8:
 	    {
 	        KillTimer(FIXER_p_GameTextTimer[playerid][1]);
@@ -2355,17 +2356,17 @@ public  __OnGameTextUpdate(playerid, time, style, status)
 		    		FIXER_p_GameTextFader[playerid][0] += 10;
 					PlayerTextDrawColor(playerid, FIXER_ptxt_GameText[playerid][0], FIXER_SetAlpha(0x36682CFF, FIXER_p_GameTextFader[playerid][0]));
 					PlayerTextDrawShow(playerid, FIXER_ptxt_GameText[playerid][0]);
-						
+
 					if (FIXER_p_GameTextFader[playerid][0] >= 255)
 					{
 					    KillTimer(FIXER_p_GameTextTimer[playerid][0]);
 						FIXER_p_GameTextTimer[playerid][0] = SetTimerEx("__OnGameTextUpdate", time, false, "iiii", playerid, time, style, 2);
 					}
 				}
-					
+
 				case 2:
 					FIXER_p_GameTextTimer[playerid][0] = SetTimerEx("__OnGameTextUpdate", 100, true, "iiii", playerid, time, style, 3);
-					
+
 				case 3:
 				{
 		    		FIXER_p_GameTextFader[playerid][0] -= 10;
@@ -2693,19 +2694,9 @@ stock FIXER_valstr(dest[], value, bool:pack = false)
 stock FIXER_strcmp(const string1[], const string2[], bool:ignorecase = false, length = cellmax)
 {
 	if (string1[0])
-	{
-		if (string2[0])
-			return strcmp(string1, string2, ignorecase, length);
-		else
-			return 1;
-	}
+		return (string2[0]) ? (strcmp(string1, string2, ignorecase, length)) : (1);
 	else
-	{
-		if (string2[0])
-			return -1;
-		else
-			return 0;
-	}
+		return (string2[0]) ? (-1) : (0);
 }
 #if defined _ALS_strcmp
 	#undef strcmp
@@ -3005,7 +2996,7 @@ stock FIXER_Ban(playerid, delay = 150)
     GetPlayerName(playerid, name, sizeof (name));
     GetPlayerIp(playerid, ip, sizeof (ip));
 
-	new string[256];
+	new string[512];
  	format(string, sizeof (string), "INSERT INTO `Members` (`Username`, `Ip`, `Reason`, `DateStamp`) VALUES ('%q', '%q', '%q', %i)", name, ip, "", getdate());
  	db_query(FIXER_g_BlacklistDB, string);
 	return 1;
@@ -3031,7 +3022,7 @@ stock FIXER_BanEx(playerid, const reason[], delay = 150)
     GetPlayerName(playerid, name, sizeof (name));
     GetPlayerIp(playerid, ip, sizeof (ip));
 
-	new string[256];
+	new string[512];
  	format(string, sizeof (string), "INSERT INTO `Members` (`Username`, `Ip`, `Reason`, `DateStamp`) VALUES ('%q', '%q', '%q', %i)", name, ip, FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_REASON], getdate());
  	db_query(FIXER_g_BlacklistDB, string);
 	return 1;
@@ -3048,4 +3039,11 @@ public  FIXER_OnPlayerDelayKicked(playerid)
 {
     FIXER_p_BlacklistData[playerid][FIXER_e_BLACKLIST_DATA_ACTIVE] = false;
 	Kick(playerid);
+}
+
+stock UnBan(const name[], const ip[])
+{
+	new string[256];
+ 	format(string, sizeof (string), "DELETE FROM `Members` WHERE `Username` = '%q' OR `Ip` = '%q'", name, ip);
+ 	return ((db_query(FIXER_g_BlacklistDB, string) ? (1) : (0));
 }
