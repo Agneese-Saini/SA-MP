@@ -5,21 +5,15 @@
 
 /*
  * serversided.inc
- * Version: 1.9.6 (last updated on 3 September, 2016)
+ * Version: 1.9.7 (last updated on 30 September, 2016)
  * By Gammix
  *
  * Functions:
-   native SS_Init();
-   native SS_Exit();
-   native SS_SetUpdateRate(rate);
-   native _
    native SetWeaponName(weaponid, const name[]);
    native Float:GetPlayerWeaponDamage(playerid, weaponid);
    native SetPlayerWeaponDamage(playerid, weaponid, Float:damage);
    native ResetPlayerWeaponDamage(playerid, weaponid);
  *
- * Callbacks:
- * public OnPlayerUseVendingMachine(playerid, Float:x, Float:y, Float:z, interior)
  */
 
 #tryinclude <streamer>
@@ -245,8 +239,6 @@ enum SS_e_SPAWN_DATA
 static SS_p_SpawnData[MAX_PLAYERS][SS_e_SPAWN_DATA];
 static SS_g_ClassData[MAX_CLASSES][SS_e_SPAWN_DATA];
 
-static bool:SS_p_LastShotReturn[MAX_PLAYERS];
-
 static SS_g_StaticPickup[MAX_PICKUPS];
 
 static const SS_COMPONENT_PRICE[] =
@@ -272,14 +264,6 @@ static const SS_COMPONENT_PRICE[] =
     2130, 2050, 2130, 2040, 2150, 2040, 2095, 2175, 2080, 2200,
     1200, 1040, 940, 1100
 };
-
-static Float:SS_v_Health[MAX_VEHICLES];
-
-static bool:SS_g_VehicleFriendlyFire;
-
-static bool:SS_ALLOW_UPDATE;
-static SS_UPDATE_RATE;
-static SS_p_LastUpdateTick[MAX_PLAYERS];
 
 stock static SS_GetWeaponSlot(weaponid)
 {
@@ -669,10 +653,7 @@ public OnPlayerConnect(playerid)
 	SS_p_SpawnData[playerid][SS_e_SPAWN_DATA_WEAPON3][0] = 0;
 	SS_p_SpawnData[playerid][SS_e_SPAWN_DATA_WEAPON3][1] = 0;
 
-	SS_p_LastShotReturn[playerid] = false;
-
-	if (SS_ALLOW_UPDATE)
-	{
+	#if ! defined FILTERSCRIPT
 	    RemoveBuildingForPlayer(playerid, 955, 0.0, 0.0, 0.0, 20000.0);
 		RemoveBuildingForPlayer(playerid, 956, 0.0, 0.0, 0.0, 20000.0);
 		RemoveBuildingForPlayer(playerid, 1209, 0.0, 0.0, 0.0, 20000.0);
@@ -690,7 +671,7 @@ public OnPlayerConnect(playerid)
 			 	SS_p_VendingMachineObject[playerid][i] = CreatePlayerObject(playerid, SS_g_VendingMachine[i][SS_e_VENDING_MACHINE_MODEL], SS_g_VendingMachine[i][SS_e_VENDING_MACHINE_X], SS_g_VendingMachine[i][SS_e_VENDING_MACHINE_Y], SS_g_VendingMachine[i][SS_e_VENDING_MACHINE_Z], SS_g_VendingMachine[i][SS_e_VENDING_MACHINE_RX], SS_g_VendingMachine[i][SS_e_VENDING_MACHINE_RY], SS_g_VendingMachine[i][SS_e_VENDING_MACHINE_RZ]);
 			#endif
 		}
-	}
+	#endif
 
 	#if defined SS_OnPlayerConnect
 		return SS_OnPlayerConnect(playerid);
@@ -860,8 +841,6 @@ public OnPlayerSpawn(playerid)
 
 	SetPlayerTeam(playerid, 0);
 
-	SS_p_LastShotReturn[playerid] = false;
-
 	#if defined SS_OnPlayerSpawn
 		return SS_OnPlayerSpawn(playerid);
 	#else
@@ -893,9 +872,8 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 	        GivePlayerWeapon(playerid, WEAPON_BOMB, 1);
 		}
 	}
-	
-	if (SS_ALLOW_UPDATE)
-	{
+
+	#if ! defined FILTERSCRIPT
 	    switch (GetPlayerState(playerid))
 		{
 			case PLAYER_STATE_ONFOOT:
@@ -944,14 +922,6 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 
 	                        PlayerPlaySound(playerid, 42600, 0.0, 0.0, 0.0);
 
-							#if defined OnPlayerUseVendingMachine
-								if (OnPlayerUseVendingMachine(playerid, SS_g_VendingMachine[i][SS_e_VENDING_MACHINE_X], SS_g_VendingMachine[i][SS_e_VENDING_MACHINE_Y], SS_g_VendingMachine[i][SS_e_VENDING_MACHINE_Z], SS_g_VendingMachine[i][SS_e_VENDING_MACHINE_INTERIOR]) <= 0)
-								{
-									PlayerPlaySound(playerid, 1055, 0.0, 0.0, 0.0);
-									break;
-					    		}
-							#endif
-
 							SS_g_VendingMachine[i][SS_e_VENDING_MACHINE_TIMER] = SetTimerEx("__OnPlayerUseVendingMachine", 2500, false, "ii", playerid, i);
 	   						SS_p_Money[playerid]--;
 
@@ -961,7 +931,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 				}
 			}
 		}
-	}
+	#endif
 
 	#if defined SS_OnPlayerKeyStateChange
 		return SS_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
@@ -1021,93 +991,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 		return 0;
 
 	if (hittype == BULLET_HIT_TYPE_PLAYER)
-	{
-		if (IsPlayerInAnyVehicle(playerid) && GetPlayerVehicleID(playerid) == GetPlayerVehicleID(hitid))
-			return 0;
-
-		SS_p_LastShotReturn[playerid] = true;
 		return 0;
-	}
-	else if (hittype == BULLET_HIT_TYPE_VEHICLE)
-	{
-		if (hitid == GetPlayerVehicleID(playerid))
-			return 0;
-
-		for (new i, j = GetPlayerPoolSize(); i <= j; i++)
-		{
-			if (i == playerid || ! IsPlayerConnected(i))
-				continue;
-
-			if (GetPlayerVehicleID(i) != hitid)
-				continue;
-
-			new seat = GetPlayerVehicleSeat(i);
-			if (seat != 0)
-			    continue;
-
-			new Float:damage;
-			switch (weaponid)
-			{
-				case WEAPON_COLT45..WEAPON_DEAGLE,
-			 		 WEAPON_UZI..WEAPON_SNIPER,
-					 WEAPON_MINIGUN,
-					 WEAPON_PISTOLWHIP,
-					 WEAPON_VEHICLE,
-					 WEAPON_HELIBLADES:
-				{
-					damage = SS_p_WeaponDamage[playerid][weaponid] * 3.0;
-				}
-
-				case WEAPON_SHOTGSPA:
-				{
-					new Float:x, Float:y, Float:z;
-					GetVehiclePos(hitid, x, y, z);
-
-					new Float:distance;
-					distance = DISTANCE(fX, fZ, fY, x, y, z);
-
-					new Float:bullets;
-					bullets = 15 / distance;
-
-					damage = (SS_p_WeaponDamage[playerid][weaponid] * bullets) * 3.0;
-				}
-
-				case WEAPON_SHOTGUN,
-					 WEAPON_SAWEDOFF:
-				{
-					new Float:x, Float:y, Float:z;
-					GetVehiclePos(hitid, x, y, z);
-
-					new Float:distance;
-					distance = DISTANCE(fX, fZ, fY, x, y, z);
-
-					new Float:bullets;
-					bullets = 8 / distance;
-
-					damage = (SS_p_WeaponDamage[playerid][weaponid] * bullets) * 3.0;
-				}
-			}
-
-			if (!(SS_g_VehicleFriendlyFire && SS_HasSameTeam(playerid, i)))
-			{
-				new Float:health;
-				GetVehicleHealth(hitid, health);
-				if (health <= 250.0)
-				    break;
-
-		        SS_v_Health[hitid] -= damage;
-				if (SS_v_Health[hitid] <= 0.0)
-					SS_v_Health[hitid] = 0.0;
-				SetVehicleHealth(hitid, SS_v_Health[hitid]);
-
-				SS_p_LastShotReturn[playerid] = true;
-			}
-
-			return 0;
-		}
-	}
-
-	SS_p_LastShotReturn[playerid] = false;
 
 	return 1;
 }
@@ -1127,7 +1011,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 
 public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
 {
-	if (WEAPON_COLT45 <= weaponid <= WEAPON_SNIPER && ! SS_p_LastShotReturn[playerid])
+	if (! (WEAPON_COLT45 <= weaponid <= WEAPON_FIREEXTINGUISHER || weaponid == WEAPON_PARACHUTE))
 	   	return 0;
 
 	if (weaponid == WEAPON_KNIFE && _:amount == _:0.0)
@@ -1141,8 +1025,9 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
 			#endif
 		}
 
-		if (SS_ALLOW_UPDATE)
+		#if ! defined FILTERSCRIPT
 			SetTimerEx("SS_OnPlayerKnifed", 3000 + GetPlayerPing(damagedid), false, "ii", damagedid, playerid);
+		#endif
 	}
 	else
 	{
@@ -1254,9 +1139,6 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart)
 
 public OnPlayerDeath(playerid, killerid, reason)
 {
-	SS_p_Health[playerid] = 0.0;
-	SS_p_Armour[playerid] = 0.0;
-
 	if (SS_p_DeathData[playerid][0] != INVALID_PLAYER_ID)
 		killerid = SS_p_DeathData[playerid][0];
 
@@ -1279,83 +1161,81 @@ public OnPlayerDeath(playerid, killerid, reason)
 	forward SS_OnPlayerDeath(playerid, killerid, reason);
 #endif
 
-public OnPlayerUpdate(playerid)
-{
-	if (SS_ALLOW_UPDATE)
+#if ! defined FILTERSCRIPT
+	public OnPlayerUpdate(playerid)
 	{
-		new tick = GetTickCount();
-		if ((tick - SS_p_LastUpdateTick[playerid]) >= SS_UPDATE_RATE)
+	    switch (GetPlayerState(playerid))
 		{
-		    SS_p_LastUpdateTick[playerid] = tick;
-
-			new Float:health;
-			GetPlayerHealth(playerid, health);
-			if (SS_p_Health[playerid] >= 100.0 && health != FAKE_HEALTH)
-				SetPlayerHealth(playerid, FAKE_HEALTH);
-			else if (health != SS_p_Health[playerid])
-				SetPlayerHealth(playerid, SS_p_Health[playerid]);
-
-			new Float:armour;
-			GetPlayerArmour(playerid, armour);
-			if (SS_p_Armour[playerid] >= 100.0 && armour != FAKE_HEALTH)
-				SetPlayerArmour(playerid, FAKE_HEALTH);
-			else if (armour != SS_p_Armour[playerid])
-				SetPlayerArmour(playerid, SS_p_Armour[playerid]);
-
-			if (GetPlayerMoney(playerid) != SS_p_Money[playerid])
+			case PLAYER_STATE_WASTED, PLAYER_STATE_SPECTATING:
 			{
-			    ResetPlayerMoney(playerid);
-				GivePlayerMoney(playerid, SS_p_Money[playerid]);
-			}
-
-			new weapon = GetPlayerWeapon(playerid);
-			new slot = SS_GetWeaponSlot(weapon);
-			if (SS_p_WeaponData[playerid][slot][0] != weapon)
-			{
-				SetPlayerAmmo(playerid, weapon, 0);
-				GivePlayerWeapon(playerid, SS_p_WeaponData[playerid][slot][0], SS_p_WeaponData[playerid][slot][1]);
-			}
-			else
-			{
-			    switch (weapon)
-			    {
-					case WEAPON_COLT45..WEAPON_SNIPER, WEAPON_MINIGUN, WEAPON_SATCHEL:
-			    	{
-						if (SS_p_WeaponData[playerid][slot][1] != GetPlayerAmmo(playerid))
-							SetPlayerAmmo(playerid, weapon, SS_p_WeaponData[playerid][slot][1]);
-					}
-					default:
-					{
-						if (GetPlayerAmmo(playerid) > SS_p_WeaponData[playerid][slot][1])
-							SetPlayerAmmo(playerid, weapon, 0);
-					}
-				}
-			}
-
-			new vehicleid = GetPlayerVehicleID(playerid);
-			if (vehicleid != INVALID_VEHICLE_ID)
-			{
-				GetVehicleHealth(vehicleid, health);
-				if (health > SS_v_Health[vehicleid] || health < (SS_v_Health[vehicleid] - 100.0))
-					SetVehicleHealth(vehicleid, SS_v_Health[vehicleid]);
+			    #if defined SS_OnPlayerUpdate
+					return SS_OnPlayerUpdate(playerid);
+				#else
+					return 1;
+				#endif
 			}
 		}
-	}
+		
+		new Float:health;
+		GetPlayerHealth(playerid, health);
+		if (SS_p_Health[playerid] >= 100.0 && health != FAKE_HEALTH)
+			SetPlayerHealth(playerid, FAKE_HEALTH);
+		else if (health != SS_p_Health[playerid])
+			SetPlayerHealth(playerid, SS_p_Health[playerid]);
 
-	#if defined SS_OnPlayerUpdate
-		return SS_OnPlayerUpdate(playerid);
+		new Float:armour;
+		GetPlayerArmour(playerid, armour);
+		if (SS_p_Armour[playerid] >= 100.0 && armour != FAKE_HEALTH)
+			SetPlayerArmour(playerid, FAKE_HEALTH);
+		else if (armour != SS_p_Armour[playerid])
+			SetPlayerArmour(playerid, SS_p_Armour[playerid]);
+
+		if (GetPlayerMoney(playerid) != SS_p_Money[playerid])
+		{
+		    ResetPlayerMoney(playerid);
+			GivePlayerMoney(playerid, SS_p_Money[playerid]);
+		}
+
+		new weapon = GetPlayerWeapon(playerid);
+		new slot = SS_GetWeaponSlot(weapon);
+		if (SS_p_WeaponData[playerid][slot][0] != weapon)
+		{
+			SetPlayerAmmo(playerid, weapon, 0);
+			GivePlayerWeapon(playerid, SS_p_WeaponData[playerid][slot][0], SS_p_WeaponData[playerid][slot][1]);
+		}
+		else
+		{
+		    switch (weapon)
+		    {
+				case WEAPON_COLT45..WEAPON_SNIPER, WEAPON_MINIGUN, WEAPON_SATCHEL:
+		    	{
+					if (SS_p_WeaponData[playerid][slot][1] != GetPlayerAmmo(playerid))
+						SetPlayerAmmo(playerid, weapon, SS_p_WeaponData[playerid][slot][1]);
+				}
+				
+				default:
+				{
+					if (GetPlayerAmmo(playerid) > SS_p_WeaponData[playerid][slot][1])
+						SetPlayerAmmo(playerid, weapon, 0);
+				}
+			}
+		}
+
+		#if defined SS_OnPlayerUpdate
+			return SS_OnPlayerUpdate(playerid);
+		#else
+			return 1;
+		#endif
+	}
+	#if defined _ALS_OnPlayerUpdate
+	    #undef OnPlayerUpdate
 	#else
-		return 1;
+	    #define _ALS_OnPlayerUpdate
 	#endif
-}
-#if defined _ALS_OnPlayerUpdate
-    #undef OnPlayerUpdate
-#else
-    #define _ALS_OnPlayerUpdate
-#endif
-#define OnPlayerUpdate SS_OnPlayerUpdate
-#if defined SS_OnPlayerUpdate
-	forward SS_OnPlayerUpdate(playerid);
+	#define OnPlayerUpdate SS_OnPlayerUpdate
+	#if defined SS_OnPlayerUpdate
+		forward SS_OnPlayerUpdate(playerid);
+	#endif
 #endif
 
 public OnPlayerPickUpPickup(playerid, pickupid)
@@ -1492,8 +1372,6 @@ public OnVehicleRespray(playerid, vehicleid, color1, color2)
 {
     SS_p_Money[playerid] -= 100;
 
-	SS_v_Health[vehicleid] = 1000.0;
-
 	#if defined SS_OnVehicleRespray
 		return SS_OnVehicleRespray(playerid, vehicleid, color1, color2);
 	#else
@@ -1533,77 +1411,35 @@ public OnVehicleMod(playerid, vehicleid, componentid)
 	forward SS_OnVehicleMod(playerid, vehicleid, componentid);
 #endif
 
-public OnVehicleDamageStatusUpdate(vehicleid, playerid)
-{
-	new Float:health;
-	GetVehicleHealth(vehicleid, health);
-	if (health < SS_v_Health[vehicleid])
-		SS_v_Health[vehicleid] = health;
-
-	#if defined SS_OnVehicleDamageStatusUpd
-		return SS_OnVehicleDamageStatusUpd(vehicleid, playerid);
-	#else
-		return 1;
-	#endif
-}
-#if defined _ALS_OnVehicleDamageStatusUpd
-	#undef OnVehicleDamageStatusUpdate
-#else
-	#define _ALS_OnVehicleDamageStatusUpd
-#endif
-#define OnVehicleDamageStatusUpdate SS_OnVehicleDamageStatusUpd
-#if defined SS_OnVehicleDamageStatusUpd
-	forward SS_OnVehicleDamageStatusUpd(vehicleid, playerid);
-#endif
-
-stock SS_SetUpdateRate(rate)
-{
-	SS_UPDATE_RATE = rate;
-	return 1;
-}
-
-stock SS_Init()
-{
-	SS_ALLOW_UPDATE = true;
-
-	DisableInteriorEnterExits();
-	EnableStuntBonusForAll(0);
-	EnableVehicleFriendlyFire();
-	SS_g_VehicleFriendlyFire = false;
-
-	for (new i; i < MAX_PLAYERS; i++)
+#if ! defined FILTERSCRIPT
+	public OnGameModeInit()
 	{
-	   	for (new x, y = sizeof (SS_g_Weapon); x < y; x++)
-     		ResetPlayerWeaponDamage(i, x);
- 	}
+		DisableInteriorEnterExits();
+		EnableStuntBonusForAll(0);
+		EnableVehicleFriendlyFire();
 
-	for (new i; i < MAX_VEHICLES; i++)
-		SS_v_Health[i] = 1000.0;
+		for (new i; i < MAX_PLAYERS; i++)
+		{
+		   	for (new x, y = sizeof (SS_g_Weapon); x < y; x++)
+	     		ResetPlayerWeaponDamage(i, x);
+	 	}
 
-	print("[serversided.inc] - Include has been initiated.");
-	return 1;
-}
-
-stock SS_Exit()
-{
-	if (!SS_ALLOW_UPDATE)
-	    return 0;
-
-	SS_ALLOW_UPDATE = false;
-	return 1;
-}
-
-stock SS_EnableVehicleFriendlyFire(bool:enable = true)
-{
-	SS_g_VehicleFriendlyFire = enable;
-	return 1;
-}
-#if defined _ALS_EnableVehicleFriendlyFire
-    #undef EnableVehicleFriendlyFire
-#else
-    #define _ALS_EnableVehicleFriendlyFire
+		#if defined SS_OnGameModeInit
+			return SS_OnGameModeInit();
+		#else
+		    return 1;
+		#endif
+	}
+	#if defined _ALS_OnGameModeInit
+		#undef OnGameModeInit
+	#else
+		#define _ALS_OnGameModeInit
+	#endif
+	#define OnGameModeInit SS_OnGameModeInit
+	#if defined SS_OnGameModeInit
+		forward SS_OnGameModeInit();
+	#endif
 #endif
-#define EnableVehicleFriendlyFire SS_EnableVehicleFriendlyFire
 
 stock SS_RemoveBuildingForPlayer(playerid, modelid, Float:fX, Float:fY, Float:fZ, Float:fRadius)
 {
@@ -2118,84 +1954,3 @@ stock SS_SendDeathMessage(playerid, killerid, reason)
     #define _ALS_SendDeathMessage
 #endif
 #define SendDeathMessage SS_SendDeathMessage
-
-stock SS_CreateVehicle(vehicletype, Float:x, Float:y, Float:z, Float:rotation, color1, color2, respawn_delay, addsiren = 0)
-{
-	new ret = CreateVehicle(vehicletype, x, y, z, rotation, color1, color2, respawn_delay, addsiren);
-	if (ret != INVALID_VEHICLE_ID)
-   		CallRemoteFunction("__OnVehicleHealthSet", "if", ret, 1000.0);
-
-	return ret;
-}
-#if defined _ALS_CreateVehicle
-	#undef CreateVehicle
-#else
-	#define _ALS_CreateVehicle
-#endif
-#define CreateVehicle SS_CreateVehicle
-
-stock SS_AddStaticVehicle(vehicletype, Float:x, Float:y, Float:z, Float:rotation, color1, color2)
-{
-	new ret = AddStaticVehicle(vehicletype, x, y, z, rotation, color1, color2);
-	if (ret != INVALID_VEHICLE_ID)
-   		CallRemoteFunction("__OnVehicleHealthSet", "if", ret, 1000.0);
-
-	return ret;
-}
-#if defined _ALS_AddStaticVehicle
-	#undef AddStaticVehicle
-#else
-	#define _ALS_AddStaticVehicle
-#endif
-#define AddStaticVehicle SS_AddStaticVehicle
-
-stock SS_AddStaticVehicleEx(vehicletype, Float:x, Float:y, Float:z, Float:rotation, color1, color2, respawn_delay, addsiren = 0)
-{
-	new ret = AddStaticVehicleEx(vehicletype, x, y, z, rotation, color1, color2, respawn_delay, addsiren);
-	if (ret != INVALID_VEHICLE_ID)
-   		CallRemoteFunction("__OnVehicleHealthSet", "if", ret, 1000.0);
-
-	return ret;
-}
-#if defined _ALS_AddStaticVehicleEx
-	#undef AddStaticVehicleEx
-#else
-	#define _ALS_AddStaticVehicleEx
-#endif
-#define AddStaticVehicleEx SS_AddStaticVehicleEx
-
-stock SS_SetVehicleHealth(vehicleid, Float:health)
-{
-	new ret = SetVehicleHealth(vehicleid, health);
-	if (ret)
-   		CallRemoteFunction("__OnVehicleHealthSet", "if", vehicleid, health);
-
-	return ret;
-}
-#if defined _ALS_SetVehicleHealth
-	#undef SetVehicleHealth
-#else
-	#define _ALS_SetVehicleHealth
-#endif
-#define SetVehicleHealth SS_SetVehicleHealth
-
-forward __OnVehicleHealthSet(vehicleid, Float:health);
-public  __OnVehicleHealthSet(vehicleid, Float:health)
-{
-	SS_v_Health[vehicleid] = health;
-}
-
-stock SS_GetVehicleHealth(vehicleid, &Float:health)
-{
-	if (vehicleid < 0 || vehicleid >= MAX_VEHICLES)
-		return 0;
-
-	health = SS_v_Health[vehicleid];
-	return 1;
-}
-#if defined _ALS_GetVehicleHealth
-	#undef GetVehicleHealth
-#else
-	#define _ALS_SetVehicleHealth
-#endif
-#define GetVehicleHealth SS_GetVehicleHealth
