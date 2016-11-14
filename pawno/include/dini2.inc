@@ -5,7 +5,7 @@
 
 /*
  * dini2.inc (IMPROVED)
- * Version: 2.3.2 (last updated on 8th July, 2016)
+ * Version: 2.3.3 (last updated on 14th November, 2016)
  * By Gammix
  *
  * FUNCTIONS:
@@ -29,11 +29,11 @@
  */
 
 #if !defined INI_FILE_TIMEOUT
-	#define INI_FILE_TIMEOUT (1000)
+	#define INI_FILE_TIMEOUT (5)
 #endif
 
 #if !defined INI_MAX_INSTANCES
-	#define INI_MAX_INSTANCES (64)
+	#define INI_MAX_INSTANCES (18)
 #endif
 
 #if !defined INI_MAX_FILE_NAME
@@ -75,14 +75,14 @@ static g_INIFileValues[INI_MAX_INSTANCES][INI_MAX_FIELDS][INI_MAX_FIELD_VALUE];
 	g_INITimer = SetTimer("INI_OnFileTimeout", (INI_FILE_TIMEOUT / INI_MAX_INSTANCES), true);
 
 	#if ! defined FILTERSCRIPT
-		#if defined SS_OnGameModeInit
-			return SS_OnGameModeInit();
+		#if defined DINI2_OnGameModeInit
+			return DINI2_OnGameModeInit();
 		#else
 			return 1;
 		#endif
 	#else
-		#if defined SS_OnFilterScriptInit
-			return SS_OnFilterScriptInit();
+		#if defined DINI2_OnFilterScriptInit
+			return DINI2_OnFilterScriptInit();
 		#else
 			return 1;
 		#endif
@@ -94,9 +94,9 @@ static g_INIFileValues[INI_MAX_INSTANCES][INI_MAX_FIELDS][INI_MAX_FIELD_VALUE];
 	#else
 		#define _ALS_OnGameModeInit
 	#endif
-	#define OnGameModeInit SS_OnGameModeInit
-	#if defined SS_OnGameModeInit
-		forward SS_OnGameModeInit();
+	#define OnGameModeInit DINI2_OnGameModeInit
+	#if defined DINI2_OnGameModeInit
+		forward DINI2_OnGameModeInit();
 	#endif
 #else
 	#if defined _ALS_OnFilterScriptInit
@@ -104,9 +104,9 @@ static g_INIFileValues[INI_MAX_INSTANCES][INI_MAX_FIELDS][INI_MAX_FIELD_VALUE];
 	#else
 		#define _ALS_OnFilterScriptInit
 	#endif
-	#define OnFilterScriptInit SS_OnFilterScriptInit
-	#if defined SS_OnFilterScriptInit
-		forward SS_OnFilterScriptInit();
+	#define OnFilterScriptInit DINI2_OnFilterScriptInit
+	#if defined DINI2_OnFilterScriptInit
+		forward DINI2_OnFilterScriptInit();
 	#endif
 #endif
 
@@ -119,14 +119,14 @@ static g_INIFileValues[INI_MAX_INSTANCES][INI_MAX_FIELDS][INI_MAX_FIELD_VALUE];
 	KillTimer(g_INITimer);
 
 	#if ! defined FILTERSCRIPT
-		#if defined SS_OnGameModeExit
-			return SS_OnGameModeExit();
+		#if defined DINI2_OnGameModeExit
+			return DINI2_OnGameModeExit();
 		#else
 			return 1;
 		#endif
 	#else
-		#if defined SS_OnFilterScriptExit
-			return SS_OnFilterScriptExit();
+		#if defined DINI2_OnFilterScriptExit
+			return DINI2_OnFilterScriptExit();
 		#else
 			return 1;
 		#endif
@@ -138,9 +138,9 @@ static g_INIFileValues[INI_MAX_INSTANCES][INI_MAX_FIELDS][INI_MAX_FIELD_VALUE];
 	#else
 		#define _ALS_OnGameModeExit
 	#endif
-	#define OnGameModeExit SS_OnGameModeExit
-	#if defined SS_OnGameModeExit
-		forward SS_OnGameModeExit();
+	#define OnGameModeExit DINI2_OnGameModeExit
+	#if defined DINI2_OnGameModeExit
+		forward DINI2_OnGameModeExit();
 	#endif
 #else
 	#if defined _ALS_OnFilterScriptExit
@@ -148,9 +148,9 @@ static g_INIFileValues[INI_MAX_INSTANCES][INI_MAX_FIELDS][INI_MAX_FIELD_VALUE];
 	#else
 		#define _ALS_OnFilterScriptExit
 	#endif
-	#define OnFilterScriptExit SS_OnFilterScriptExit
-	#if defined SS_OnFilterScriptExit
-		forward SS_OnFilterScriptExit();
+	#define OnFilterScriptExit DINI2_OnFilterScriptExit
+	#if defined DINI2_OnFilterScriptExit
+		forward DINI2_OnFilterScriptExit();
 	#endif
 #endif
 
@@ -168,7 +168,7 @@ public  INI_OnFileTimeout()
 				if ((GetTickCount() - g_INIFile[i][E_FILE_TICK]) >= INI_FILE_TIMEOUT)
 					g_INIFile[i][E_FILE_STATE] = 0;
 			}
-			
+
 		    case 2:
 		    {
 				if ((GetTickCount() - g_INIFile[i][E_FILE_TICK]) >= INI_FILE_TIMEOUT)
@@ -216,10 +216,28 @@ stock static INI_OpenFile(const file[])
 	    	return i;
 	}
 
+    new File:handle;
+    static data[INI_MAX_FIELDS * (INI_MAX_FIELD_NAME + INI_MAX_FIELD_VALUE + 1)];
 	if (id == -1)
-	    return -1;
+	{
+	    id = 0;
+	    
+	    handle = fopen(g_INIFile[id][E_FILE_NAME], io_write);
+		if (handle)
+		{
+			data[0] = EOS;
 
-	new File:handle = fopen(file, io_readwrite);
+			for (new x, y = g_INIFile[id][E_FILE_FIELDS_COUNT]; x < y; x++)
+				format(data, sizeof (data), "%s%s=%s\r\n", data, g_INIFileFields[id][x], g_INIFileValues[id][x]);
+
+			fwrite(handle, data);
+			fclose(handle);
+   	 	}
+
+		g_INIFile[id][E_FILE_STATE] = 0;
+	}
+
+	handle = fopen(file, io_readwrite);
 	if (!handle)
 	    return -1;
 
@@ -227,7 +245,6 @@ stock static INI_OpenFile(const file[])
 
 	new pos;
 	new count;
-	new data[INI_MAX_FIELD_NAME + INI_MAX_FIELD_VALUE];
 	new fieldname[INI_MAX_FIELD_NAME];
 	while (count < INI_MAX_FIELDS && fread(handle, data))
 	{
@@ -592,7 +609,7 @@ stock dini_Timeout(const file[])
 					fwrite(handle, data);
 					fclose(handle);
    			 	}
-   			 	
+
 				g_INIFile[i][E_FILE_STATE] = 0;
 		    	return 1;
 			}
