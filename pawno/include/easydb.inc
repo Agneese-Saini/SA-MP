@@ -244,6 +244,8 @@ stock DB_EXIT()
 	#else
 	    db_close(DBId);
 	#endif
+	
+	DBInitiated = false;
 	return 1;
 }
 
