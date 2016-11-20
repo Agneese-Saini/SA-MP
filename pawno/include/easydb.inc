@@ -1,10 +1,13 @@
-// easydb.inc v2.5 - by Gammix - updated on 20 Nov, 2016
+// easydb.inc v2.5.1 - by Gammix - updated on 20 Nov, 2016
 #if defined easydb_included
 	#endinput
 #endif
 #define easydb_included
 
 /*
+native DB_INIT();
+native DB_EXIT();
+native _
 native DBIndex: DB_SELECT(const table[], bool: store_result = true, const sortfield[] = "", sorttype = SORT_ASCE, const condition[] = "", {Float, _}:...);
 native DB_GetFieldsCount(DBIndex: idx = DBIndex: 0);
 native DB_GetFieldName(fieldid, dest[], maxlength = sizeof (dest), DBIndex: idx = DBIndex: 0);
@@ -201,7 +204,7 @@ stock static DB_GetStringArg(dest[], arg, len = sizeof (dest)) // By Slice
     #emit STACK      16
 }
 
-stock static DB_Init()
+stock DB_INIT()
 {
 	if (DBInitiated)
 	    return 1;
@@ -231,9 +234,22 @@ stock static DB_Init()
 	return 1;
 }
 
+stock DB_EXIT()
+{
+	for (new DBIndex: i; i < DBIndex: iDBIndexPoolSize; i++)
+	    DB_CLOSE(i);
+
+	#if defined SQL_SERVER
+		mysql_close(DBId);
+	#else
+	    db_close(DBId);
+	#endif
+	return 1;
+}
+
 stock DBIndex: DB_SELECT(const table[], bool: store_result = true, const sortfield[] = "", sorttype = SORT_ASCE, const condition[] = "", {Float, _}:...)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return DBIndex: -1;
 
 	if (iDBIndexPoolSize == DB_MAX_INDEXES)
@@ -293,7 +309,7 @@ stock DBIndex: DB_SELECT(const table[], bool: store_result = true, const sortfie
 
 stock DB_GetFieldsCount(DBIndex: idx = DBIndex: 0)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return 0;
 
 	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
@@ -312,7 +328,7 @@ stock DB_GetFieldsCount(DBIndex: idx = DBIndex: 0)
 
 stock DB_GetFieldName(fieldid, dest[], maxlength = sizeof (dest), DBIndex: idx = DBIndex: 0)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return 0;
 
 	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
@@ -328,7 +344,7 @@ stock DB_GetFieldName(fieldid, dest[], maxlength = sizeof (dest), DBIndex: idx =
 
 stock DB_GetRowsCount(DBIndex: idx = DBIndex: 0)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return 0;
 
 	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
@@ -347,7 +363,7 @@ stock DB_GetRowsCount(DBIndex: idx = DBIndex: 0)
 
 stock DB_GetRowInt(const field[], DBIndex: idx = DBIndex: 0)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return -1;
 
 	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
@@ -366,7 +382,7 @@ stock DB_GetRowInt(const field[], DBIndex: idx = DBIndex: 0)
 
 stock Float: DB_GetRowFloat(const field[], DBIndex: idx = DBIndex: 0)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return -1.0;
 
 	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
@@ -385,7 +401,7 @@ stock Float: DB_GetRowFloat(const field[], DBIndex: idx = DBIndex: 0)
 
 stock DB_GetRowString(const field[], dest[], maxlength = sizeof (dest), DBIndex: idx = DBIndex: 0)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return 0;
 
 	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
@@ -404,7 +420,7 @@ stock DB_GetRowString(const field[], dest[], maxlength = sizeof (dest), DBIndex:
 
 stock DB_GetRowId(DBIndex: idx = DBIndex: 0)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return 0;
 
 	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
@@ -415,7 +431,7 @@ stock DB_GetRowId(DBIndex: idx = DBIndex: 0)
 
 stock DB_SetRowId(rowid, DBIndex: idx = DBIndex: 0)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return 0;
 
 	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
@@ -453,7 +469,7 @@ stock DB_SetRowId(rowid, DBIndex: idx = DBIndex: 0)
 
 stock DBIndex: DB_UPDATE(const table[], const condition[], {Float, _}:...)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return DBIndex: -1;
 
 	if (iDBIndexPoolSize == DB_MAX_INDEXES)
@@ -472,7 +488,7 @@ stock DBIndex: DB_UPDATE(const table[], const condition[], {Float, _}:...)
 
 stock DBIndex: DB_INSERT(const table[])
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return DBIndex: -1;
 
 	if (iDBIndexPoolSize == DB_MAX_INDEXES)
@@ -490,7 +506,7 @@ stock DBIndex: DB_INSERT(const table[])
 
 stock DB_SetRowInt(const field[], value, DBIndex: idx = DBIndex: 0)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return 0;
 
 	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
@@ -518,7 +534,7 @@ stock DB_SetRowInt(const field[], value, DBIndex: idx = DBIndex: 0)
 
 stock DB_SetRowFloat(const field[], Float: value, DBIndex: idx = DBIndex: 0)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return 0;
 
 	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
@@ -546,7 +562,7 @@ stock DB_SetRowFloat(const field[], Float: value, DBIndex: idx = DBIndex: 0)
 
 stock DB_SetRowString(const field[], value[], DBIndex: idx = DBIndex: 0)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return 0;
 
 	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
@@ -574,7 +590,7 @@ stock DB_SetRowString(const field[], value[], DBIndex: idx = DBIndex: 0)
 
 stock DBIndex: DB_VERIFY_TABLE(const table[])
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return DBIndex: -1;
 
 	if (iDBIndexPoolSize == DB_MAX_INDEXES)
@@ -602,7 +618,7 @@ stock DBIndex: DB_VERIFY_TABLE(const table[])
 		}
 		else
 			eDBIndex[idx][e_DBINDEX_TABLE_CREATED] = false;
-			
+
 		cache_delete(result);
 	#else
 	    new string[64];
@@ -628,7 +644,7 @@ stock DBIndex: DB_VERIFY_TABLE(const table[])
 
 stock DB_IntField(const field[], defaultvalue = 0, DBIndex: idx = DBIndex: 0)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return 0;
 
 	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
@@ -658,7 +674,7 @@ stock DB_IntField(const field[], defaultvalue = 0, DBIndex: idx = DBIndex: 0)
 
 stock DB_FloatField(const field[], Float: defaultvalue = 0.0, DBIndex: idx = DBIndex: 0)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return 0;
 
 	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
@@ -688,7 +704,7 @@ stock DB_FloatField(const field[], Float: defaultvalue = 0.0, DBIndex: idx = DBI
 
 stock DB_StringField(const field[], defaultvalue[] = "", DBIndex: idx = DBIndex: 0)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return 0;
 
 	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
@@ -718,7 +734,7 @@ stock DB_StringField(const field[], defaultvalue[] = "", DBIndex: idx = DBIndex:
 
 stock DB_PrimaryKey(const field[], DBIndex: idx = DBIndex: 0)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return 0;
 
 	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
@@ -742,7 +758,7 @@ stock DB_ForiegnKey(const field[], const assoctable[], const assocfield[], DBInd
 
 stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return 0;
 
 	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
@@ -905,7 +921,7 @@ stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
 
 stock DB_DELETE_ROW(const table[], const sortfield[] = "", sorttype = SORT_ASCE, const condition[] = "", {Float, _}:...)
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return 0;
 
 	if (!condition[0])
@@ -930,7 +946,7 @@ stock DB_DELETE_ROW(const table[], const sortfield[] = "", sorttype = SORT_ASCE,
 
 stock DB_DELETE_TABLE(const table[])
 {
-	if (!DB_Init())
+	if (!DBInitiated)
 	    return 0;
 
 	if (!condition[0])
