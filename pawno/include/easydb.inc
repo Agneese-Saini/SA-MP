@@ -1,4 +1,4 @@
-// easydb.inc v2.5.1 - by Gammix - updated on 20 Nov, 2016
+// easydb.inc v2.5.2 - by Gammix - updated on 20 Nov, 2016
 #if defined easydb_included
 	#endinput
 #endif
@@ -244,7 +244,7 @@ stock DB_EXIT()
 	#else
 	    db_close(DBId);
 	#endif
-	
+
 	DBInitiated = false;
 	return 1;
 }
@@ -610,16 +610,16 @@ stock DBIndex: DB_VERIFY_TABLE(const table[])
 		format(string, sizeof (string), "SELECT 0 FROM `INFORMATION_SCHEMA.COLUMNS` WHERE `TABLE_NAME` = '%s'", table);
 	    new Cache: result = mysql_query(DBId, string);
 
-		cache_get_row_count(iDBIndexFieldsPoolSize[idx]);
-		if (iDBIndexFieldsPoolSize[idx] > 0)
+		cache_get_row_count(iDBIndexFieldsPoolSize[index]);
+		if (iDBIndexFieldsPoolSize[index] > 0)
 		{
-			eDBIndex[idx][e_DBINDEX_TABLE_CREATED] = true;
+			eDBIndex[index][e_DBINDEX_TABLE_CREATED] = true;
 
-		    if (iDBIndexFieldsPoolSize[idx] > DB_MAX_FIELDS)
-			    printf("[EasyDB] - Warning: There are more fields/columns in \"%s\" table than \"DB_MAX_FIELDS\" (%i).", iDBIndexFieldsPoolSize[idx], DB_MAX_FIELDS);
+		    if (iDBIndexFieldsPoolSize[index] > DB_MAX_FIELDS)
+			    printf("[EasyDB] - Warning: There are more fields/columns in \"%s\" table than \"DB_MAX_FIELDS\" (%i).", iDBIndexFieldsPoolSize[index], DB_MAX_FIELDS);
 		}
 		else
-			eDBIndex[idx][e_DBINDEX_TABLE_CREATED] = false;
+			eDBIndex[index][e_DBINDEX_TABLE_CREATED] = false;
 
 		cache_delete(result);
 	#else
