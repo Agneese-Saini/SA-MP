@@ -1,4 +1,4 @@
-// easydb.inc v2.5.3 - by Gammix - updated on 20 Nov, 2016
+// easydb.inc v2.5.4 - by Gammix - updated on 20 Nov, 2016
 #if defined easydb_included
 	#endinput
 #endif
@@ -72,6 +72,7 @@ static bool: DBInitiated;
 
 enum
 {
+    STMT_NONE,
 	STMT_SELECT,
 	STMT_UPDATE,
 	STMT_INSERT,
@@ -120,7 +121,6 @@ enum e_DBINDEX
 
 #define DB_MAX_INDEXES (12)
 static eDBIndex[DBIndex: DB_MAX_INDEXES][e_DBINDEX];
-static iDBIndexPoolSize;
 
 #define DB_MAX_FIELD_NAME (DB_MAX_TABLE_NAME)
 #define DB_MAX_FIELD_VALUE (512)
@@ -229,14 +229,13 @@ stock DB_INIT()
         db_debug_openresults();
 	#endif
 
-    iDBIndexPoolSize = 0;
 	DBInitiated = true;
 	return 1;
 }
 
 stock DB_EXIT()
 {
-	for (new DBIndex: i; i < DBIndex: iDBIndexPoolSize; i++)
+	for (new DBIndex: i; i < DBIndex: DB_MAX_INDEXES; i++)
 	    DB_CLOSE(i);
 
 	#if defined SQL_SERVER
@@ -253,13 +252,20 @@ stock DBIndex: DB_SELECT(const table[], rowslimit = 10, bool: store_result = tru
 {
 	if (!DBInitiated)
 	    return DBIndex: -1;
-
-	if (iDBIndexPoolSize == DB_MAX_INDEXES)
+	    
+	new DBIndex: index = DBIndex: -1;
+	for (new DBIndex: i; i < DBIndex: DB_MAX_INDEXES; i++)
+	{
+	    if (eDBIndex[i][e_DBINDEX_STATEMENT] == STMT_NONE)
+	    {
+	        index = i;
+	        break;
+	    }
+	}
+	
+	if (index == DBIndex: -1)
 	    return DBIndex: -1;
 
-	new DBIndex: index = DBIndex: iDBIndexPoolSize;
-	iDBIndexPoolSize++;
-	
 	eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_SELECT;
 
 	new string[50 + DB_MAX_CONDITION_SIZE];
@@ -270,7 +276,7 @@ stock DBIndex: DB_SELECT(const table[], rowslimit = 10, bool: store_result = tru
 
 	if (sortfield[0])
 		format(string, sizeof (string), "%s ORDER BY `%s` %s", string, sortfield, ((sorttype == SORT_ASCE) ? ("ASC") : ("DESC")));
-	
+
 	#if defined SQL_SERVER
 		eDBIndex[index][e_DBINDEX_RESULT] = mysql_query(DBId, string, true);
 
@@ -279,7 +285,7 @@ stock DBIndex: DB_SELECT(const table[], rowslimit = 10, bool: store_result = tru
 		if (!eDBIndex[index][e_DBINDEX_RESULT] || rows < 0)
 		{
 		    cache_delete(eDBIndex[index][e_DBINDEX_RESULT]);
-		    iDBIndexPoolSize--;
+		    eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_NONE;
 		    return DBIndex: -1;
 		}
 
@@ -292,7 +298,7 @@ stock DBIndex: DB_SELECT(const table[], rowslimit = 10, bool: store_result = tru
 		if (!eDBIndex[index][e_DBINDEX_RESULT] || db_num_rows(eDBIndex[index][e_DBINDEX_RESULT]) < 0)
 		{
 		    db_free_result(eDBIndex[index][e_DBINDEX_RESULT]);
-		    iDBIndexPoolSize--;
+		    eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_NONE;
 		    return DBIndex: -1;
 		}
 
@@ -310,7 +316,7 @@ stock DB_GetFieldsCount(DBIndex: idx = DBIndex: 0)
 	if (!DBInitiated)
 	    return 0;
 
-	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	if (!(DBIndex: 0 <= idx < DBIndex: DB_MAX_INDEXES))
 	    return 0;
 
     #if defined SQL_SERVER
@@ -329,7 +335,7 @@ stock DB_GetFieldName(fieldid, dest[], maxlength = sizeof (dest), DBIndex: idx =
 	if (!DBInitiated)
 	    return 0;
 
-	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	if (!(DBIndex: 0 <= idx < DBIndex: DB_MAX_INDEXES))
 	    return 0;
 
     #if defined SQL_SERVER
@@ -345,7 +351,7 @@ stock DB_GetRowsCount(DBIndex: idx = DBIndex: 0)
 	if (!DBInitiated)
 	    return 0;
 
-	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	if (!(DBIndex: 0 <= idx < DBIndex: DB_MAX_INDEXES))
 	    return 0;
 
     #if defined SQL_SERVER
@@ -364,7 +370,7 @@ stock DB_GetRowInt(const field[], DBIndex: idx = DBIndex: 0)
 	if (!DBInitiated)
 	    return -1;
 
-	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	if (!(DBIndex: 0 <= idx < DBIndex: DB_MAX_INDEXES))
 	    return -1;
 
     #if defined SQL_SERVER
@@ -383,7 +389,7 @@ stock Float: DB_GetRowFloat(const field[], DBIndex: idx = DBIndex: 0)
 	if (!DBInitiated)
 	    return -1.0;
 
-	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	if (!(DBIndex: 0 <= idx < DBIndex: DB_MAX_INDEXES))
 	    return -1.0;
 
     #if defined SQL_SERVER
@@ -402,7 +408,7 @@ stock DB_GetRowString(const field[], dest[], maxlength = sizeof (dest), DBIndex:
 	if (!DBInitiated)
 	    return 0;
 
-	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	if (!(DBIndex: 0 <= idx < DBIndex: DB_MAX_INDEXES))
 	    return 0;
 
     #if defined SQL_SERVER
@@ -421,7 +427,7 @@ stock DB_GetRowId(DBIndex: idx = DBIndex: 0)
 	if (!DBInitiated)
 	    return 0;
 
-	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	if (!(DBIndex: 0 <= idx < DBIndex: DB_MAX_INDEXES))
 	    return 0;
 
     return eDBIndex[idx][e_DBINDEX_ROWID];
@@ -432,7 +438,7 @@ stock DB_SetRowId(rowid, DBIndex: idx = DBIndex: 0)
 	if (!DBInitiated)
 	    return 0;
 
-	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	if (!(DBIndex: 0 <= idx < DBIndex: DB_MAX_INDEXES))
 	    return 0;
 
     #if defined SQL_SERVER
@@ -470,12 +476,19 @@ stock DBIndex: DB_UPDATE(const table[], const condition[], {Float, _}:...)
 	if (!DBInitiated)
 	    return DBIndex: -1;
 
-	if (iDBIndexPoolSize == DB_MAX_INDEXES)
+	new DBIndex: index = DBIndex: -1;
+	for (new DBIndex: i; i < DBIndex: DB_MAX_INDEXES; i++)
+	{
+	    if (eDBIndex[i][e_DBINDEX_STATEMENT] == STMT_NONE)
+	    {
+	        index = i;
+	        break;
+	    }
+	}
+
+	if (index == DBIndex: -1)
 	    return DBIndex: -1;
 
-	new DBIndex: index = DBIndex: iDBIndexPoolSize;
-	iDBIndexPoolSize++;
-	
 	eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_UPDATE;
 	format(eDBIndex[index][e_DBINDEX_TABLE], DB_MAX_TABLE_NAME, table);
 	format(eDBIndex[index][e_DBINDEX_CONDITION], DB_MAX_CONDITION_SIZE, DB_ReturnStringArg(condition, 2));
@@ -489,11 +502,18 @@ stock DBIndex: DB_INSERT(const table[])
 	if (!DBInitiated)
 	    return DBIndex: -1;
 
-	if (iDBIndexPoolSize == DB_MAX_INDEXES)
-	    return DBIndex: -1;
+	new DBIndex: index = DBIndex: -1;
+	for (new DBIndex: i; i < DBIndex: DB_MAX_INDEXES; i++)
+	{
+	    if (eDBIndex[i][e_DBINDEX_STATEMENT] == STMT_NONE)
+	    {
+	        index = i;
+	        break;
+	    }
+	}
 
-	new DBIndex: index = DBIndex: iDBIndexPoolSize;
-	iDBIndexPoolSize++;
+	if (index == DBIndex: -1)
+	    return DBIndex: -1;
 
 	eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_INSERT;
 	format(eDBIndex[index][e_DBINDEX_TABLE], DB_MAX_TABLE_NAME, table);
@@ -507,7 +527,7 @@ stock DB_SetRowInt(const field[], value, DBIndex: idx = DBIndex: 0)
 	if (!DBInitiated)
 	    return 0;
 
-	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	if (!(DBIndex: 0 <= idx < DBIndex: DB_MAX_INDEXES))
 	    return 0;
 
 	for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
@@ -535,7 +555,7 @@ stock DB_SetRowFloat(const field[], Float: value, DBIndex: idx = DBIndex: 0)
 	if (!DBInitiated)
 	    return 0;
 
-	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	if (!(DBIndex: 0 <= idx < DBIndex: DB_MAX_INDEXES))
 	    return 0;
 
 	for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
@@ -563,7 +583,7 @@ stock DB_SetRowString(const field[], value[], DBIndex: idx = DBIndex: 0)
 	if (!DBInitiated)
 	    return 0;
 
-	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	if (!(DBIndex: 0 <= idx < DBIndex: DB_MAX_INDEXES))
 	    return 0;
 
 	for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
@@ -591,11 +611,18 @@ stock DBIndex: DB_VERIFY_TABLE(const table[])
 	if (!DBInitiated)
 	    return DBIndex: -1;
 
-	if (iDBIndexPoolSize == DB_MAX_INDEXES)
-	    return DBIndex: -1;
+	new DBIndex: index = DBIndex: -1;
+	for (new DBIndex: i; i < DBIndex: DB_MAX_INDEXES; i++)
+	{
+	    if (eDBIndex[i][e_DBINDEX_STATEMENT] == STMT_NONE)
+	    {
+	        index = i;
+	        break;
+	    }
+	}
 
-	new DBIndex: index = DBIndex: iDBIndexPoolSize;
-	iDBIndexPoolSize++;
+	if (index == DBIndex: -1)
+	    return DBIndex: -1;
 
 	eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_VERIFY_TABLE;
 	format(eDBIndex[index][e_DBINDEX_TABLE], DB_MAX_TABLE_NAME, table);
@@ -645,7 +672,7 @@ stock DB_IntField(const field[], defaultvalue = 0, DBIndex: idx = DBIndex: 0)
 	if (!DBInitiated)
 	    return 0;
 
-	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	if (!(DBIndex: 0 <= idx < DBIndex: DB_MAX_INDEXES))
 	    return 0;
 
 	for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
@@ -675,7 +702,7 @@ stock DB_FloatField(const field[], Float: defaultvalue = 0.0, DBIndex: idx = DBI
 	if (!DBInitiated)
 	    return 0;
 
-	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	if (!(DBIndex: 0 <= idx < DBIndex: DB_MAX_INDEXES))
 	    return 0;
 
 	for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
@@ -705,7 +732,7 @@ stock DB_StringField(const field[], defaultvalue[] = "", DBIndex: idx = DBIndex:
 	if (!DBInitiated)
 	    return 0;
 
-	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	if (!(DBIndex: 0 <= idx < DBIndex: DB_MAX_INDEXES))
 	    return 0;
 
 	for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
@@ -735,7 +762,7 @@ stock DB_PrimaryKey(const field[], DBIndex: idx = DBIndex: 0)
 	if (!DBInitiated)
 	    return 0;
 
-	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	if (!(DBIndex: 0 <= idx < DBIndex: DB_MAX_INDEXES))
 	    return 0;
 
 	for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
@@ -884,31 +911,8 @@ stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
 			#endif
 	    }
 	}
-
-	for (new DBIndex: i = DBIndex: (iDBIndexPoolSize - 1); i > DBIndex: (_:idx + 1); i--)
-	{
- 		eDBIndex[DBIndex: (_:i - 1)][e_DBINDEX_STATEMENT] = eDBIndex[i][e_DBINDEX_STATEMENT];
-		eDBIndex[DBIndex: (_:i - 1)][e_DBINDEX_RESULT] = eDBIndex[i][e_DBINDEX_RESULT];
-		#if !defined SQL_SERVER
-	    	eDBIndex[DBIndex: (_:i - 1)][e_DBINDEX_LASTROWID] = eDBIndex[i][e_DBINDEX_LASTROWID];
-	    #endif
-		eDBIndex[DBIndex: (_:i - 1)][e_DBINDEX_ROWID] = eDBIndex[i][e_DBINDEX_ROWID];
-	    format(eDBIndex[DBIndex: (_:i - 1)][e_DBINDEX_TABLE], DB_MAX_TABLE_NAME, eDBIndex[i][e_DBINDEX_TABLE]);
-	    format(eDBIndex[DBIndex: (_:i - 1)][e_DBINDEX_CONDITION], DB_MAX_CONDITION_SIZE, eDBIndex[i][e_DBINDEX_CONDITION]);
-	    eDBIndex[DBIndex: (_:i - 1)][e_DBINDEX_TABLE_CREATED] = eDBIndex[i][e_DBINDEX_TABLE_CREATED];
-	    eDBIndex[DBIndex: (_:i - 1)][e_DBINDEX_PRIMARY_KEY] = eDBIndex[i][e_DBINDEX_PRIMARY_KEY];
-
-		for (new x; x < DB_MAX_FIELDS; x++)
-		{
-			format(sDBIndexFields[DBIndex: (_:i - 1)][x], DB_MAX_FIELD_NAME, sDBIndexFields[i][x]);
-			format(sDBIndexValues[DBIndex: (_:i - 1)][x], DB_MAX_FIELD_VALUE, sDBIndexValues[i][x]);
-			iDBIndexFieldTypes[DBIndex: (_:i - 1)][x] = iDBIndexFieldTypes[i][x];
-		}
-
-		iDBIndexFieldsPoolSize[DBIndex: (_:i - 1)] = iDBIndexFieldsPoolSize[i];
-	}
-
-	iDBIndexPoolSize--;
+	
+	eDBIndex[idx][e_DBINDEX_STATEMENT] = STMT_NONE;
 	return 1;
 }
 
