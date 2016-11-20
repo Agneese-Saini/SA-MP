@@ -1,4 +1,4 @@
-// easydb.inc v2.5.2 - by Gammix - updated on 20 Nov, 2016
+// easydb.inc v2.5.3 - by Gammix - updated on 20 Nov, 2016
 #if defined easydb_included
 	#endinput
 #endif
@@ -8,7 +8,7 @@
 native DB_INIT();
 native DB_EXIT();
 native _
-native DBIndex: DB_SELECT(const table[], bool: store_result = true, const sortfield[] = "", sorttype = SORT_ASCE, const condition[] = "", {Float, _}:...);
+native DBIndex: DB_SELECT(const table[], rowslimit = 10, bool: store_result = true, const sortfield[] = "", sorttype = SORT_ASCE, const condition[] = "", {Float, _}:...);
 native DB_GetFieldsCount(DBIndex: idx = DBIndex: 0);
 native DB_GetFieldName(fieldid, dest[], maxlength = sizeof (dest), DBIndex: idx = DBIndex: 0);
 native DB_GetRowsCount(DBIndex: idx = DBIndex: 0);
@@ -72,7 +72,6 @@ static bool: DBInitiated;
 
 enum
 {
-	STMT_NONE,
 	STMT_SELECT,
 	STMT_UPDATE,
 	STMT_INSERT,
@@ -230,6 +229,7 @@ stock DB_INIT()
         db_debug_openresults();
 	#endif
 
+    iDBIndexPoolSize = 0;
 	DBInitiated = true;
 	return 1;
 }
@@ -249,7 +249,7 @@ stock DB_EXIT()
 	return 1;
 }
 
-stock DBIndex: DB_SELECT(const table[], bool: store_result = true, const sortfield[] = "", sorttype = SORT_ASCE, const condition[] = "", {Float, _}:...)
+stock DBIndex: DB_SELECT(const table[], rowslimit = 10, bool: store_result = true, const sortfield[] = "", sorttype = SORT_ASCE, const condition[] = "", {Float, _}:...)
 {
 	if (!DBInitiated)
 	    return DBIndex: -1;
@@ -259,18 +259,18 @@ stock DBIndex: DB_SELECT(const table[], bool: store_result = true, const sortfie
 
 	new DBIndex: index = DBIndex: iDBIndexPoolSize;
 	iDBIndexPoolSize++;
-
+	
 	eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_SELECT;
 
 	new string[50 + DB_MAX_CONDITION_SIZE];
 	if (!condition[0])
 		format(string, sizeof (string), "SELECT * FROM `%s`", table);
 	else
-		format(string, sizeof (string), "SELECT * FROM `%s` WHERE %s", table, DB_ReturnStringArg(condition, 5));
+		format(string, sizeof (string), "SELECT * FROM `%s` WHERE %s LIMIT %i", table, DB_ReturnStringArg(condition, 6), rowslimit);
 
 	if (sortfield[0])
 		format(string, sizeof (string), "%s ORDER BY `%s` %s", string, sortfield, ((sorttype == SORT_ASCE) ? ("ASC") : ("DESC")));
-
+	
 	#if defined SQL_SERVER
 		eDBIndex[index][e_DBINDEX_RESULT] = mysql_query(DBId, string, true);
 
@@ -279,8 +279,6 @@ stock DBIndex: DB_SELECT(const table[], bool: store_result = true, const sortfie
 		if (!eDBIndex[index][e_DBINDEX_RESULT] || rows < 0)
 		{
 		    cache_delete(eDBIndex[index][e_DBINDEX_RESULT]);
-
-		    eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_NONE;
 		    iDBIndexPoolSize--;
 		    return DBIndex: -1;
 		}
@@ -294,8 +292,6 @@ stock DBIndex: DB_SELECT(const table[], bool: store_result = true, const sortfie
 		if (!eDBIndex[index][e_DBINDEX_RESULT] || db_num_rows(eDBIndex[index][e_DBINDEX_RESULT]) < 0)
 		{
 		    db_free_result(eDBIndex[index][e_DBINDEX_RESULT]);
-
-		    eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_NONE;
 		    iDBIndexPoolSize--;
 		    return DBIndex: -1;
 		}
@@ -479,7 +475,7 @@ stock DBIndex: DB_UPDATE(const table[], const condition[], {Float, _}:...)
 
 	new DBIndex: index = DBIndex: iDBIndexPoolSize;
 	iDBIndexPoolSize++;
-
+	
 	eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_UPDATE;
 	format(eDBIndex[index][e_DBINDEX_TABLE], DB_MAX_TABLE_NAME, table);
 	format(eDBIndex[index][e_DBINDEX_CONDITION], DB_MAX_CONDITION_SIZE, DB_ReturnStringArg(condition, 2));
@@ -763,7 +759,7 @@ stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
 	if (!DBInitiated)
 	    return 0;
 
-	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	if (!(DBIndex: 0 <= idx < DBIndex: DB_MAX_INDEXES))
 	    return 0;
 
 	static string[64 + (DB_MAX_FIELDS * (DB_MAX_FIELD_NAME + DB_MAX_FIELD_VALUE + 5))];
@@ -889,32 +885,27 @@ stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
 	    }
 	}
 
-	eDBIndex[idx][e_DBINDEX_STATEMENT] = STMT_NONE;
-
-	if (DBIndex: (_:idx + 1) < DBIndex: iDBIndexPoolSize)
+	for (new DBIndex: i = DBIndex: (iDBIndexPoolSize - 1); i > DBIndex: (_:idx + 1); i--)
 	{
-	    for (new DBIndex: i = idx; i < DBIndex: (iDBIndexPoolSize - 1); i++)
+ 		eDBIndex[DBIndex: (_:i - 1)][e_DBINDEX_STATEMENT] = eDBIndex[i][e_DBINDEX_STATEMENT];
+		eDBIndex[DBIndex: (_:i - 1)][e_DBINDEX_RESULT] = eDBIndex[i][e_DBINDEX_RESULT];
+		#if !defined SQL_SERVER
+	    	eDBIndex[DBIndex: (_:i - 1)][e_DBINDEX_LASTROWID] = eDBIndex[i][e_DBINDEX_LASTROWID];
+	    #endif
+		eDBIndex[DBIndex: (_:i - 1)][e_DBINDEX_ROWID] = eDBIndex[i][e_DBINDEX_ROWID];
+	    format(eDBIndex[DBIndex: (_:i - 1)][e_DBINDEX_TABLE], DB_MAX_TABLE_NAME, eDBIndex[i][e_DBINDEX_TABLE]);
+	    format(eDBIndex[DBIndex: (_:i - 1)][e_DBINDEX_CONDITION], DB_MAX_CONDITION_SIZE, eDBIndex[i][e_DBINDEX_CONDITION]);
+	    eDBIndex[DBIndex: (_:i - 1)][e_DBINDEX_TABLE_CREATED] = eDBIndex[i][e_DBINDEX_TABLE_CREATED];
+	    eDBIndex[DBIndex: (_:i - 1)][e_DBINDEX_PRIMARY_KEY] = eDBIndex[i][e_DBINDEX_PRIMARY_KEY];
+
+		for (new x; x < DB_MAX_FIELDS; x++)
 		{
-		    eDBIndex[i][e_DBINDEX_STATEMENT] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_STATEMENT];
-		    eDBIndex[i][e_DBINDEX_RESULT] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_RESULT];
-			#if !defined SQL_SERVER
-		    	eDBIndex[i][e_DBINDEX_LASTROWID] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_LASTROWID];
-		    #endif
-			eDBIndex[i][e_DBINDEX_ROWID] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_ROWID];
-		    format(eDBIndex[i][e_DBINDEX_TABLE], DB_MAX_TABLE_NAME, eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_TABLE]);
-		    format(eDBIndex[i][e_DBINDEX_CONDITION], DB_MAX_CONDITION_SIZE, eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_CONDITION]);
-		    eDBIndex[i][e_DBINDEX_TABLE_CREATED] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_TABLE_CREATED];
-		    eDBIndex[i][e_DBINDEX_PRIMARY_KEY] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_PRIMARY_KEY];
-
-			for (new x; x < DB_MAX_FIELDS; x++)
-			{
-				format(sDBIndexFields[i][x], DB_MAX_FIELD_NAME, sDBIndexFields[DBIndex: (_:i + 1)][x]);
-				format(sDBIndexValues[i][x], DB_MAX_FIELD_VALUE, sDBIndexValues[DBIndex: (_:i + 1)][x]);
-				iDBIndexFieldTypes[i][x] = iDBIndexFieldTypes[DBIndex: (_:i + 1)][x];
-			}
-
-			iDBIndexFieldsPoolSize[i] = iDBIndexFieldsPoolSize[DBIndex: (_:i + 1)];
+			format(sDBIndexFields[DBIndex: (_:i - 1)][x], DB_MAX_FIELD_NAME, sDBIndexFields[i][x]);
+			format(sDBIndexValues[DBIndex: (_:i - 1)][x], DB_MAX_FIELD_VALUE, sDBIndexValues[i][x]);
+			iDBIndexFieldTypes[DBIndex: (_:i - 1)][x] = iDBIndexFieldTypes[i][x];
 		}
+
+		iDBIndexFieldsPoolSize[DBIndex: (_:i - 1)] = iDBIndexFieldsPoolSize[i];
 	}
 
 	iDBIndexPoolSize--;
