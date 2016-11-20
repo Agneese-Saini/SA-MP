@@ -1,226 +1,182 @@
+// easydb.inc v2.5 - by Gammix - updated on 20 Nov, 2016
 #if defined easydb_included
 	#endinput
 #endif
 #define easydb_included
 
 /*
- * EasyDB
- * Version: 2.4.8 (last updated on 9 August, 2016)
- * By Gammix
- *
- * <a_mysql> by BlueG and madinat0r
- *
- * Functions:
-   native DB::Version();
-   native DB::Init(database[], host[] = "", user[] = "", password[] = "", port = 3306 , autoreconnect = true, pool_size = 2);
-   native DB::Exit();
-   native DB::VerifyTable(const table[], const primary_key[] = "ID", bool:defaults = false, {Float, _}:...);
-   native DB::DeleteTable(const table[]);
-   native DB::CreateRow(const table[], {Float, _}:...);
-   native DB::DeleteRow(const table[], ARG:id, limit);
-   native DB::Update(const table[], ARGS:id, limit, {Float, _}:...);
-   native DB::Fetch(const table[], limit = -1, const sortfield[] = "", fieldtype = STRING, const condition[] = "", {Float, _}:...);
-   native fetch_string(const field[], dest[], maxlength = sizeof (dest), cache = 0);
-   native fetch_int(const field[], cache = 0);
-   native Float:fetch_float(const field[], cache = 0);
-   native fetch_row_id(cache = 0);
-   native bool:fetch_next_row(cache = 0);
-   native fetch_rows_count(cache = 0);
-   native fetch_field_name(field, dest[], maxlength = sizeof (dest), cache = 0);
-   native fetch_fields_count(cache = 0);
-   native fetcher_close(cache = 0);
- *
- * Notes:
- * In order to use MySQL version of this, add "#define CONNECTION_TYPE_MYSQL" before including <easydb>.
- *
- */
+native DBIndex: DB_SELECT(const table[], bool: store_result = true, const sortfield[] = "", sorttype = SORT_ASCE, const condition[] = "", {Float, _}:...);
+native DB_GetFieldsCount(DBIndex: idx = DBIndex: 0);
+native DB_GetFieldName(fieldid, dest[], maxlength = sizeof (dest), DBIndex: idx = DBIndex: 0);
+native DB_GetRowsCount(DBIndex: idx = DBIndex: 0);
+native DB_GetRowInt(const field[], DBIndex: idx = DBIndex: 0);
+native Float: DB_GetRowFloat(const field[], DBIndex: idx = DBIndex: 0);
+native DB_GetRowString(const field[], dest[], maxlength = sizeof (dest), DBIndex: idx = DBIndex: 0);
+native DB_GetRowId(DBIndex: idx = DBIndex: 0);
+native DB_SetRowId(rowid, DBIndex: idx = DBIndex: 0);
+native _
+native DBIndex: DB_UPDATE(const table[], copies = 1, const condition[] = "", {Float, _}:...);
+native DBIndex: DB_INSERT(const table[], copies = 1);
+native DB_SetRowInt(const field[], value, DBIndex: idx = DBIndex: 0);
+native DB_SetRowFloat(const field[], Float: value, DBIndex: idx = DBIndex: 0);
+native DB_SetRowString(const field[], value[], DBIndex: idx = DBIndex: 0);
+native _
+native DBIndex: DB_VERIFY_TABLE(const table[]);
+native DB_IntField(const field[], defaultvalue = 0, DBIndex: idx = DBIndex: 0);
+native DB_FloatField(const field[], Float: defaultvalue = 0.0, DBIndex: idx = DBIndex: 0);
+native DB_StringField(const field[], defaultvalue[] = "", DBIndex: idx = DBIndex: 0);
+native DB_PrimaryKey(const field[], DBIndex: idx = DBIndex: 0);
+native DB_ForiegnKey(const field[], const assoctable[], const assocfield[], DBIndex: idx = DBIndex: 0);
+native _
+native DB_CLOSE(DBIndex: idx = DBIndex: 0);
+native _
+native DB_DELETE_TABLE(const table[]);
+native _
+native DB_DELETE_ROW(const table[], copies = 1, const condition[] = "", {Float, _}:...);
+*/
 
-#if defined CONNECTION_TYPE_MYSQL
-	#tryinclude <a_mysql>
-
-	#if !defined mysql_included
-	    #undef CONNECTION_TYPE_MYSQL
-	#endif
+#if !defined SQL_DATABASE
+	#define SQL_DATABASE "database"
 #endif
 
-forward __DB_anti_crash();
-public	__DB_anti_crash()
+/*
+User must define these themselves before including easydb in order to initialize MySQL connection.
+
+#define SQL_SERVER ""
+#define SQL_USERNAME ""
+#define SQL_PASSWORD ""
+*/
+
+#if defined SQL_SERVER
+	#if !defined SQL_USERNAME
+	    #define SQL_USERNAME "root"
+	#endif
+
+	#if !defined SQL_PASSWORD
+	    #define SQL_PASSWORD ""
+	#endif
+
+	#include <a_mysql>
+#endif
+
+static bool: DBInitiated;
+
+#if defined SQL_SERVER
+	static MySQL: DBId;
+#else
+	static DB: DBId;
+#endif
+
+enum
+{
+	STMT_NONE,
+	STMT_SELECT,
+	STMT_UPDATE,
+	STMT_INSERT,
+	STMT_VERIFY_TABLE
+};
+
+enum
+{
+	SORT_ASCE,
+	SORT_DESC
+};
+
+#define DB_MAX_TABLE_NAME (32)
+#define DB_MAX_CONDITION_SIZE (256)
+#define DB_MAX_FIELDS (25)
+
+enum e_DBINDEX
+{
+    e_DBINDEX_STATEMENT,
+
+    // For "SELECT" statments
+    #if defined SQL_SERVER
+    	Cache: e_DBINDEX_RESULT,
+	#else
+	    DBResult: e_DBINDEX_RESULT,
+		e_DBINDEX_LASTROWID,
+	#endif
+	e_DBINDEX_ROWID,
+
+    // For "INSERT" & "UPDATE" statments
+    e_DBINDEX_TABLE[DB_MAX_TABLE_NAME],
+    e_DBINDEX_CONDITION[DB_MAX_CONDITION_SIZE],
+    e_DBINDEX_COPIES,
+    
+    // For "CREATE TABLE" statements
+    bool: e_DBINDEX_TABLE_CREATED,
+    e_DBINDEX_PRIMARY_KEY
+};
+
+#define DB_MAX_INDEXES (12)
+static eDBIndex[DBIndex: DB_MAX_INDEXES][e_DBINDEX];
+static iDBIndexPoolSize;
+
+#define DB_MAX_FIELD_NAME (DB_MAX_TABLE_NAME)
+#define DB_MAX_FIELD_VALUE (512)
+static sDBIndexFields[DBIndex: DB_MAX_INDEXES][DB_MAX_FIELDS][DB_MAX_FIELD_NAME];
+static sDBIndexValues[DBIndex: DB_MAX_INDEXES][DB_MAX_FIELDS][DB_MAX_FIELD_VALUE];
+static sDBIndexFieldTypes[DBIndex: DB_MAX_INDEXES][DB_MAX_FIELDS][DB_MAX_FIELD_VALUE];
+
+static iDBIndexFieldsPoolSize[DBIndex: DB_MAX_INDEXES];
+
+forward __DB_Fix();
+public  __DB_Fix()
 {
 	strcat("", "");
 	format("", 0, "");
 }
 
-#define DB:: DB_
-
-#define DB_Open DB_Init
-#define DB_Close DB_Exit
-
-static bool:g_Initalized;
-
-#if !defined MAX_SQL_SELECTION_INSTANCES
-	#define MAX_SQL_SELECTION_INSTANCES (50)
-#endif
-
-#if !defined CONNECTION_TYPE_MYSQL
-	static DBResult:g_Result[MAX_SQL_SELECTION_INSTANCES];
-#else
-	static Cache:g_Result[MAX_SQL_SELECTION_INSTANCES];
-#endif
-static g_ResultLastRow[MAX_SQL_SELECTION_INSTANCES];
-static g_ResultRowsCount[MAX_SQL_SELECTION_INSTANCES];
-
-#if !defined MAX_FIELD_VALUE
-	#define MAX_FIELD_VALUE	1024
-#endif
-
-#if !defined CONNECTION_TYPE_MYSQL
-	static g_DatabaseName[35];
-	static DB:g_Database;
-	static g_DatabaseTimer;
-
-	stock static bool:DB::OpenSynchronousDB()
-	{
-		if (g_DatabaseTimer != 0)
-			return true;
-
-	    g_Database = db_open(g_DatabaseName);
-	    if (g_Database == DB:0)
-	        return false;
-
-	    db_query(g_Database, "PRAGMA synchronous = OFF");
-
-	 	g_DatabaseTimer = SetTimer("__OnSQLiteDBTimeout", 2500, false);
-	 	return true;
-	}
-
-	forward __OnSQLiteDBTimeout();
-	public  __OnSQLiteDBTimeout()
-	{
-		for (new i; i < MAX_SQL_SELECTION_INSTANCES; i++)
-		{
-			#if !defined CONNECTION_TYPE_MYSQL
-		    	if (g_Result[i] != DBResult:0)
-			#else
-		    	if (g_Result[i] != Cache:0)
-			#endif
-		    {
-		        g_DatabaseTimer = SetTimer("__OnSQLiteDBTimeout", 2500, false);
-		        return;
-			}
-		}
-
-		db_close(g_Database);
-		g_DatabaseTimer = 0;
-	}
-#else
-	static g_MySQLConnection;
-#endif
-
-static g_EasyDBVersion[] = "v3.0";
-
-stock DB::Version()
+stock static DB_ReturnStringArg(const fmat[], STATIC_ARGS) // By Y_Less
 {
-	return g_EasyDBVersion;
+ 	static out[512];
+	static size = 512;
+	new num_args, arg_start, arg_end;
+	#emit LOAD.S.pri   0
+	#emit ADD.C        8
+	#emit MOVE.alt
+	#emit LOAD.I
+	#emit STOR.S.pri   num_args
+	#emit ADD
+	#emit STOR.S.pri   arg_end
+	#emit LOAD.S.pri   STATIC_ARGS
+	#emit SMUL.C       4
+	#emit ADD
+	#emit STOR.S.pri   arg_start
+	while (arg_end != arg_start)
+	{
+		#emit MOVE.pri
+		#emit LOAD.I
+		#emit PUSH.pri
+		#emit CONST.pri    4
+		#emit SUB.alt
+		#emit STOR.S.pri   arg_end
+	}
+	#emit PUSH.S       fmat
+	#emit PUSH         size
+	#emit PUSH.C       out
+	#emit LOAD.S.pri   num_args
+	#emit ADD.C        12
+	#emit LOAD.S.alt   STATIC_ARGS
+	#emit XCHG
+	#emit SMUL.C       4
+	#emit SUB.alt
+	#emit PUSH.pri
+	#emit MOVE.alt
+	#emit SYSREQ.C     format
+	#emit CONST.pri    4
+	#emit ADD
+	#emit MOVE.alt
+	#emit LCTRL        4
+	#emit ADD
+	#emit SCTRL        4
+	return out;
 }
 
-stock DB::Init(database[], host[] = "", user[] = "", password[] = "", port = 3306, bool:autoreconnect = true, pool_size = 2)
-{
-	if (g_Initalized)
-	{
-	    #if defined ENABLE_CONSOLE_MESSAGES
-			print("[EasyDB] - Warning: Database already initalized, use 'DB::Exit' to open a new db/conn.");
-		#endif
-	    return 0;
-	}
-
-	#if !defined CONNECTION_TYPE_MYSQL
-    	strcat((g_DatabaseName[0] = EOS, g_DatabaseName), database);
-
-	    if (host[0])
-	    {
-            #if defined ENABLE_CONSOLE_MESSAGES
-				print("[EasyDB] - Warning: You are missing the <a_mysql> plugin/include or you haven't defined 'CONNECTION_TYPE_MYSQL' before including <easydb>; Database type is SQLite.");
-			#endif
-	    }
-
-		print("[EasyDB]: <SQLite> Initializing database...");
-
-	    #pragma unused host
-		#pragma unused user
-		//#pragma unused database
-		#pragma unused password
-		#pragma unused port
-		#pragma unused autoreconnect
-		#pragma unused pool_size
-
-		#if defined ENABLE_CONSOLE_MESSAGES
-			if (!fexist(database))
-			    printf("[EasyDB] - Notice: Database file '%s' doesn't exist, attempting to create.", database);
-		#endif
-
-		if (DB::OpenSynchronousDB())
-			print("[EasyDB] - Notice: SQLite database opened. Include is now intialized and operational.");
-		else
-		{
-			print("[EasyDB] - Error: SQLite database was not opened, easydb not initialized.");
-		    return 0;
-		}
-	#else
-		print("[EasyDB]: <MySQL> Connecting database...");
-
-	    g_MySQLConnection = mysql_connect(host, user, database, password, port, autoreconnect, pool_size);
-	    if (mysql_errno(g_MySQLConnection) == 0)
-	    	print("[EasyDB] - Notice: MySQL connection established. Include is now intialized and operational.");
-	    else
-	    {
-			print("[EasyDB] - Error: MySQL connection was not established, easydb not initialized.");
-	        return 0;
-		}
-	#endif
-
-	g_Initalized = true;
-
-	return 1;
-}
-
-stock DB::Exit()
-{
-	if (!g_Initalized)
-		return 0;
-
-	#if !defined CONNECTION_TYPE_MYSQL
-	    KillTimer(g_DatabaseTimer);
-	    db_close(g_Database);
-
-		#if defined ENABLE_CONSOLE_MESSAGES
-			print("[EasyDB] - Notice: SQLite database closed. You can now open a new database/connection.");
-		#endif
-	#else
-	    mysql_close(g_MySQLConnection);
-
-		#if defined ENABLE_CONSOLE_MESSAGES
-			print("[EasyDB] - Notice: MySQL connection closed. You can now open a new database/connection.");
-		#endif
-	#endif
-
-	g_Initalized = false;
-
-	return 1;
-}
-
-#define INTEGER (1)
-#define NUMBER 	(INTEGER)
-
-#define FLOAT   (2)
-#define REAL 	(FLOAT)
-
-#define STRING  (3)
-#define TEXT 	(STRING)
-
-stock static DB::GetStringArg(dest[], arg, len = sizeof (dest))
+stock static DB_GetStringArg(dest[], arg, len = sizeof (dest)) // By Slice
 {
     dest[0] = EOS;
-
     #emit LOAD.S.pri arg
     #emit SMUL.C     4
     #emit LOAD.S.alt 0
@@ -238,952 +194,760 @@ stock static DB::GetStringArg(dest[], arg, len = sizeof (dest))
     #emit STACK      16
 }
 
-stock DB::VerifyTable(const table[], const primary_key[] = "ID", bool:defaults = false, {Float, _}:...)
+stock static DB_Init()
 {
-	if (!g_Initalized)
-	    return 0;
+	if (DBInitiated)
+	    return 1;
 
-    #if !defined CONNECTION_TYPE_MYSQL
-		if (!DB::OpenSynchronousDB())
-		    return 0;
-	#endif
+	#if defined SQL_SERVER
+		mysql_log(ERROR | DEBUG);
 
-	static query[1024];
-	#if !defined CONNECTION_TYPE_MYSQL
-		format(query, sizeof (query), "PRAGMA table_info('%s')", table);
-	    new DBResult:result = db_query(g_Database, query);
+	    new MySQLOpt: options = mysql_init_options();
+		mysql_set_option(options, AUTO_RECONNECT, false);
+		mysql_set_option(options, POOL_SIZE, 0);
+
+		DBId = mysql_connect(SQL_SERVER, SQL_USERNAME, SQL_PASSWORD, SQL_DATABASE, options);
+		if (mysql_errno() != 0)
+		    return false;
 	#else
-		format(query, sizeof (query), "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '%s'", table);
-	    new Cache:result = mysql_query(g_MySQLConnection, query);
+	    DBId = db_open(SQL_DATABASE ".db");
+		if (!DBId)
+		    return false;
+
+        db_query(DBId, "PRAGMA synchronous = NORMAL");
+        db_query(DBId, "PRAGMA journal_mode = WAL");
 	#endif
 
-    static fieldnames[1024][35];
-    new fields;
-    
-	#if !defined CONNECTION_TYPE_MYSQL
-		if (db_num_rows(result) > 0)
-		{
-		    do
-				db_get_field_assoc(result, "name", fieldnames[fields++], sizeof (fieldnames[]));
-			while
-				(db_next_row(result));
-		}
-	#else
-	    fields = cache_get_row_count(g_MySQLConnection);
-		if (fields > 0)
-		{
-		    for (new i; i < fields; i++)
-		    	cache_get_field_content(i, "Field", fieldnames[i], g_MySQLConnection);
-		}
-	#endif
+	DBInitiated = true;
+	return 1;
+}
 
-	static query2[2048];
-    if (fields > 0)
-    {
-        #pragma unused query2
-	}
+stock DBIndex: DB_SELECT(const table[], bool: store_result = true, const sortfield[] = "", sorttype = SORT_ASCE, const condition[] = "", {Float, _}:...)
+{
+	if (!DB_Init())
+	    return DBIndex: -1;
+	    
+	if (iDBIndexPoolSize == DB_MAX_INDEXES)
+	    return DBIndex: -1;
+
+	new DBIndex: index = DBIndex: iDBIndexPoolSize;
+	iDBIndexPoolSize++;
+
+	eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_SELECT;
+
+	new string[50 + DB_MAX_CONDITION_SIZE];
+	if (!condition[0])
+		format(string, sizeof (string), "SELECT * FROM `%s`", table);
 	else
-	{
-		#if defined ENABLE_CONSOLE_MESSAGES
-			printf("[EasyDB] - Notice: Table '%s' doesn't exists, attempting to create.", table);
-		#endif
-
-		#if !defined CONNECTION_TYPE_MYSQL
-			format(query2, sizeof (query2), "CREATE TABLE IF NOT EXISTS `%s` (`%s` INTEGER PRIMARY KEY", table, primary_key);
-		#else
-			format(query2, sizeof (query2), "CREATE TABLE IF NOT EXISTS `%s` (`%s` INT NOT NULL AUTO_INCREMENT", table, primary_key);
-		#endif
-	}
-
-	static name[35];
-    new type;
-
-	new status;
-
-	for (new i = 3, j = numargs(); i < j; i++)
-	{
-	    switch (status)
-	    {
-	        case 0:
-	        {
-	            status = 1;
-
-	            DB::GetStringArg(name, i);
-
-				if (fields > 0)
-	    		{
-					for (new x; x < fields; x++)
-					{
-						if (!strcmp(fieldnames[x], name, true))
-						{
-							if (defaults)
-							  	i += 2;
-							else
-							    i += 1;
-
-				      	 	status = 0;
-				      	    break;
-						}
-					}
-				}
-			}
-
-			case 1:
-			{
-				type = getarg(i);
-			    if (type > STRING)
-			        type = STRING;
-
-			    if (defaults)
-	            	status = 2;
-				else
-				{
-					#if defined ENABLE_CONSOLE_MESSAGES
-						printf("[EasyDB] - Notice: Column '%s' doesn't exists in table '%s', attempting to create.", name, table);
-					#endif
-
-	            	status = 0;
-
-	            	switch (type)
-	            	{
-					    case INTEGER:
-					    {
-							if (fields > 0)
-							{
-   								format(query, sizeof (query), "ALTER TABLE `%s` ADD COLUMN `%s` INT NOT NULL DEFAULT '0'", table, name);
-
-								#if !defined CONNECTION_TYPE_MYSQL
-									db_query(g_Database, query);
-								#else
-									mysql_tquery(g_MySQLConnection, query);
-								#endif
-							}
-							else
-								format(query2, sizeof (query2), "%s, `%s` INT NOT NULL DEFAULT '0'", query2, name);
-						}
-
-						case FLOAT:
-					    {
-							if (fields > 0)
-							{
-								format(query, sizeof (query), "ALTER TABLE `%s` ADD COLUMN `%s` FLOAT NOT NULL DEFAULT '0.0'", table, name);
-
-								#if !defined CONNECTION_TYPE_MYSQL
-									db_query(g_Database, query);
-								#else
-									mysql_tquery(g_MySQLConnection, query);
-								#endif
-							}
-							else
-								format(query2, sizeof (query2), "%s, `%s` FLOAT NOT NULL DEFAULT '0.0'", query2, name);
-   						}
-
-					    case STRING:
-					    {
-							if (fields > 0)
-							{
-   								format(query, sizeof (query), "ALTER TABLE `%s` ADD COLUMN `%s` VARCHAR("#MAX_FIELD_VALUE") NOT NULL DEFAULT ''", table, name);
-
-								#if !defined CONNECTION_TYPE_MYSQL
-									db_query(g_Database, query);
-								#else
-									mysql_tquery(g_MySQLConnection, query);
-								#endif
-							}
-							else
-								format(query2, sizeof (query2), "%s, `%s` VARCHAR("#MAX_FIELD_VALUE") NOT NULL DEFAULT ''", query2, name);
-						}
-					}
-	            }
-			}
-
-			case 2:
-			{
-				#if defined ENABLE_CONSOLE_MESSAGES
-					printf("[EasyDB] - Notice: Column '%s' doesn't exists in table '%s', attempting to create.", name, table);
-				#endif
-
-	            status = 0;
-
-				switch (type)
-				{
-				    case INTEGER:
-				    {
-						if (fields > 0)
-						{
-							format(query, sizeof (query), "ALTER TABLE `%s` ADD COLUMN `%s` INT NOT NULL DEFAULT '%i'", table, name, getarg(i));
-
-							#if !defined CONNECTION_TYPE_MYSQL
-								db_query(g_Database, query);
-							#else
-								mysql_tquery(g_MySQLConnection, query);
-							#endif
-						}
-						else
-							format(query2, sizeof (query2), "%s, `%s` INT NOT NULL DEFAULT '%i'", query2, name, getarg(i));
-					}
-
-					case FLOAT:
-				    {
-						if (fields > 0)
-						{
-							format(query, sizeof (query), "ALTER TABLE `%s` ADD COLUMN `%s` FLOAT NOT NULL DEFAULT '%f'", table, name, Float:getarg(i));
-
-							#if !defined CONNECTION_TYPE_MYSQL
-								db_query(g_Database, query);
-							#else
-								mysql_tquery(g_MySQLConnection, query);
-							#endif
-						}
-						else
-							format(query2, sizeof (query2), "%s, `%s` FLOAT NOT NULL DEFAULT '%f'", query2, name, Float:getarg(i));
-					}
-
-				    case STRING:
-				    {
-				        static val[256];
-	            		DB::GetStringArg(val, i);
-
-						if (fields > 0)
-						{
-							format(query, sizeof (query), "ALTER TABLE `%s` ADD COLUMN `%s` VARCHAR("#MAX_FIELD_VALUE") NOT NULL DEFAULT '%q'", table, name, val);
-							#if !defined CONNECTION_TYPE_MYSQL
-								db_query(g_Database, query);
-							#else
-								mysql_tquery(g_MySQLConnection, query);
-							#endif
-						}
-						else
-							format(query2, sizeof (query2), "%s, `%s` VARCHAR("#MAX_FIELD_VALUE") NOT NULL DEFAULT '%q'", query2, name, val);
-					}
-				}
-			}
-		}
-	}
-
-	if (fields <= 0)
-	{
-		#if !defined CONNECTION_TYPE_MYSQL
-			strcat(query2, ")");
-
-			if (db_query(g_Database, query2))
-			{
-				#if defined ENABLE_CONSOLE_MESSAGES
-					printf("[EasyDB] - Notice: Table '%s' successfully verified.", table);
-				#endif
-			}
-			else
-			{
-				#if defined ENABLE_CONSOLE_MESSAGES
-					printf("[EasyDB] - Error: Something went wrong while verifying table '%s', columns may be missing.", table);
-				#endif
-				return 0;
-			}
-		#else
-			format(query2, sizeof (query2), "%s, PRIMARY KEY (`%s`))", query2, primary_key);
-
-			mysql_tquery(g_MySQLConnection, query2);
-			if (mysql_errno(g_MySQLConnection) == 0)
-			{
-				#if defined ENABLE_CONSOLE_MESSAGES
-					printf("[EasyDB] - Notice: Table '%s' successfully verified.", table);
-				#endif
-			}
-			else
-			{
-				#if defined ENABLE_CONSOLE_MESSAGES
-					printf("[EasyDB] - Error: Something went wrong while verifying table '%s', columns may be missing.", table);
-				#endif
-				return 0;
-			}
-		#endif
-	}
-
-	#if !defined CONNECTION_TYPE_MYSQL
-		db_free_result(result);
-	#else
-	    cache_delete(result, g_MySQLConnection);
-	#endif
-
-	return 1;
-}
-
-stock DB::DeleteTable(const table[])
-{
-	if (!g_Initalized)
-	    return 0;
-
-    #if !defined CONNECTION_TYPE_MYSQL
-		if (!DB::OpenSynchronousDB())
-		    return 0;
-	#endif
-
-	static query[128];
-	format(query, sizeof (query), "DROP TABLE `%s`", table);
-
-	#if !defined CONNECTION_TYPE_MYSQL
-		if (db_query(g_Database, query))
-		{
-			#if defined ENABLE_CONSOLE_MESSAGES
-				printf("[EasyDB] - Notice: Table '%s' was successfully deleted.", table);
-			#endif
-		}
-		else
-		{
-			#if defined ENABLE_CONSOLE_MESSAGES
-				printf("[EasyDB] - Error: Table '%s' is either missing or the table's name is incorrect.", table);
-			#endif
-		}
-	#else
-	    mysql_tquery(g_MySQLConnection, query);
-	    if (mysql_errno(g_MySQLConnection) == 0)
-		{
-			#if defined ENABLE_CONSOLE_MESSAGES
-				printf("[EasyDB] - Notice: Table '%s' was successfully deleted.", table);
-			#endif
-		}
-		else
-		{
-			#if defined ENABLE_CONSOLE_MESSAGES
-				printf("[EasyDB] - Error: Table '%s' is either missing or the table's name is incorrect.", table);
-			#endif
-		}
-	#endif
-
-	return 1;
-}
-
-stock DB::CreateRow(const table[], {Float, _}:...)
-{
-	if (!g_Initalized)
-	    return -1;
-
-    #if !defined CONNECTION_TYPE_MYSQL
-		if (!DB::OpenSynchronousDB())
-		    return -1;
-	#endif
-
-	new limit = ((numargs() - 1) / 3);
-
-	static query[2048];
-	format(query, sizeof (query), "INSERT INTO `%s` (", table);
-
-	new arg = 1;
-	static field[35];
-	for (new i; i < limit; i++)
-	{
-		DB::GetStringArg(field, arg);
-		if (i != (limit - 1))
-    		format(query, sizeof (query), "%s`%s`, ", query, field);
-		else
-    		format(query, sizeof (query), "%s`%s`) VALUES (", query, field);
-
-		arg += 3;
-	}
-
-	arg = 2;
-	static value[512];
-	for (new i; i < limit; i++)
-	{
-	    switch (getarg(arg))
-	    {
-	        case INTEGER:
-	        {
-				if (i != (limit - 1))
-	        		format(query, sizeof (query), "%s%i, ", query, getarg(arg + 1));
-				else
-	        		format(query, sizeof (query), "%s%i)", query, getarg(arg + 1));
-			}
-
-	        case FLOAT:
-	        {
-				if (i != (limit - 1))
-					format(query, sizeof (query), "%s%f, ", query, Float:getarg(arg + 1));
-				else
-					format(query, sizeof (query), "%s%f)", query, Float:getarg(arg + 1));
-			}
-
-	        case STRING:
-	        {
-				DB::GetStringArg(value, (arg + 1));
-				if (i != (limit - 1))
-					format(query, sizeof (query), "%s'%q', ", query, value);
-				else
-					format(query, sizeof (query), "%s'%q')", query, value);
-			}
-		}
-		arg += 3;
-	}
-
-	#if !defined CONNECTION_TYPE_MYSQL
-		if (db_query(g_Database, query))
-		{
-			#if defined ENABLE_CONSOLE_MESSAGES
-				printf("[EasyDB] - Notice: A new row has been inserted to table '%s'.", table);
-			#endif
-		}
-		else
-		{
-			#if defined ENABLE_CONSOLE_MESSAGES
-				printf("[EasyDB] - Error: A new row couldn't be inserted to table '%s'.", table);
-			#endif
-			return 0;
-		}
-	#else
-		mysql_tquery(g_MySQLConnection, query);
-		if (mysql_errno(g_MySQLConnection) == 0)
-		{
-			#if defined ENABLE_CONSOLE_MESSAGES
-				printf("[EasyDB] - Notice: A new row has been inserted to table '%s'.", table);
-			#endif
-		}
-		else
-		{
-			#if defined ENABLE_CONSOLE_MESSAGES
-				printf("[EasyDB] - Error: A new row couldn't be inserted to table '%s'.", table);
-			#endif
-			return 0;
-		}
-	#endif
-
-	return 1;
-}
-
-stock DB::DeleteRow(const table[], {Float, _}:...)
-{
-	if (!g_Initalized)
-	    return -1;
-
-    #if !defined CONNECTION_TYPE_MYSQL
-		if (!DB::OpenSynchronousDB())
-		    return -1;
-	#endif
-
-	new limit = getarg(2);
-
-	static query[512];
-	if (limit > 1)
-	{
-		format(query, sizeof (query), "DELETE FROM `%s` WHERE `ID` IN (", table);
-		for (new i; i < limit; i++)
-		{
-		    if (i != (limit - 1))
-				format(query, sizeof (query), "%s%i,", query, getarg(1, i));
-			else
-				format(query, sizeof (query), "%s%i)", query, getarg(1, i));
-		}
-	}
-	else
-		format(query, sizeof (query), "DELETE FROM `%s` WHERE `ID` = %i", table, getarg(1));
-
-	#if !defined CONNECTION_TYPE_MYSQL
-		if (db_query(g_Database, query))
-		{
-			#if defined ENABLE_CONSOLE_MESSAGES
-				printf("[EasyDB] - Notice: Row(s) form table '%s' were successfully deleted.", table);
-			#endif
-		}
-		else
-		{
-			#if defined ENABLE_CONSOLE_MESSAGES
-				printf("[EasyDB] - Warnings: Some row(s) form table '%s' were not deleted.", table);
-			#endif
-		}
-	#else
-	    mysql_tquery(g_MySQLConnection, query);
-	    if (mysql_errno(g_MySQLConnection) == 0)
-		{
-			#if defined ENABLE_CONSOLE_MESSAGES
-				printf("[EasyDB] - Notice: Row(s) form table '%s' were successfully deleted.", table);
-			#endif
-		}
-		else
-		{
-			#if defined ENABLE_CONSOLE_MESSAGES
-				printf("[EasyDB] - Warnings: Some row(s) form table '%s' were not deleted.", table);
-			#endif
-		}
-	#endif
-
-	return 1;
-}
-
-stock DB::Update({Float, _}:...)
-{
-	if (!g_Initalized)
-	    return 0;
-
-    #if !defined CONNECTION_TYPE_MYSQL
-		if (!DB::OpenSynchronousDB())
-		    return 0;
-	#endif
-
-	static table[35];
-    DB::GetStringArg(table, 0);
-
-	new limit = getarg(2);
-
-	new limit2 = ((numargs() - 3) / 3);
-
-	static query[2048];
-	format(query, sizeof (query), "UPDATE `%s` SET ", table);
-
-	new arg = 4;
-	static field[35];
-	static value[512];
-
-	for (new i; i < limit2; i++)
-	{
-		switch (getarg(arg))
-		{
-		    case INTEGER:
-		    {
-		        DB::GetStringArg(field, (arg - 1));
-		        if (i != (limit2 - 1))
-		        	format(query, sizeof (query), "%s`%s` = %i, ", query, field, getarg(arg + 1));
-				else
-		        	format(query, sizeof (query), "%s`%s` = %i", query, field, getarg(arg + 1));
-		    }
-
-		    case FLOAT:
-		    {
-		        DB::GetStringArg(field, (arg - 1));
-		        if (i != (limit2 - 1))
-		        	format(query, sizeof (query), "%s`%s` = %f, ", query, field, Float:getarg(arg + 1));
-				else
-		        	format(query, sizeof (query), "%s`%s` = %f", query, field, getarg(arg + 1));
-		    }
-
-		    case STRING:
-		    {
-		        DB::GetStringArg(field, (arg - 1));
-		        DB::GetStringArg(value, (arg + 1));
-		        if (i != (limit2 - 1))
-		        	format(query, sizeof (query), "%s`%s` = '%q', ", query, field, value);
-				else
-		        	format(query, sizeof (query), "%s`%s` = '%q'", query, field, value);
-		    }
-		}
-
-		arg += 3;
-	}
-
-	if (limit > 1)
-	{
-		strcat(query, " WHERE `ID` IN (");
-		for (new i; i < limit; i++)
-		{
-		    if (i != (limit - 1))
-				format(query, sizeof (query), "%s%i,", query, getarg(1, i));
-			else
-				format(query, sizeof (query), "%s%i)", query, getarg(1, i));
-		}
-	}
-	else
-		format(query, sizeof (query), "%s WHERE `ID` = %i", query, getarg(1));
-
-    #if !defined CONNECTION_TYPE_MYSQL
-		if (!db_query(g_Database, query))
-		{
-			#if defined ENABLE_CONSOLE_MESSAGES
-				print("[EasyDB] - Error: 'DB::Update' function didn't executed, might be invalid columns' names.");
-			#endif
-		}
-	#else
-		mysql_tquery(g_MySQLConnection, query);
-		#if defined ENABLE_CONSOLE_MESSAGES
-			if (mysql_errno(g_MySQLConnection) != 0)
-			{
-				print("[EasyDB] - Error: 'DB::Update' function didn't executed, might be invalid columns' names.");
-			}
-		#endif
-	#endif
-
-	return 1;
-}
-
-stock static DB::ReturnStringArg(const fmat[], STATIC_ARGS)
-{
- 	static out[512];
-	static size = 512;
-
-	new num_args, arg_start, arg_end;
-
-
-	#emit LOAD.S.pri   0
-	#emit ADD.C        8
-	#emit MOVE.alt
-
-	#emit LOAD.I
-	#emit STOR.S.pri   num_args
-
-	#emit ADD
-	#emit STOR.S.pri   arg_end
-
-	#emit LOAD.S.pri   STATIC_ARGS
-	#emit SMUL.C       4
-	#emit ADD
-	#emit STOR.S.pri   arg_start
-
-	while (arg_end != arg_start)
-	{
-		#emit MOVE.pri
-		#emit LOAD.I
-		#emit PUSH.pri
-		#emit CONST.pri    4
-		#emit SUB.alt
-		#emit STOR.S.pri   arg_end
-	}
-
-	#emit PUSH.S       fmat
-	#emit PUSH         size
-	#emit PUSH.C       out
-
-	#emit LOAD.S.pri   num_args
-	#emit ADD.C        12
-	#emit LOAD.S.alt   STATIC_ARGS
-	#emit XCHG
-	#emit SMUL.C       4
-	#emit SUB.alt
-	#emit PUSH.pri
-	#emit MOVE.alt
-
-	#emit SYSREQ.C     format
-
-	#emit CONST.pri    4
-	#emit ADD
-	#emit MOVE.alt
-
-	#emit LCTRL        4
-	#emit ADD
-	#emit SCTRL        4
-
-	return out;
-}
-
-stock static DB::SetStringArg(arg, const value[], len = sizeof (value))
-{
-	new address;
-
-    #emit LOAD.S.pri arg
-    #emit SMUL.C     4
-	#emit LOAD.S.alt 0
-    #emit ADD
-    #emit ADD.C      12
-    #emit LOAD.I
-	#emit STOR.S.PRI address
-	#emit PUSH.S     len
-	#emit PUSH.S     value
-	#emit CONST.pri  0
-	#emit SREF.S.pri address
-	#emit PUSH.S     address
-	#emit PUSH.C     12
-	#emit SYSREQ.C   strcat
-	#emit STACK      16
-}
-
-stock DB::Fetch(const table[], limit = -1, const sortfield[] = "", fieldtype = STRING, const condition[] = "", {Float, _}:...)
-{
-	if (!g_Initalized)
-	    return -1;
-
-    #if !defined CONNECTION_TYPE_MYSQL
-		if (!DB::OpenSynchronousDB())
-		    return -1;
-	#endif
-
-	static query[512];
-	format(query, sizeof (query), "SELECT * FROM `%s`", table);
-
-	if (condition[0])
-		format(query, sizeof (query), "%s WHERE %s", query, DB::ReturnStringArg(condition, 5));
+		format(string, sizeof (string), "SELECT * FROM `%s` WHERE %s", table, DB_ReturnStringArg(condition, 5));
 
 	if (sortfield[0])
-	{
-	    switch (fieldtype)
-	    {
-	        case STRING:
-	        	format(query, sizeof (query), "%s ORDER BY LENGTH(`%s`) DESC", query, sortfield);
-
-	        case INTEGER, FLOAT:
-				format(query, sizeof (query), "%s ORDER BY `%s` DESC", query, sortfield);
-	    }
-	}
-
-	if (limit > 0)
-		format(query, sizeof (query), "%s LIMIT %i", query, limit);
-
-	new id = -1;
-	for (new i; i < MAX_SQL_SELECTION_INSTANCES; i++)
-	{
-		#if !defined CONNECTION_TYPE_MYSQL
-	    	if (g_Result[i] == DBResult:0)
-		#else
-	    	if (g_Result[i] == Cache:0)
-		#endif
-	    {
-	        id = i;
-	        break;
-	    }
-	}
-
-	if (id == -1)
-	{
-		#if !defined CONNECTION_TYPE_MYSQL
-			db_free_result(g_Result[0]);
-		#else
- 			cache_delete(g_Result[0], g_MySQLConnection);
-		#endif
-
-		id = 0;
-	}
-
-	#if !defined CONNECTION_TYPE_MYSQL
-		g_Result[id] = db_query(g_Database, query);
-		if (!g_Result[id])
+		format(string, sizeof (string), "%s ORDER BY `%s` %s", string, sortfield, ((sorttype == SORT_ASCE) ? ("ASC") : ("DESC")));
+	
+	#if defined SQL_SERVER
+		eDBIndex[index][e_DBINDEX_RESULT] = mysql_query(DBId, string, true);
+		
+		new rows;
+		cache_get_row_count(rows);
+		if (!eDBIndex[index][e_DBINDEX_RESULT] || rows < 0)
 		{
-		    #if defined ENABLE_CONSOLE_MESSAGES
-				print("[EasyDB] - Error: 'DB::Fetch' function didn't executed, might be invalid condition or table name.");
-			#endif
-			return -1;
+		    cache_delete(eDBIndex[index][e_DBINDEX_RESULT]);
+		    
+		    eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_NONE;
+		    iDBIndexPoolSize--;
+		    return DBIndex: -1;
 		}
-
-		g_ResultRowsCount[id] = db_num_rows(g_Result[id]);
+		
+		if (!store_result)
+			return DBIndex: -2;
 	#else
-		g_Result[id] = mysql_query(g_MySQLConnection, query);
-		g_ResultRowsCount[id] = cache_get_row_count(g_MySQLConnection);
-
-		if (mysql_errno(g_MySQLConnection) != 0)
+		eDBIndex[index][e_DBINDEX_RESULT] = db_query(DBId, string);
+		eDBIndex[index][e_DBINDEX_LASTROWID] = 0;
+	    
+		if (!eDBIndex[index][e_DBINDEX_RESULT] || db_num_rows(eDBIndex[index][e_DBINDEX_RESULT]) < 0)
 		{
-		    #if defined ENABLE_CONSOLE_MESSAGES
-				print("[EasyDB] - Error: 'DB::Fetch' function didn't executed, might be invalid condition or table name.");
-			#endif
-			return -1;
+		    db_free_result(eDBIndex[index][e_DBINDEX_RESULT]);
+
+		    eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_NONE;
+		    iDBIndexPoolSize--;
+		    return DBIndex: -1;
 		}
+		
+		if (!store_result)
+			return DBIndex: -2;
 	#endif
 
-	g_ResultLastRow[id] = 0;
+	eDBIndex[index][e_DBINDEX_ROWID] = 0;
 
-	return id;
+	return index;
 }
 
-#if defined CONNECTION_TYPE_MYSQL
-	forward __OnMySQLSelect(id);
-	public  __OnMySQLSelect(id)
-	{
-	    g_Result[id] = cache_save(g_MySQLConnection);
-		g_ResultRowsCount[id] = cache_get_row_count(g_MySQLConnection);
-	}
-#endif
-
-stock fetch_string(const field[], dest[], maxlength = sizeof (dest), cache = 0)
+stock DB_GetFieldsCount(DBIndex: idx = DBIndex: 0)
 {
-	if (cache < 0 || cache >= MAX_SQL_SELECTION_INSTANCES)
+	if (!DB_Init())
 	    return 0;
 
-	#if !defined CONNECTION_TYPE_MYSQL
-		if (g_Result[cache] == DBResult:0)
+	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
 	    return 0;
+	    
+    #if defined SQL_SERVER
+    	cache_set_active(eDBIndex[idx][e_DBINDEX_RESULT]);
+    	
+		new fields;
+		cache_get_field_count(fields);
+		return fields;
 	#else
-		if (g_Result[cache] == Cache:0)
-	    return 0;
+		return db_num_rows(eDBIndex[idx][e_DBINDEX_RESULT]);
 	#endif
+}
 
-	if (g_ResultRowsCount[cache] == 0)
+stock DB_GetFieldName(fieldid, dest[], maxlength = sizeof (dest), DBIndex: idx = DBIndex: 0)
+{
+	if (!DB_Init())
 	    return 0;
 
-	#if !defined CONNECTION_TYPE_MYSQL
-    	db_get_field_assoc(g_Result[cache], field, dest, maxlength);
+	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	    return 0;
+
+    #if defined SQL_SERVER
+    	cache_set_active(eDBIndex[idx][e_DBINDEX_RESULT]);
+		return cache_get_field_name(feildid, dest, maxlength);
 	#else
-	    cache_set_active(g_Result[cache], g_MySQLConnection);
-	    cache_get_field_content(g_ResultLastRow[cache], field, dest, g_MySQLConnection, maxlength);
+		return db_get_field_name(eDBIndex[idx][e_DBINDEX_RESULT], fieldid, dest, maxlength);
+	#endif
+}
+
+stock DB_GetRowsCount(DBIndex: idx = DBIndex: 0)
+{
+	if (!DB_Init())
+	    return 0;
+
+	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	    return 0;
+
+    #if defined SQL_SERVER
+    	cache_set_active(eDBIndex[idx][e_DBINDEX_RESULT]);
+    	
+		new rows;
+		cache_get_row_count(rows);
+		return rows;
+	#else
+		return db_num_rows(eDBIndex[idx][e_DBINDEX_RESULT]);
+	#endif
+}
+
+stock DB_GetRowInt(const field[], DBIndex: idx = DBIndex: 0)
+{
+	if (!DB_Init())
+	    return -1;
+
+	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	    return -1;
+
+    #if defined SQL_SERVER
+    	cache_set_active(eDBIndex[idx][e_DBINDEX_RESULT]);
+
+		new get;
+		cache_get_value_name_int(eDBIndex[idx][e_DBINDEX_ROWID], field, get);
+		return get;
+	#else
+		return db_get_field_assoc_int(eDBIndex[idx][e_DBINDEX_RESULT], field);
+	#endif
+}
+
+stock Float: DB_GetRowFloat(const field[], DBIndex: idx = DBIndex: 0)
+{
+	if (!DB_Init())
+	    return -1.0;
+
+	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	    return -1.0;
+
+    #if defined SQL_SERVER
+    	cache_set_active(eDBIndex[idx][e_DBINDEX_RESULT]);
+
+		new Float: get;
+		cache_get_value_name_float(eDBIndex[idx][e_DBINDEX_ROWID], field, get);
+		return get;
+	#else
+		return db_get_field_assoc_float(eDBIndex[idx][e_DBINDEX_RESULT], field);
+	#endif
+}
+
+stock DB_GetRowString(const field[], dest[], maxlength = sizeof (dest), DBIndex: idx = DBIndex: 0)
+{
+	if (!DB_Init())
+	    return 0;
+
+	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	    return 0;
+
+    #if defined SQL_SERVER
+    	cache_set_active(eDBIndex[idx][e_DBINDEX_RESULT]);
+
+		cache_get_value_name(eDBIndex[idx][e_DBINDEX_ROWID], field, dest, maxlength);
+		return 1;
+	#else
+		db_get_field_assoc(eDBIndex[idx][e_DBINDEX_RESULT], field, dest, maxlength);
+		return 1;
+	#endif
+}
+
+stock DB_GetRowId(DBIndex: idx = DBIndex: 0)
+{
+	if (!DB_Init())
+	    return 0;
+
+	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	    return 0;
+
+    return eDBIndex[idx][e_DBINDEX_ROWID];
+}
+
+stock DB_SetRowId(rowid, DBIndex: idx = DBIndex: 0)
+{
+	if (!DB_Init())
+	    return 0;
+
+	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	    return 0;
+
+    #if defined SQL_SERVER
+   		new rows;
+		cache_get_row_count(rows);
+
+	    if (!(0 < rowid < rows))
+	        return 0;
+
+		eDBIndex[idx][e_DBINDEX_ROWID] = rowid;
+	#else
+	    if (!(0 < rowid < db_num_rows(eDBIndex[idx][e_DBINDEX_RESULT])))
+	        return 0;
+
+		eDBIndex[idx][e_DBINDEX_LASTROWID] = eDBIndex[idx][e_DBINDEX_ROWID];
+		while (db_next_row(eDBIndex[idx][e_DBINDEX_RESULT]))
+		{
+		    eDBIndex[idx][e_DBINDEX_ROWID]++;
+		    if (eDBIndex[idx][e_DBINDEX_ROWID] == rowid)
+		        break;
+		}
+
+        if (rowid < eDBIndex[idx][e_DBINDEX_ROWID])
+        {
+        	print("[EasyDB] - Error: SQLite doesn't support switching to previous rows to collect data. You have to use DB_SELECT again to access rows from starting at 0.");
+        	return 0;
+		}
 	#endif
 
 	return 1;
 }
 
-stock fetch_int(const field[], cache = 0)
+stock DBIndex: DB_UPDATE(const table[], copies, const condition[], {Float, _}:...)
 {
-	if (cache < 0 || cache >= MAX_SQL_SELECTION_INSTANCES)
-	    return -1;
+	if (!DB_Init())
+	    return DBIndex: -1;
 
-	#if !defined CONNECTION_TYPE_MYSQL
-		if (g_Result[cache] == DBResult:0)
-	    return -1;
-	#else
-		if (g_Result[cache] == Cache:0)
-	    return -1;
-	#endif
+	if (iDBIndexPoolSize == DB_MAX_INDEXES)
+	    return DBIndex: -1;
 
-	if (g_ResultRowsCount[cache] == 0)
-	    return -1;
+	new DBIndex: index = DBIndex: iDBIndexPoolSize;
+	iDBIndexPoolSize++;
 
-	#if !defined CONNECTION_TYPE_MYSQL
-    	return db_get_field_assoc_int(g_Result[cache], field);
-	#else
-	    cache_set_active(g_Result[cache], g_MySQLConnection);
-	    return cache_get_field_content_int(g_ResultLastRow[cache], field, g_MySQLConnection);
-	#endif
+	eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_UPDATE;
+	format(eDBIndex[index][e_DBINDEX_TABLE], DB_MAX_TABLE_NAME, table);
+	format(eDBIndex[index][e_DBINDEX_CONDITION], DB_MAX_CONDITION_SIZE, DB_ReturnStringArg(condition, 3));
+	eDBIndex[index][e_DBINDEX_COPIES] = copies;
+	iDBIndexFieldsPoolSize[index] = 0;
+	
+	return index;
 }
 
-stock Float:fetch_float(const field[], cache = 0)
+stock DBIndex: DB_INSERT(const table[], copies = 1)
 {
-	if (cache < 0 || cache >= MAX_SQL_SELECTION_INSTANCES)
-	    return -1.0;
+	if (!DB_Init())
+	    return DBIndex: -1;
 
-	#if !defined CONNECTION_TYPE_MYSQL
-		if (g_Result[cache] == DBResult:0)
-	    return -1.0;
-	#else
-		if (g_Result[cache] == Cache:0)
-	    return -1.0;
-	#endif
+	if (iDBIndexPoolSize == DB_MAX_INDEXES)
+	    return DBIndex: -1;
 
-	if (g_ResultRowsCount[cache] == 0)
-	    return -1.0;
+	new DBIndex: index = DBIndex: iDBIndexPoolSize;
+	iDBIndexPoolSize++;
 
-	#if !defined CONNECTION_TYPE_MYSQL
-    	return db_get_field_assoc_float(g_Result[cache], field);
-	#else
-	    cache_set_active(g_Result[cache], g_MySQLConnection);
-	    return cache_get_field_content_float(g_ResultLastRow[cache], field, g_MySQLConnection);
-	#endif
+	eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_INSERT;
+	format(eDBIndex[index][e_DBINDEX_TABLE], DB_MAX_TABLE_NAME, table);
+	eDBIndex[index][e_DBINDEX_COPIES] = copies;
+	iDBIndexFieldsPoolSize[index] = 0;
+
+	return index;
 }
 
-stock fetch_row_id(cache = 0)
+stock DB_SetRowInt(const field[], value, DBIndex: idx = DBIndex: 0)
 {
-	if (cache < 0 || cache >= MAX_SQL_SELECTION_INSTANCES)
-	    return -1;
-
-	#if !defined CONNECTION_TYPE_MYSQL
-		if (g_Result[cache] == DBResult:0)
-	    return -1;
-	#else
-		if (g_Result[cache] == Cache:0)
-	    return -1;
-	#endif
-
-	if (g_ResultRowsCount[cache] == 0)
+	if (!DB_Init())
 	    return 0;
 
-	#if !defined CONNECTION_TYPE_MYSQL
-    	return db_get_field_int(g_Result[cache], 0);
-	#else
-	    cache_set_active(g_Result[cache], g_MySQLConnection);
-	    return cache_get_row_int(g_ResultLastRow[cache], 0, g_MySQLConnection);
-	#endif
+	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	    return 0;
+
+	for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
+	{
+	    if (!strcmp(field, sDBIndexFields[idx][i], true))
+	    {
+	        valstr(sDBIndexValues[idx][i], value);
+	        return 1;
+	    }
+	}
+
+	if (iDBIndexFieldsPoolSize[idx] == DB_MAX_FIELDS)
+	    return 0;
+
+	new index = iDBIndexFieldsPoolSize[idx];
+	iDBIndexFieldsPoolSize[idx]++;
+
+	format(sDBIndexFields[idx][index], DB_MAX_FIELD_NAME, field);
+	valstr(sDBIndexValues[idx][index], value);
+	return 1;
 }
 
-stock bool:fetch_next_row(cache = 0)
+stock DB_SetRowFloat(const field[], Float: value, DBIndex: idx = DBIndex: 0)
 {
-	if (cache < 0 || cache >= MAX_SQL_SELECTION_INSTANCES)
-	    return false;
+	if (!DB_Init())
+	    return 0;
 
-	#if !defined CONNECTION_TYPE_MYSQL
-		if (g_Result[cache] == DBResult:0)
-	    return false;
-	#else
-		if (g_Result[cache] == Cache:0)
-	    return false;
-	#endif
+	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	    return 0;
 
-	#if !defined CONNECTION_TYPE_MYSQL
-	    if ((g_ResultLastRow[cache] + 1) >= g_ResultRowsCount[cache])
-	        return false;
+	for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
+	{
+	    if (!strcmp(field, sDBIndexFields[idx][i], true))
+	    {
+	        format(sDBIndexValues[idx][i], DB_MAX_FIELD_VALUE, "%f", value);
+	        return 1;
+	    }
+	}
 
-		if (db_next_row(g_Result[cache]))
+	if (iDBIndexFieldsPoolSize[idx] == DB_MAX_FIELDS)
+	    return 0;
+
+	new index = iDBIndexFieldsPoolSize[idx];
+	iDBIndexFieldsPoolSize[idx]++;
+
+	format(sDBIndexFields[idx][index], DB_MAX_FIELD_NAME, field);
+	format(sDBIndexValues[idx][index], DB_MAX_FIELD_VALUE, "%f", value);
+	return 1;
+}
+
+stock DB_SetRowString(const field[], value[], DBIndex: idx = DBIndex: 0)
+{
+	if (!DB_Init())
+	    return 0;
+
+	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	    return 0;
+
+	for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
+	{
+	    if (!strcmp(field, sDBIndexFields[idx][i], true))
+	    {
+	        format(sDBIndexValues[idx][i], DB_MAX_FIELD_VALUE, value);
+	        return 1;
+	    }
+	}
+
+	if (iDBIndexFieldsPoolSize[idx] == DB_MAX_FIELDS)
+	    return 0;
+
+	new index = iDBIndexFieldsPoolSize[idx];
+	iDBIndexFieldsPoolSize[idx]++;
+
+	format(sDBIndexFields[idx][index], DB_MAX_FIELD_NAME, field);
+	format(sDBIndexValues[idx][index], DB_MAX_FIELD_VALUE, value);
+	return 1;
+}
+
+stock DBIndex: DB_VERIFY_TABLE(const table[])
+{
+	if (!DB_Init())
+	    return DBIndex: -1;
+
+	if (iDBIndexPoolSize == DB_MAX_INDEXES)
+	    return DBIndex: -1;
+
+	new DBIndex: index = DBIndex: iDBIndexPoolSize;
+	iDBIndexPoolSize++;
+
+	eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_VERIFY_TABLE;
+	format(eDBIndex[index][e_DBINDEX_TABLE], DB_MAX_TABLE_NAME, table);
+	iDBIndexFieldsPoolSize[index] = 0;
+	
+	#if defined SQL_SERVER
+	    new string[256];
+		format(string, sizeof (string), "SELECT * FROM `INFORMATION_SCHEMA.COLUMNS` WHERE `TABLE_NAME` = '%s'", table);
+	    new Cache: result = mysql_query(DBId, string);
+
+		cache_get_row_count(iDBIndexFieldsPoolSize[idx]);
+		if (iDBIndexFieldsPoolSize[idx] > 0)
 		{
-            g_ResultLastRow[cache]++;
-		    return true;
+			eDBIndex[idx][e_DBINDEX_TABLE_CREATED] = true;
+			
+		    if (iDBIndexFieldsPoolSize[idx] > DB_MAX_FIELDS)
+			    printf("[EasyDB] - Warning: There are more fields/columns in \"%s\" table than \"DB_MAX_FIELDS\" (%i).", iDBIndexFieldsPoolSize[idx], DB_MAX_FIELDS);
+
+		    for (new i, j = ((iDBIndexFieldsPoolSize[idx] > DB_MAX_FIELDS) ? (DB_MAX_FIELDS) : (iDBIndexFieldsPoolSize[idx])); i < j; i++)
+		    {
+		    	cache_get_value_name(i, "COLUMN_NAME", sDBIndexFields[idx][i]);
+		    	cache_get_value_name(i, "COLUMN_DEFAULT", sDBIndexValues[idx][i]);
+		    	cache_get_value_name(i, "DATA_TYPE", sDBIndexFieldType[idx][i]);
+			}
 		}
-
-		return false;
+		
+		cache_delete(result);
 	#else
-	    if ((g_ResultLastRow[cache] + 1) >= g_ResultRowsCount[cache])
-	        return false;
+	    new string[64];
+		format(string, sizeof (string), "PRAGMA table_info('%s')", table);
+	    new DBResult: result = db_query(DBId, string);
 
-        g_ResultLastRow[cache]++;
-        return true;
+		iDBIndexFieldsPoolSize[index] = db_num_rows(result);
+	    if (iDBIndexFieldsPoolSize[index] > 0)
+		{
+			eDBIndex[index][e_DBINDEX_TABLE_CREATED] = true;
+			
+			if (iDBIndexFieldsPoolSize[index] > DB_MAX_FIELDS)
+			    printf("[EasyDB] - Warning: There are more fields/columns in \"%s\" table than \"DB_MAX_FIELDS\" (%i).", iDBIndexFieldsPoolSize[index], DB_MAX_FIELDS);
+
+			new i;
+		    do
+		    {
+		    	db_get_field_assoc(result, "name", sDBIndexFields[index][i], DB_MAX_FIELD_NAME);
+		    	db_get_field_assoc(result, "dflt_value", sDBIndexValues[index][i], DB_MAX_FIELD_VALUE);
+		    	db_get_field_assoc(result, "type", sDBIndexFieldTypes[index][i], DB_MAX_FIELD_NAME);
+		    	
+		    	i++;
+			}
+			while (db_next_row(result));
+		}
+		
+		db_free_result(result);
 	#endif
+
+	return index;
 }
 
-stock fetch_rows_count(cache = 0)
+stock DB_IntField(const field[], defaultvalue = 0, DBIndex: idx = DBIndex: 0)
 {
-	if (cache < 0 || cache >= MAX_SQL_SELECTION_INSTANCES)
+	if (!DB_Init())
 	    return 0;
 
-	#if !defined CONNECTION_TYPE_MYSQL
-		if (g_Result[cache] == DBResult:0)
+	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
 	    return 0;
-	#else
-		if (g_Result[cache] == Cache:0)
-	    return 0;
-	#endif
 
-	return g_ResultRowsCount[cache];
+	for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
+	{
+	    if (!strcmp(field, sDBIndexFields[idx][i], true))
+	    {
+			valstr(sDBIndexValues[idx][i], defaultvalue);
+			sDBIndexFieldTypes[idx][i] = "INT";
+	        return 1;
+	    }
+	}
+
+	if (iDBIndexFieldsPoolSize[idx] == DB_MAX_FIELDS)
+	    return 0;
+
+	new index = iDBIndexFieldsPoolSize[idx];
+	iDBIndexFieldsPoolSize[idx]++;
+
+	format(sDBIndexFields[idx][index], DB_MAX_FIELD_NAME, field);
+	valstr(sDBIndexValues[idx][index], defaultvalue);
+	sDBIndexFieldTypes[idx][index] = "INT";
+	return 1;
 }
 
-stock fetch_field_name(field, dest[], maxlength = sizeof (dest), cache = 0)
+stock DB_FloatField(const field[], Float: defaultvalue = 0.0, DBIndex: idx = DBIndex: 0)
 {
-	if (cache < 0 || cache >= MAX_SQL_SELECTION_INSTANCES)
+	if (!DB_Init())
 	    return 0;
 
-	#if !defined CONNECTION_TYPE_MYSQL
-		if (g_Result[cache] == DBResult:0)
+	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
 	    return 0;
-	#else
-		if (g_Result[cache] == Cache:0)
-	    return 0;
-	#endif
 
-    #if !defined CONNECTION_TYPE_MYSQL
-    	return db_field_name(g_Result[cache], field, dest, maxlength);
-	#else
-	    return cache_get_field_name(field, dest, g_MySQLConnection, maxlength);
-	#endif
+	for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
+	{
+	    if (!strcmp(field, sDBIndexFields[idx][i], true))
+	    {
+			format(sDBIndexValues[idx][i], DB_MAX_FIELD_VALUE, defaultvalue);
+			sDBIndexFieldTypes[idx][i] = "FLOAT";
+	        return 1;
+	    }
+	}
+
+	if (iDBIndexFieldsPoolSize[idx] == DB_MAX_FIELDS)
+	    return 0;
+
+	new index = iDBIndexFieldsPoolSize[idx];
+	iDBIndexFieldsPoolSize[idx]++;
+
+	format(sDBIndexFields[idx][index], DB_MAX_FIELD_NAME, field);
+	format(sDBIndexValues[idx][index], DB_MAX_FIELD_VALUE, defaultvalue);
+	sDBIndexFieldTypes[idx][index] = "FLOAT";
+	return 1;
 }
 
-stock fetch_fields_count(cache = 0)
+stock DB_StringField(const field[], defaultvalue[] = "", DBIndex: idx = DBIndex: 0)
 {
-	if (cache < 0 || cache >= MAX_SQL_SELECTION_INSTANCES)
+	if (!DB_Init())
 	    return 0;
 
-	#if !defined CONNECTION_TYPE_MYSQL
-		if (g_Result[cache] == DBResult:0)
+	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
 	    return 0;
-	#else
-		if (g_Result[cache] == Cache:0)
-	    return 0;
-	#endif
 
-	#if !defined CONNECTION_TYPE_MYSQL
-    	return db_num_fields(g_Result[cache]);
-	#else
-	    cache_set_active(g_Result[cache], g_MySQLConnection);
-	    return cache_get_field_count(g_MySQLConnection);
-	#endif
+	for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
+	{
+	    if (!strcmp(field, sDBIndexFields[idx][i], true))
+	    {
+			format(sDBIndexValues[idx][i], DB_MAX_FIELD_VALUE, defaultvalue);
+			format(sDBIndexFieldTypes[idx][i], DB_MAX_FIELD_NAME, "VARCHAR(%i)", DB_MAX_FIELD_VALUE);
+	        return 1;
+	    }
+	}
+
+	if (iDBIndexFieldsPoolSize[idx] == DB_MAX_FIELDS)
+	    return 0;
+
+	new index = iDBIndexFieldsPoolSize[idx];
+	iDBIndexFieldsPoolSize[idx]++;
+
+	format(sDBIndexFields[idx][index], DB_MAX_FIELD_NAME, field);
+	format(sDBIndexValues[idx][index], DB_MAX_FIELD_VALUE, defaultvalue);
+	format(sDBIndexFieldTypes[idx][index], DB_MAX_FIELD_NAME, "VARCHAR(%i)", DB_MAX_FIELD_VALUE);
+	return 1;
 }
 
-stock fetcher_close(cache = 0)
+stock DB_PrimaryKey(const field[], DBIndex: idx = DBIndex: 0)
 {
-	if (cache < 0 || cache >= MAX_SQL_SELECTION_INSTANCES)
+	if (!DB_Init())
 	    return 0;
 
-	#if !defined CONNECTION_TYPE_MYSQL
-		if (g_Result[cache] == DBResult:0)
+	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
 	    return 0;
+
+	for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
+	{
+	    if (!strcmp(field, sDBIndexFields[idx][i], true))
+	    {
+			eDBIndex[idx][e_DBINDEX_PRIMARY_KEY] = i;
+	        return 1;
+	    }
+	}
+
+	return 0;
+}
+
+stock DB_ForiegnKey(const field[], const assoctable[], const assocfield[], DBIndex: idx = DBIndex: 0)
+{
+}
+
+stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
+{
+	if (!DB_Init())
+	    return 0;
+
+	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
+	    return 0;
+
+	static string[64 + (DB_MAX_FIELDS * (DB_MAX_FIELD_NAME + DB_MAX_FIELD_VALUE + 5))];
+			
+	switch (eDBIndex[idx][e_DBINDEX_STATEMENT])
+	{
+	    case STMT_SELECT:
+	    {
+	        #if defined SQL_SERVER
+				cache_delete(eDBIndex[idx][e_DBINDEX_RESULT]);
+			#else
+				db_free_result(eDBIndex[idx][e_DBINDEX_RESULT]);
+			#endif
+			eDBIndex[idx][e_DBINDEX_STATEMENT] = STMT_NONE;
+	    }
+
+	    case STMT_INSERT:
+	    {
+			for (new x; x < eDBIndex[idx][e_DBINDEX_COPIES]; x++)
+			{
+				format(string, sizeof (string), "INSERT INTO `%s` (%s", eDBIndex[idx][e_DBINDEX_TABLE], sDBIndexFields[idx][0]);
+				for (new i = 1; i < iDBIndexFieldsPoolSize[idx]; i++)
+				{
+				    strcat(string, ", ");
+				    strcat(string, sDBIndexFields[idx][i]);
+				}
+
+				format(string, sizeof (string), "%s) VALUES('%q'", string, sDBIndexValues[idx][0]);
+                for (new i = 1; i < iDBIndexFieldsPoolSize[idx]; i++)
+					format(string, sizeof (string), "%s, '%q'", string, sDBIndexValues[idx][i]);
+
+				strcat(string, ")");
+			}
+
+	        #if defined SQL_SERVER
+	            mysql_tquery(DBId, string);
+			#else
+				db_query(DBId, string);
+			#endif
+			eDBIndex[idx][e_DBINDEX_STATEMENT] = STMT_NONE;
+	    }
+
+	    case STMT_UPDATE:
+	    {
+			format(string, sizeof (string), "UPDATE `%s` SET `%s` = '%q'", eDBIndex[idx][e_DBINDEX_TABLE], sDBIndexFields[idx][0], sDBIndexValues[idx][0]);
+			for (new i = 1; i < iDBIndexFieldsPoolSize[idx]; i++)
+				format(string, sizeof (string), "%s, `%s` = '%q'", string, sDBIndexFields[idx][i], sDBIndexValues[idx][i]);
+
+			format(string, sizeof (string), "%s WHERE %s", string, eDBIndex[idx][e_DBINDEX_CONDITION]);
+
+	        #if defined SQL_SERVER
+	            mysql_tquery(DBId, string);
+			#else
+				db_query(DBId, string);
+			#endif
+			eDBIndex[idx][e_DBINDEX_STATEMENT] = STMT_NONE;
+	    }
+
+	    case STMT_VERIFY_TABLE:
+	    {
+			if (eDBIndex[idx][e_DBINDEX_TABLE_CREATED])
+			{
+   				for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
+   				{
+   				    if (eDBIndex[idx][e_DBINDEX_PRIMARY_KEY] == i)
+       					format(string, sizeof (string), "ALTER TABLE `%s` ADD COLUMN `%s` %s PRIMARY KEY NOT NULL DEFAULT '%s'", eDBIndex[idx][e_DBINDEX_TABLE], sDBIndexFields[idx][i], sDBIndexFieldTypes[idx][i], sDBIndexValues[idx][i]);
+   				    else
+       					format(string, sizeof (string), "ALTER TABLE `%s` ADD COLUMN `%s` %s NOT NULL DEFAULT '%s'", eDBIndex[idx][e_DBINDEX_TABLE], sDBIndexFields[idx][i], sDBIndexFieldTypes[idx][i], sDBIndexValues[idx][i]);
+				}
+				
+			    #if defined SQL_SERVER
+		            mysql_tquery(DBId, string);
+				#else
+					db_query(DBId, string);
+				#endif
+			}
+			else
+			{
+		        #if defined SQL_SERVER
+				    format(string, sizeof (string), "CREATE TABLE IF NOT EXISTS `%s` (", eDBIndex[idx][e_DBINDEX_TABLE]);
+                    for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
+                    {
+                        format(string, sizeof (string), "%s%s %s NOT NULL DEFAULT '%s'", string, sDBIndexFields[idx][i], sDBIndexFieldTypes[idx][i], sDBIndexValues[idx][i]);
+
+						if (i == (iDBIndexFieldsPoolSize[idx] - 1))
+							format(string, sizeof (string), "%s, PRIMARY KEY (`%s`))", string, sDBIndexFields[idx][eDBIndex[idx][e_DBINDEX_PRIMARY_KEY]]);
+						else
+                            strcat(string, ", ");
+                    }
+                    
+		            mysql_tquery(DBId, string);
+				#else
+				    format(string, sizeof (string), "CREATE TABLE IF NOT EXISTS `%s` (", eDBIndex[idx][e_DBINDEX_TABLE]);
+                    for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
+                    {
+                        if (eDBIndex[idx][e_DBINDEX_PRIMARY_KEY] == i)
+                        	format(string, sizeof (string), "%s%s %s PRIMARY KEY NOT NULL DEFAULT '%s'", string, sDBIndexFields[idx][i], sDBIndexFieldTypes[idx][i], sDBIndexValues[idx][i]);
+						else
+                        	format(string, sizeof (string), "%s%s %s NOT NULL DEFAULT '%s'", string, sDBIndexFields[idx][i], sDBIndexFieldTypes[idx][i], sDBIndexValues[idx][i]);
+
+						if (i == (iDBIndexFieldsPoolSize[idx] - 1))
+                            strcat(string, ")");
+						else
+                            strcat(string, ", ");
+                    }
+                    
+					db_query(DBId, string);
+				#endif
+			}
+			
+	        #if defined SQL_SERVER
+	            mysql_tquery(DBId, string);
+			#else
+				db_query(DBId, string);
+			#endif
+			eDBIndex[idx][e_DBINDEX_STATEMENT] = STMT_NONE;
+	    }
+	}
+
+	
+	if (DBIndex: (_:idx + 1) < DBIndex: iDBIndexPoolSize)
+	{
+	    for (new DBIndex: i = idx; i < DBIndex: (iDBIndexPoolSize - 1); i++)
+		{
+		    eDBIndex[i][e_DBINDEX_STATEMENT] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_STATEMENT];
+		    eDBIndex[i][e_DBINDEX_RESULT] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_RESULT];
+			#if !defined SQL_SERVER
+		    	eDBIndex[i][e_DBINDEX_LASTROWID] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_LASTROWID];
+		    #endif
+			eDBIndex[i][e_DBINDEX_ROWID] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_ROWID];
+		    format(eDBIndex[i][e_DBINDEX_TABLE], DB_MAX_TABLE_NAME, eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_TABLE]);
+		    format(eDBIndex[i][e_DBINDEX_CONDITION], DB_MAX_CONDITION_SIZE, eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_CONDITION]);
+		    eDBIndex[i][e_DBINDEX_COPIES] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_COPIES];
+		    eDBIndex[i][e_DBINDEX_TABLE_CREATED] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_TABLE_CREATED];
+		    eDBIndex[i][e_DBINDEX_COPIES] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_COPIES];
+		    eDBIndex[i][e_DBINDEX_PRIMARY_KEY] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_PRIMARY_KEY];
+
+			for (new x; x < DB_MAX_FIELDS; x++)
+			{
+				format(sDBIndexFields[i][x], DB_MAX_FIELD_NAME, sDBIndexFields[DBIndex: (_:i + 1)][x]);
+				format(sDBIndexValues[i][x], DB_MAX_FIELD_VALUE, sDBIndexValues[DBIndex: (_:i + 1)][x]);
+				format(sDBIndexFieldTypes[i][x], DB_MAX_FIELD_NAME, sDBIndexFieldTypes[DBIndex: (_:i + 1)][x]);
+			}
+			
+			iDBIndexFieldsPoolSize[i] = iDBIndexFieldsPoolSize[DBIndex: (_:i + 1)];
+		}
+	}
+
+	iDBIndexPoolSize--;
+	return 1;
+}
+
+stock DB_DELETE_ROW(const table[], copies = 1, const sortfield[] = "", sorttype = SORT_ASCE, const condition[] = "", {Float, _}:...)
+{
+	if (!DB_Init())
+	    return 0;
+
+	if (!condition[0])
+	{
+		print("[EasyDB] - Error: To delete a whole table, use DB_DELETE_TABLE instead of DB_DELETE_ROW without any condition passed in it.");
+ 		return 0;
+	}
+
+	new string[64 + DB_MAX_CONDITION_SIZE];
+	if (sortfield[0])
+		format(string, sizeof (string), "DELETE FROM `%s` WHERE %s ORDER BY `%s` %s LIMIT %i", table, DB_ReturnStringArg(condition, 5), sortfield, ((sorttype == SORT_ASCE) ? ("ASC") : ("DESC")), copies);
+	else
+		format(string, sizeof (string), "DELETE FROM `%s` WHERE %s LIMIT %i", table, DB_ReturnStringArg(condition, 5), copies);
+
+	#if defined SQL_SERVER
+		mysql_tquery(DBId, string);
 	#else
-		if (g_Result[cache] == Cache:0)
+		db_query(DBId, string);
+	#endif
+	return 1;
+}
+
+stock DB_DELETE_TABLE(const table[])
+{
+	if (!DB_Init())
 	    return 0;
-	#endif
 
-	#if !defined CONNECTION_TYPE_MYSQL
-		db_free_result(g_Result[cache]);
-		g_Result[cache] = DBResult:0;
+	if (!condition[0])
+	{
+		print("[EasyDB] - Error: To delete a whole table, use DB_DELETE_TABLE instead of DB_DELETE_ROW without any condition passed in it.");
+ 		return 0;
+	}
+
+	new string[64];
+	format(string, sizeof (string), "DROP TABLE `%s`", table);
+
+	#if defined SQL_SERVER
+		mysql_tquery(DBId, string);
 	#else
-		cache_delete(g_Result[cache], g_MySQLConnection);
-		g_Result[cache] = Cache:0;
+		db_query(DBId, string);
 	#endif
-
 	return 1;
 }
