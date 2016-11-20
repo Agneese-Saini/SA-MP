@@ -675,7 +675,7 @@ stock DB_FloatField(const field[], Float: defaultvalue = 0.0, DBIndex: idx = DBI
 	{
 	    if (!strcmp(field, sDBIndexFields[idx][i], true))
 	    {
-			format(sDBIndexValues[idx][i], DB_MAX_FIELD_VALUE, defaultvalue);
+			format(sDBIndexValues[idx][i], DB_MAX_FIELD_VALUE, "%f", defaultvalue);
 			sDBIndexFieldTypes[idx][i] = "FLOAT";
 	        return 1;
 	    }
@@ -688,7 +688,7 @@ stock DB_FloatField(const field[], Float: defaultvalue = 0.0, DBIndex: idx = DBI
 	iDBIndexFieldsPoolSize[idx]++;
 
 	format(sDBIndexFields[idx][index], DB_MAX_FIELD_NAME, field);
-	format(sDBIndexValues[idx][index], DB_MAX_FIELD_VALUE, defaultvalue);
+	format(sDBIndexValues[idx][index], DB_MAX_FIELD_VALUE, "%f", defaultvalue);
 	sDBIndexFieldTypes[idx][index] = "FLOAT";
 	return 1;
 }
