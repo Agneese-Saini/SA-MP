@@ -15,8 +15,8 @@ native DB_GetRowString(const field[], dest[], maxlength = sizeof (dest), DBIndex
 native DB_GetRowId(DBIndex: idx = DBIndex: 0);
 native DB_SetRowId(rowid, DBIndex: idx = DBIndex: 0);
 native _
-native DBIndex: DB_UPDATE(const table[], copies = 1, const condition[] = "", {Float, _}:...);
-native DBIndex: DB_INSERT(const table[], copies = 1);
+native DBIndex: DB_UPDATE(const table[], const condition[] = "", {Float, _}:...);
+native DBIndex: DB_INSERT(const table[]);
 native DB_SetRowInt(const field[], value, DBIndex: idx = DBIndex: 0);
 native DB_SetRowFloat(const field[], Float: value, DBIndex: idx = DBIndex: 0);
 native DB_SetRowString(const field[], value[], DBIndex: idx = DBIndex: 0);
@@ -32,7 +32,7 @@ native DB_CLOSE(DBIndex: idx = DBIndex: 0);
 native _
 native DB_DELETE_TABLE(const table[]);
 native _
-native DB_DELETE_ROW(const table[], copies = 1, const condition[] = "", {Float, _}:...);
+native DB_DELETE_ROW(const table[], const condition[] = "", {Float, _}:...);
 */
 
 #if !defined SQL_DATABASE
@@ -102,8 +102,7 @@ enum e_DBINDEX
     // For "INSERT" & "UPDATE" statments
     e_DBINDEX_TABLE[DB_MAX_TABLE_NAME],
     e_DBINDEX_CONDITION[DB_MAX_CONDITION_SIZE],
-    e_DBINDEX_COPIES,
-    
+
     // For "CREATE TABLE" statements
     bool: e_DBINDEX_TABLE_CREATED,
     e_DBINDEX_PRIMARY_KEY
@@ -216,6 +215,8 @@ stock static DB_Init()
 
         db_query(DBId, "PRAGMA synchronous = NORMAL");
         db_query(DBId, "PRAGMA journal_mode = WAL");
+
+        db_debug_openresults();
 	#endif
 
 	DBInitiated = true;
@@ -226,7 +227,7 @@ stock DBIndex: DB_SELECT(const table[], bool: store_result = true, const sortfie
 {
 	if (!DB_Init())
 	    return DBIndex: -1;
-	    
+
 	if (iDBIndexPoolSize == DB_MAX_INDEXES)
 	    return DBIndex: -1;
 
@@ -243,27 +244,27 @@ stock DBIndex: DB_SELECT(const table[], bool: store_result = true, const sortfie
 
 	if (sortfield[0])
 		format(string, sizeof (string), "%s ORDER BY `%s` %s", string, sortfield, ((sorttype == SORT_ASCE) ? ("ASC") : ("DESC")));
-	
+
 	#if defined SQL_SERVER
 		eDBIndex[index][e_DBINDEX_RESULT] = mysql_query(DBId, string, true);
-		
+
 		new rows;
 		cache_get_row_count(rows);
 		if (!eDBIndex[index][e_DBINDEX_RESULT] || rows < 0)
 		{
 		    cache_delete(eDBIndex[index][e_DBINDEX_RESULT]);
-		    
+
 		    eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_NONE;
 		    iDBIndexPoolSize--;
 		    return DBIndex: -1;
 		}
-		
+
 		if (!store_result)
 			return DBIndex: -2;
 	#else
 		eDBIndex[index][e_DBINDEX_RESULT] = db_query(DBId, string);
 		eDBIndex[index][e_DBINDEX_LASTROWID] = 0;
-	    
+
 		if (!eDBIndex[index][e_DBINDEX_RESULT] || db_num_rows(eDBIndex[index][e_DBINDEX_RESULT]) < 0)
 		{
 		    db_free_result(eDBIndex[index][e_DBINDEX_RESULT]);
@@ -289,10 +290,10 @@ stock DB_GetFieldsCount(DBIndex: idx = DBIndex: 0)
 
 	if (!(DBIndex: 0 <= idx < DBIndex: iDBIndexPoolSize))
 	    return 0;
-	    
+
     #if defined SQL_SERVER
     	cache_set_active(eDBIndex[idx][e_DBINDEX_RESULT]);
-    	
+
 		new fields;
 		cache_get_field_count(fields);
 		return fields;
@@ -327,7 +328,7 @@ stock DB_GetRowsCount(DBIndex: idx = DBIndex: 0)
 
     #if defined SQL_SERVER
     	cache_set_active(eDBIndex[idx][e_DBINDEX_RESULT]);
-    	
+
 		new rows;
 		cache_get_row_count(rows);
 		return rows;
@@ -442,7 +443,7 @@ stock DB_SetRowId(rowid, DBIndex: idx = DBIndex: 0)
 	return 1;
 }
 
-stock DBIndex: DB_UPDATE(const table[], copies, const condition[], {Float, _}:...)
+stock DBIndex: DB_UPDATE(const table[], const condition[], {Float, _}:...)
 {
 	if (!DB_Init())
 	    return DBIndex: -1;
@@ -456,13 +457,12 @@ stock DBIndex: DB_UPDATE(const table[], copies, const condition[], {Float, _}:..
 	eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_UPDATE;
 	format(eDBIndex[index][e_DBINDEX_TABLE], DB_MAX_TABLE_NAME, table);
 	format(eDBIndex[index][e_DBINDEX_CONDITION], DB_MAX_CONDITION_SIZE, DB_ReturnStringArg(condition, 3));
-	eDBIndex[index][e_DBINDEX_COPIES] = copies;
 	iDBIndexFieldsPoolSize[index] = 0;
-	
+
 	return index;
 }
 
-stock DBIndex: DB_INSERT(const table[], copies = 1)
+stock DBIndex: DB_INSERT(const table[])
 {
 	if (!DB_Init())
 	    return DBIndex: -1;
@@ -475,7 +475,6 @@ stock DBIndex: DB_INSERT(const table[], copies = 1)
 
 	eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_INSERT;
 	format(eDBIndex[index][e_DBINDEX_TABLE], DB_MAX_TABLE_NAME, table);
-	eDBIndex[index][e_DBINDEX_COPIES] = copies;
 	iDBIndexFieldsPoolSize[index] = 0;
 
 	return index;
@@ -579,7 +578,7 @@ stock DBIndex: DB_VERIFY_TABLE(const table[])
 	eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_VERIFY_TABLE;
 	format(eDBIndex[index][e_DBINDEX_TABLE], DB_MAX_TABLE_NAME, table);
 	iDBIndexFieldsPoolSize[index] = 0;
-	
+
 	#if defined SQL_SERVER
 	    new string[256];
 		format(string, sizeof (string), "SELECT * FROM `INFORMATION_SCHEMA.COLUMNS` WHERE `TABLE_NAME` = '%s'", table);
@@ -589,7 +588,7 @@ stock DBIndex: DB_VERIFY_TABLE(const table[])
 		if (iDBIndexFieldsPoolSize[idx] > 0)
 		{
 			eDBIndex[idx][e_DBINDEX_TABLE_CREATED] = true;
-			
+
 		    if (iDBIndexFieldsPoolSize[idx] > DB_MAX_FIELDS)
 			    printf("[EasyDB] - Warning: There are more fields/columns in \"%s\" table than \"DB_MAX_FIELDS\" (%i).", iDBIndexFieldsPoolSize[idx], DB_MAX_FIELDS);
 
@@ -600,7 +599,7 @@ stock DBIndex: DB_VERIFY_TABLE(const table[])
 		    	cache_get_value_name(i, "DATA_TYPE", sDBIndexFieldType[idx][i]);
 			}
 		}
-		
+
 		cache_delete(result);
 	#else
 	    new string[64];
@@ -611,7 +610,7 @@ stock DBIndex: DB_VERIFY_TABLE(const table[])
 	    if (iDBIndexFieldsPoolSize[index] > 0)
 		{
 			eDBIndex[index][e_DBINDEX_TABLE_CREATED] = true;
-			
+
 			if (iDBIndexFieldsPoolSize[index] > DB_MAX_FIELDS)
 			    printf("[EasyDB] - Warning: There are more fields/columns in \"%s\" table than \"DB_MAX_FIELDS\" (%i).", iDBIndexFieldsPoolSize[index], DB_MAX_FIELDS);
 
@@ -621,12 +620,12 @@ stock DBIndex: DB_VERIFY_TABLE(const table[])
 		    	db_get_field_assoc(result, "name", sDBIndexFields[index][i], DB_MAX_FIELD_NAME);
 		    	db_get_field_assoc(result, "dflt_value", sDBIndexValues[index][i], DB_MAX_FIELD_VALUE);
 		    	db_get_field_assoc(result, "type", sDBIndexFieldTypes[index][i], DB_MAX_FIELD_NAME);
-		    	
+
 		    	i++;
 			}
 			while (db_next_row(result));
 		}
-		
+
 		db_free_result(result);
 	#endif
 
@@ -756,7 +755,7 @@ stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
 	    return 0;
 
 	static string[64 + (DB_MAX_FIELDS * (DB_MAX_FIELD_NAME + DB_MAX_FIELD_VALUE + 5))];
-			
+
 	switch (eDBIndex[idx][e_DBINDEX_STATEMENT])
 	{
 	    case STMT_SELECT:
@@ -766,35 +765,30 @@ stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
 			#else
 				db_free_result(eDBIndex[idx][e_DBINDEX_RESULT]);
 			#endif
-			eDBIndex[idx][e_DBINDEX_STATEMENT] = STMT_NONE;
 	    }
 
 	    case STMT_INSERT:
 	    {
-			for (new x; x < eDBIndex[idx][e_DBINDEX_COPIES]; x++)
+			format(string, sizeof (string), "INSERT INTO `%s` (%s", eDBIndex[idx][e_DBINDEX_TABLE], sDBIndexFields[idx][0]);
+			for (new i = 1; i < iDBIndexFieldsPoolSize[idx]; i++)
 			{
-				format(string, sizeof (string), "INSERT INTO `%s` (%s", eDBIndex[idx][e_DBINDEX_TABLE], sDBIndexFields[idx][0]);
-				for (new i = 1; i < iDBIndexFieldsPoolSize[idx]; i++)
-				{
-				    strcat(string, ", ");
-				    strcat(string, sDBIndexFields[idx][i]);
-				}
-
-				format(string, sizeof (string), "%s) VALUES('%q'", string, sDBIndexValues[idx][0]);
-                for (new i = 1; i < iDBIndexFieldsPoolSize[idx]; i++)
-					format(string, sizeof (string), "%s, '%q'", string, sDBIndexValues[idx][i]);
-
-				strcat(string, ")");
+			    strcat(string, ", ");
+			    strcat(string, sDBIndexFields[idx][i]);
 			}
+
+			format(string, sizeof (string), "%s) VALUES('%q'", string, sDBIndexValues[idx][0]);
+            for (new i = 1; i < iDBIndexFieldsPoolSize[idx]; i++)
+				format(string, sizeof (string), "%s, '%q'", string, sDBIndexValues[idx][i]);
+
+			strcat(string, ")");
 
 	        #if defined SQL_SERVER
 	            mysql_tquery(DBId, string);
 			#else
 				db_query(DBId, string);
 			#endif
-			eDBIndex[idx][e_DBINDEX_STATEMENT] = STMT_NONE;
-	    }
-
+		}
+		
 	    case STMT_UPDATE:
 	    {
 			format(string, sizeof (string), "UPDATE `%s` SET `%s` = '%q'", eDBIndex[idx][e_DBINDEX_TABLE], sDBIndexFields[idx][0], sDBIndexValues[idx][0]);
@@ -803,12 +797,11 @@ stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
 
 			format(string, sizeof (string), "%s WHERE %s", string, eDBIndex[idx][e_DBINDEX_CONDITION]);
 
-	        #if defined SQL_SERVER
+			#if defined SQL_SERVER
 	            mysql_tquery(DBId, string);
 			#else
 				db_query(DBId, string);
 			#endif
-			eDBIndex[idx][e_DBINDEX_STATEMENT] = STMT_NONE;
 	    }
 
 	    case STMT_VERIFY_TABLE:
@@ -822,7 +815,7 @@ stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
    				    else
        					format(string, sizeof (string), "ALTER TABLE `%s` ADD COLUMN `%s` %s NOT NULL DEFAULT '%s'", eDBIndex[idx][e_DBINDEX_TABLE], sDBIndexFields[idx][i], sDBIndexFieldTypes[idx][i], sDBIndexValues[idx][i]);
 				}
-				
+
 			    #if defined SQL_SERVER
 		            mysql_tquery(DBId, string);
 				#else
@@ -842,7 +835,7 @@ stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
 						else
                             strcat(string, ", ");
                     }
-                    
+
 		            mysql_tquery(DBId, string);
 				#else
 				    format(string, sizeof (string), "CREATE TABLE IF NOT EXISTS `%s` (", eDBIndex[idx][e_DBINDEX_TABLE]);
@@ -858,21 +851,21 @@ stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
 						else
                             strcat(string, ", ");
                     }
-                    
+
 					db_query(DBId, string);
 				#endif
 			}
-			
+
 	        #if defined SQL_SERVER
 	            mysql_tquery(DBId, string);
 			#else
 				db_query(DBId, string);
 			#endif
-			eDBIndex[idx][e_DBINDEX_STATEMENT] = STMT_NONE;
 	    }
 	}
 
-	
+	eDBIndex[idx][e_DBINDEX_STATEMENT] = STMT_NONE;
+
 	if (DBIndex: (_:idx + 1) < DBIndex: iDBIndexPoolSize)
 	{
 	    for (new DBIndex: i = idx; i < DBIndex: (iDBIndexPoolSize - 1); i++)
@@ -885,9 +878,7 @@ stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
 			eDBIndex[i][e_DBINDEX_ROWID] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_ROWID];
 		    format(eDBIndex[i][e_DBINDEX_TABLE], DB_MAX_TABLE_NAME, eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_TABLE]);
 		    format(eDBIndex[i][e_DBINDEX_CONDITION], DB_MAX_CONDITION_SIZE, eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_CONDITION]);
-		    eDBIndex[i][e_DBINDEX_COPIES] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_COPIES];
 		    eDBIndex[i][e_DBINDEX_TABLE_CREATED] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_TABLE_CREATED];
-		    eDBIndex[i][e_DBINDEX_COPIES] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_COPIES];
 		    eDBIndex[i][e_DBINDEX_PRIMARY_KEY] = eDBIndex[DBIndex: (_:i + 1)][e_DBINDEX_PRIMARY_KEY];
 
 			for (new x; x < DB_MAX_FIELDS; x++)
@@ -896,7 +887,7 @@ stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
 				format(sDBIndexValues[i][x], DB_MAX_FIELD_VALUE, sDBIndexValues[DBIndex: (_:i + 1)][x]);
 				format(sDBIndexFieldTypes[i][x], DB_MAX_FIELD_NAME, sDBIndexFieldTypes[DBIndex: (_:i + 1)][x]);
 			}
-			
+
 			iDBIndexFieldsPoolSize[i] = iDBIndexFieldsPoolSize[DBIndex: (_:i + 1)];
 		}
 	}
@@ -905,7 +896,7 @@ stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
 	return 1;
 }
 
-stock DB_DELETE_ROW(const table[], copies = 1, const sortfield[] = "", sorttype = SORT_ASCE, const condition[] = "", {Float, _}:...)
+stock DB_DELETE_ROW(const table[], const sortfield[] = "", sorttype = SORT_ASCE, const condition[] = "", {Float, _}:...)
 {
 	if (!DB_Init())
 	    return 0;
@@ -918,9 +909,9 @@ stock DB_DELETE_ROW(const table[], copies = 1, const sortfield[] = "", sorttype 
 
 	new string[64 + DB_MAX_CONDITION_SIZE];
 	if (sortfield[0])
-		format(string, sizeof (string), "DELETE FROM `%s` WHERE %s ORDER BY `%s` %s LIMIT %i", table, DB_ReturnStringArg(condition, 5), sortfield, ((sorttype == SORT_ASCE) ? ("ASC") : ("DESC")), copies);
+		format(string, sizeof (string), "DELETE FROM `%s` WHERE %s ORDER BY `%s` %s", table, DB_ReturnStringArg(condition, 5), sortfield, ((sorttype == SORT_ASCE) ? ("ASC") : ("DESC")));
 	else
-		format(string, sizeof (string), "DELETE FROM `%s` WHERE %s LIMIT %i", table, DB_ReturnStringArg(condition, 5), copies);
+		format(string, sizeof (string), "DELETE FROM `%s` WHERE %s", table, DB_ReturnStringArg(condition, 5));
 
 	#if defined SQL_SERVER
 		mysql_tquery(DBId, string);
