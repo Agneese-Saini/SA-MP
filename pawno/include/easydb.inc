@@ -456,7 +456,7 @@ stock DBIndex: DB_UPDATE(const table[], const condition[], {Float, _}:...)
 
 	eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_UPDATE;
 	format(eDBIndex[index][e_DBINDEX_TABLE], DB_MAX_TABLE_NAME, table);
-	format(eDBIndex[index][e_DBINDEX_CONDITION], DB_MAX_CONDITION_SIZE, DB_ReturnStringArg(condition, 3));
+	format(eDBIndex[index][e_DBINDEX_CONDITION], DB_MAX_CONDITION_SIZE, DB_ReturnStringArg(condition, 2));
 	iDBIndexFieldsPoolSize[index] = 0;
 
 	return index;
@@ -909,9 +909,9 @@ stock DB_DELETE_ROW(const table[], const sortfield[] = "", sorttype = SORT_ASCE,
 
 	new string[64 + DB_MAX_CONDITION_SIZE];
 	if (sortfield[0])
-		format(string, sizeof (string), "DELETE FROM `%s` WHERE %s ORDER BY `%s` %s", table, DB_ReturnStringArg(condition, 5), sortfield, ((sorttype == SORT_ASCE) ? ("ASC") : ("DESC")));
+		format(string, sizeof (string), "DELETE FROM `%s` WHERE %s ORDER BY `%s` %s", table, DB_ReturnStringArg(condition, 4), sortfield, ((sorttype == SORT_ASCE) ? ("ASC") : ("DESC")));
 	else
-		format(string, sizeof (string), "DELETE FROM `%s` WHERE %s", table, DB_ReturnStringArg(condition, 5));
+		format(string, sizeof (string), "DELETE FROM `%s` WHERE %s", table, DB_ReturnStringArg(condition, 4));
 
 	#if defined SQL_SERVER
 		mysql_tquery(DBId, string);
