@@ -1,4 +1,4 @@
-// easydb.inc v2.5.4 - by Gammix - updated on 20 Nov, 2016
+// easydb.inc v2.5.5 - by Gammix - updated on 22 Nov, 2016
 #if defined easydb_included
 	#endinput
 #endif
@@ -24,7 +24,7 @@ native DB_SetRowInt(const field[], value, DBIndex: idx = DBIndex: 0);
 native DB_SetRowFloat(const field[], Float: value, DBIndex: idx = DBIndex: 0);
 native DB_SetRowString(const field[], value[], DBIndex: idx = DBIndex: 0);
 native _
-native DBIndex: DB_VERIFY_TABLE(const table[]);
+native DBIndex: DB_CREATE_TABLE(const table[]);
 native DB_IntField(const field[], defaultvalue = 0, DBIndex: idx = DBIndex: 0);
 native DB_FloatField(const field[], Float: defaultvalue = 0.0, DBIndex: idx = DBIndex: 0);
 native DB_StringField(const field[], defaultvalue[] = "", DBIndex: idx = DBIndex: 0);
@@ -606,7 +606,7 @@ stock DB_SetRowString(const field[], value[], DBIndex: idx = DBIndex: 0)
 	return 1;
 }
 
-stock DBIndex: DB_VERIFY_TABLE(const table[])
+stock DBIndex: DB_CREATE_TABLE(const table[])
 {
 	if (!DBInitiated)
 	    return DBIndex: -1;
