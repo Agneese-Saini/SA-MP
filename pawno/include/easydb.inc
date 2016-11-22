@@ -252,7 +252,7 @@ stock DBIndex: DB_SELECT(const table[], rowslimit = 10, bool: store_result = tru
 {
 	if (!DBInitiated)
 	    return DBIndex: -1;
-	    
+
 	new DBIndex: index = DBIndex: -1;
 	for (new DBIndex: i; i < DBIndex: DB_MAX_INDEXES; i++)
 	{
@@ -262,7 +262,7 @@ stock DBIndex: DB_SELECT(const table[], rowslimit = 10, bool: store_result = tru
 	        break;
 	    }
 	}
-	
+
 	if (index == DBIndex: -1)
 	    return DBIndex: -1;
 
@@ -282,7 +282,7 @@ stock DBIndex: DB_SELECT(const table[], rowslimit = 10, bool: store_result = tru
 
 		new rows;
 		cache_get_row_count(rows);
-		if (!eDBIndex[index][e_DBINDEX_RESULT] || rows < 0)
+		if (!eDBIndex[index][e_DBINDEX_RESULT] || rows <= 0)
 		{
 		    cache_delete(eDBIndex[index][e_DBINDEX_RESULT]);
 		    eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_NONE;
@@ -295,7 +295,7 @@ stock DBIndex: DB_SELECT(const table[], rowslimit = 10, bool: store_result = tru
 		eDBIndex[index][e_DBINDEX_RESULT] = db_query(DBId, string);
 		eDBIndex[index][e_DBINDEX_LASTROWID] = 0;
 
-		if (!eDBIndex[index][e_DBINDEX_RESULT] || db_num_rows(eDBIndex[index][e_DBINDEX_RESULT]) < 0)
+		if (!eDBIndex[index][e_DBINDEX_RESULT] || db_num_rows(eDBIndex[index][e_DBINDEX_RESULT]) <= 0)
 		{
 		    db_free_result(eDBIndex[index][e_DBINDEX_RESULT]);
 		    eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_NONE;
@@ -623,7 +623,7 @@ stock DBIndex: DB_VERIFY_TABLE(const table[])
 
 	if (index == DBIndex: -1)
 	    return DBIndex: -1;
-
+	
 	eDBIndex[index][e_DBINDEX_STATEMENT] = STMT_VERIFY_TABLE;
 	format(eDBIndex[index][e_DBINDEX_TABLE], DB_MAX_TABLE_NAME, table);
 	iDBIndexFieldsPoolSize[index] = 0;
@@ -911,7 +911,7 @@ stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
 			#endif
 	    }
 	}
-	
+
 	eDBIndex[idx][e_DBINDEX_STATEMENT] = STMT_NONE;
 	return 1;
 }
