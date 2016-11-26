@@ -1,4 +1,4 @@
-// easydb.inc v2.5.6 - by Gammix - updated on 22 Nov, 2016
+// easydb.inc v2.5.6 - by Gammix - updated on 25 Nov, 2016
 #if defined easydb_included
 	#endinput
 #endif
@@ -81,9 +81,10 @@ enum
 
 enum
 {
-	FIELD_INTEGER,
-	FIELD_FLOAT,
-	FIELD_STRING
+	NULL,
+	INTEGER,
+	FLOAT,
+	STRING
 };
 
 enum
@@ -94,7 +95,7 @@ enum
 
 #define DB_MAX_TABLE_NAME (32)
 #define DB_MAX_CONDITION_SIZE (256)
-#define DB_MAX_FIELDS (25)
+#define DB_MAX_FIELDS (50)
 
 enum e_DBINDEX
 {
@@ -633,15 +634,8 @@ stock DBIndex: DB_CREATE_TABLE(const table[])
 	    new Cache: result = mysql_query(DBId, string);
 
 		cache_get_row_count(iDBIndexFieldsPoolSize[index]);
-		if (iDBIndexFieldsPoolSize[index] > 0)
-		{
-			eDBIndex[index][e_DBINDEX_TABLE_CREATED] = true;
-
-		    if (iDBIndexFieldsPoolSize[index] > DB_MAX_FIELDS)
-			    printf("[EasyDB] - Warning: There are more fields/columns in \"%s\" table than \"DB_MAX_FIELDS\" (%i).", iDBIndexFieldsPoolSize[index], DB_MAX_FIELDS);
-		}
-		else
-			eDBIndex[index][e_DBINDEX_TABLE_CREATED] = false;
+		eDBIndex[index][e_DBINDEX_TABLE_CREATED] = (iDBIndexFieldsPoolSize[index] > 0) ? (true) : (false);
+		iDBIndexFieldsPoolSize[index] = 0;
 
 		cache_delete(result);
 	#else
@@ -649,20 +643,10 @@ stock DBIndex: DB_CREATE_TABLE(const table[])
 		format(string, sizeof (string), "PRAGMA table_info('%s')", table);
 	    new DBResult: result = db_query(DBId, string);
 
-		iDBIndexFieldsPoolSize[index] = db_num_rows(result);
-	    if (iDBIndexFieldsPoolSize[index] > 0)
-		{
-			eDBIndex[index][e_DBINDEX_TABLE_CREATED] = true;
-
-			if (iDBIndexFieldsPoolSize[index] > DB_MAX_FIELDS)
-			    printf("[EasyDB] - Warning: There are more fields/columns in \"%s\" table than \"DB_MAX_FIELDS\" (%i).", iDBIndexFieldsPoolSize[index], DB_MAX_FIELDS);
-		}
-		else
-			eDBIndex[index][e_DBINDEX_TABLE_CREATED] = false;
+	    eDBIndex[index][e_DBINDEX_TABLE_CREATED] = (db_num_rows(result) > 0) ? (true) : (false);
 
 		db_free_result(result);
 	#endif
-
 	return index;
 }
 
@@ -679,20 +663,23 @@ stock DB_IntField(const field[], defaultvalue = 0, DBIndex: idx = DBIndex: 0)
 	    if (!strcmp(field, sDBIndexFields[idx][i], true))
 	    {
 			valstr(sDBIndexValues[idx][i], defaultvalue);
-			iDBIndexFieldTypes[idx][i] = FIELD_INTEGER;
+			iDBIndexFieldTypes[idx][i] = INTEGER;
 	        return 1;
 	    }
 	}
 
 	if (iDBIndexFieldsPoolSize[idx] == DB_MAX_FIELDS)
-	    return 0;
-
+	{
+		printf("[EasyDB] - Warning: Increase the limit of \"DB_MAX_FIELDS\" if you want more fields than %i while DB_CREATE_TABLE.", DB_MAX_FIELDS);
+		return 0;
+	}
+	
 	new index = iDBIndexFieldsPoolSize[idx];
 	iDBIndexFieldsPoolSize[idx]++;
 
 	format(sDBIndexFields[idx][index], DB_MAX_FIELD_NAME, field);
 	valstr(sDBIndexValues[idx][index], defaultvalue);
-	iDBIndexFieldTypes[idx][index] = FIELD_INTEGER;
+	iDBIndexFieldTypes[idx][index] = INTEGER;
 	return 1;
 }
 
@@ -709,20 +696,23 @@ stock DB_FloatField(const field[], Float: defaultvalue = 0.0, DBIndex: idx = DBI
 	    if (!strcmp(field, sDBIndexFields[idx][i], true))
 	    {
 			format(sDBIndexValues[idx][i], DB_MAX_FIELD_VALUE, "%f", defaultvalue);
-			iDBIndexFieldTypes[idx][i] = FIELD_FLOAT;
+			iDBIndexFieldTypes[idx][i] = FLOAT;
 	        return 1;
 	    }
 	}
 
 	if (iDBIndexFieldsPoolSize[idx] == DB_MAX_FIELDS)
-	    return 0;
+	{
+		printf("[EasyDB] - Warning: Increase the limit of \"DB_MAX_FIELDS\" if you want more fields than %i while DB_CREATE_TABLE.", DB_MAX_FIELDS);
+		return 0;
+	}
 
 	new index = iDBIndexFieldsPoolSize[idx];
 	iDBIndexFieldsPoolSize[idx]++;
 
 	format(sDBIndexFields[idx][index], DB_MAX_FIELD_NAME, field);
 	format(sDBIndexValues[idx][index], DB_MAX_FIELD_VALUE, "%f", defaultvalue);
-	iDBIndexFieldTypes[idx][index] = FIELD_FLOAT;
+	iDBIndexFieldTypes[idx][index] = FLOAT;
 	return 1;
 }
 
@@ -739,20 +729,23 @@ stock DB_StringField(const field[], defaultvalue[] = "", DBIndex: idx = DBIndex:
 	    if (!strcmp(field, sDBIndexFields[idx][i], true))
 	    {
 			format(sDBIndexValues[idx][i], DB_MAX_FIELD_VALUE, defaultvalue);
-			iDBIndexFieldTypes[idx][i] = FIELD_STRING;
+			iDBIndexFieldTypes[idx][i] = STRING;
 	        return 1;
 	    }
 	}
 
 	if (iDBIndexFieldsPoolSize[idx] == DB_MAX_FIELDS)
-	    return 0;
+	{
+		printf("[EasyDB] - Warning: Increase the limit of \"DB_MAX_FIELDS\" if you want more fields than %i while DB_CREATE_TABLE.", DB_MAX_FIELDS);
+		return 0;
+	}
 
 	new index = iDBIndexFieldsPoolSize[idx];
 	iDBIndexFieldsPoolSize[idx]++;
 
 	format(sDBIndexFields[idx][index], DB_MAX_FIELD_NAME, field);
 	format(sDBIndexValues[idx][index], DB_MAX_FIELD_VALUE, defaultvalue);
-	iDBIndexFieldTypes[idx][index] = FIELD_STRING;
+	iDBIndexFieldTypes[idx][index] = STRING;
 	return 1;
 }
 
@@ -846,20 +839,20 @@ stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
    				{
    				    switch (iDBIndexFieldTypes[idx][i])
    				    {
-   				  		case FIELD_INTEGER:
+   				  		case INTEGER:
    				        {
    				            #if defined SQL_SERVER
    								format(string, sizeof (string), "ALTER TABLE `%s` ADD COLUMN `%s` INT %sNOT NULL AUTO_INCREMENT", eDBIndex[idx][e_DBINDEX_TABLE], sDBIndexFields[idx][i], ((eDBIndex[idx][e_DBINDEX_PRIMARY_KEY] == i) ? ("PRIMARY KEY") : ("")));
 							#else
-								format(string, sizeof (string), "ALTER TABLE `%s` ADD COLUMN `%s` FIELD_INTEGER %sNOT NULL", eDBIndex[idx][e_DBINDEX_TABLE], sDBIndexFields[idx][i], ((eDBIndex[idx][e_DBINDEX_PRIMARY_KEY] == i) ? ("PRIMARY KEY") : ("")));
+								format(string, sizeof (string), "ALTER TABLE `%s` ADD COLUMN `%s` INTEGER %sNOT NULL DEFAULT '0'", eDBIndex[idx][e_DBINDEX_TABLE], sDBIndexFields[idx][i], ((eDBIndex[idx][e_DBINDEX_PRIMARY_KEY] == i) ? ("PRIMARY KEY") : ("")));
 							#endif
 						}
 
-						case FIELD_FLOAT:
-							format(string, sizeof (string), "ALTER TABLE `%s` ADD COLUMN `%s` FIELD_FLOAT %sNOT NULL", eDBIndex[idx][e_DBINDEX_TABLE], sDBIndexFields[idx][i], ((eDBIndex[idx][e_DBINDEX_PRIMARY_KEY] == i) ? ("PRIMARY KEY") : ("")));
+						case FLOAT:
+							format(string, sizeof (string), "ALTER TABLE `%s` ADD COLUMN `%s` FLOAT %sNOT NULL DEFAULT '0.0'", eDBIndex[idx][e_DBINDEX_TABLE], sDBIndexFields[idx][i], ((eDBIndex[idx][e_DBINDEX_PRIMARY_KEY] == i) ? ("PRIMARY KEY") : ("")));
 
-						case FIELD_STRING:
-							format(string, sizeof (string), "ALTER TABLE `%s` ADD COLUMN `%s` VARCHAR(%i) %sNOT NULL", eDBIndex[idx][e_DBINDEX_TABLE], sDBIndexFields[idx][i], DB_MAX_FIELD_VALUE, ((eDBIndex[idx][e_DBINDEX_PRIMARY_KEY] == i) ? ("PRIMARY KEY") : ("")));
+						default:
+							format(string, sizeof (string), "ALTER TABLE `%s` ADD COLUMN `%s` VARCHAR(%i) %sNOT NULL DEFAULT ''", eDBIndex[idx][e_DBINDEX_TABLE], sDBIndexFields[idx][i], DB_MAX_FIELD_VALUE, ((eDBIndex[idx][e_DBINDEX_PRIMARY_KEY] == i) ? ("PRIMARY KEY") : ("")));
 				    }
 				}
 
@@ -875,7 +868,7 @@ stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
 				    format(string, sizeof (string), "CREATE TABLE IF NOT EXISTS `%s` (", eDBIndex[idx][e_DBINDEX_TABLE]);
                     for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
                     {
-                        format(string, sizeof (string), "%s%s %s NOT NULL DEFAULT '%q'", string, sDBIndexFields[idx][i], ((iDBIndexFieldTypes[idx][i] == FIELD_INTEGER) ? ("INT") : ((iDBIndexFieldTypes[idx][i] == FIELD_FLOAT) ? ("FIELD_FLOAT") : ("FIELD_STRING"))), sDBIndexValues[idx][i]);
+                        format(string, sizeof (string), "%s%s %s NOT NULL DEFAULT '%q'", string, sDBIndexFields[idx][i], ((iDBIndexFieldTypes[idx][i] == INTEGER) ? ("INT") : ((iDBIndexFieldTypes[idx][i] == FLOAT) ? ("FLOAT") : ("STRING"))), sDBIndexValues[idx][i]);
 
 						if (i == (iDBIndexFieldsPoolSize[idx] - 1))
 							format(string, sizeof (string), "%s, PRIMARY KEY (`%s`))", string, sDBIndexFields[idx][eDBIndex[idx][e_DBINDEX_PRIMARY_KEY]]);
@@ -889,9 +882,9 @@ stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
                     for (new i; i < iDBIndexFieldsPoolSize[idx]; i++)
                     {
                         if (eDBIndex[idx][e_DBINDEX_PRIMARY_KEY] == i)
-                        	format(string, sizeof (string), "%s%s %s PRIMARY KEY", string, sDBIndexFields[idx][i], ((iDBIndexFieldTypes[idx][i] == FIELD_INTEGER) ? ("FIELD_INTEGER") : ((iDBIndexFieldTypes[idx][i] == FIELD_FLOAT) ? ("FIELD_FLOAT") : ("FIELD_STRING"))));
+                        	format(string, sizeof (string), "%s%s %s PRIMARY KEY", string, sDBIndexFields[idx][i], ((iDBIndexFieldTypes[idx][i] == INTEGER) ? ("INTEGER") : ((iDBIndexFieldTypes[idx][i] == FLOAT) ? ("FLOAT") : ("STRING"))));
 						else
-                        	format(string, sizeof (string), "%s%s %s NOT NULL DEFAULT '%s'", string, sDBIndexFields[idx][i], ((iDBIndexFieldTypes[idx][i] == FIELD_INTEGER) ? ("INT") : ((iDBIndexFieldTypes[idx][i] == FIELD_FLOAT) ? ("FIELD_FLOAT") : ("FIELD_STRING"))), sDBIndexValues[idx][i]);
+                        	format(string, sizeof (string), "%s%s %s NOT NULL DEFAULT '%s'", string, sDBIndexFields[idx][i], ((iDBIndexFieldTypes[idx][i] == INTEGER) ? ("INT") : ((iDBIndexFieldTypes[idx][i] == FLOAT) ? ("FLOAT") : ("STRING"))), sDBIndexValues[idx][i]);
 
 						if (i == (iDBIndexFieldsPoolSize[idx] - 1))
                             strcat(string, ")");
