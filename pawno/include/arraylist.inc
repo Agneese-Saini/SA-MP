@@ -1,4 +1,4 @@
-// arraylist.inc v1.0 - by Gammix - updated on 4 Dec, 2016
+// arraylist.inc v1.1 - by Gammix - updated on 4 Dec, 2016
 #if defined arraylist_included
 	#endinput
 #endif
@@ -15,6 +15,7 @@ native ArrayList_Get(ArrayList:name, index, {Float, _}:...);
 native ArrayList_IndexOf(ArrayList:name, {Float, _}:...);
 native ArrayList_Contains(ArrayList:name, {Float, _}:...);
 native ArrayList_Random(ArrayList:name, start, end, {Float, _}:...);
+native ArrayList_Dump(ArrayList:name);
 */
 
 forward ArrayList_Fix();
@@ -43,7 +44,7 @@ public  ArrayList_Fix()
 	%1_ARRAY_Size = %2, \
 	%1_ARRAY_ConSize = 1, \
 	%1_ARRAY_Pool
-	
+
 #define ArrayList_String:%1<%2>[%3] \
 	%1_ARRAY_Con[%2 + 1][%3], \
 	%1_ARRAY_Type = STR, \
@@ -53,7 +54,7 @@ public  ArrayList_Fix()
 
 #define foreach(%1:%2) \
 	for (new %2IDX; ArrayList_Get(%2, %2IDX, %1) != 0; %2IDX++)
-	
+
 #define ArrayList_Add(%1,%2) \
 	ArrayList_InternalAdd(%1_ARRAY_Type, _: %1_ARRAY_Con, %1_ARRAY_Size, %1_ARRAY_ConSize, %1_ARRAY_Pool, %2)
 
@@ -182,7 +183,7 @@ stock ArrayList_InternalRemove(type, array[][], size, contentsize, &pool, {Float
 		    pool--;
 		}
 	}
-	
+
 	return 1;
 }
 
@@ -233,7 +234,7 @@ stock ArrayList_InternalSet(type, array[][], contentsize, pool, index, {Float, _
       		_InternalGetStringArg(array[index], 5, contentsize);
 		}
 	}
-	
+
 	return 1;
 }
 
@@ -380,7 +381,7 @@ stock ArrayList_InternalContains(type, array[][], size, contentsize, pool, {Floa
 
 #define ArrayList_Random(%1,%2,%3,%4) \
 	ArrayList_InternalRandom(%1_ARRAY_Type, _: %1_ARRAY_Con, %1_ARRAY_ConSize, %1_ARRAY_Pool, %2, %3, %4)
-	
+
 stock ArrayList_InternalRandom(type, array[][], contentsize, pool, start, end, {Float, _}:...)
 {
 	if (start < 0 || start >= pool)
@@ -410,3 +411,147 @@ stock ArrayList_InternalRandom(type, array[][], contentsize, pool, start, end, {
 
 	return index;
 }
+
+#define ArrayList_Dump(%1) \
+    %1_ARRAY_Pool = 0
+
+// Default arraylists
+new ArrayList::Integer: Player<MAX_PLAYERS>;
+
+public OnPlayerConnect(playerid)
+{
+	if (!IsPlayerNPC(playerid))
+	{
+		ArrayList::Add(Player, playerid);
+	}
+	#if defined AL_OnPlayerConnect
+		return AL_OnPlayerConnect(playerid);
+	#else
+		return 1;
+	#endif
+}
+#if defined _ALS_OnPlayerConnect
+	#undef OnPlayerConnect
+#else
+	#define _ALS_OnPlayerConnect
+#endif
+#define OnPlayerConnect AL_OnPlayerConnect
+#if defined AL_OnPlayerConnect
+	forward AL_OnPlayerConnect(playerid);
+#endif
+
+public OnPlayerDisconnect(playerid, reason)
+{
+	if (!IsPlayerNPC(playerid))
+	{
+		ArrayList::Remove(Player, playerid);
+	}
+	#if defined AL_OnPlayerDisconnect
+       	return AL_OnPlayerDisconnect(playerid, reason);
+	#else
+	   	return 1;
+	#endif
+}
+#if defined _ALS_OnPlayerDisconnect
+    #undef OnPlayerDisconnect
+#else
+    #define _ALS_OnPlayerDisconnect
+#endif
+#define OnPlayerDisconnect AL_OnPlayerDisconnect
+#if defined AL_OnPlayerDisconnect
+    forward AL_OnPlayerDisconnect(playerid, reason);
+#endif
+
+public OnFilterScriptInit()
+{
+    ArrayList_Dump(Player);
+	for (new i, j = GetPlayerPoolSize(); i <= j; i++)
+	{
+		if (IsPlayerConnected(i))
+		{
+			ArrayList::Add(Player, i);
+  		}
+	}
+
+	#if defined AL_OnFilterScriptInit
+       	return AL_OnFilterScriptInit();
+	#else
+	   	return 1;
+	#endif
+}
+#if defined _ALS_OnFilterScriptInit
+    #undef OnFilterScriptInit
+#else
+    #define _ALS_OnFilterScriptInit
+#endif
+#define OnFilterScriptInit AL_OnFilterScriptInit
+#if defined AL_OnFilterScriptInit
+    forward AL_OnFilterScriptInit();
+#endif
+
+public OnFilterScriptExit()
+{
+    ArrayList_Dump(Player);
+
+	#if defined AL_OnFilterScriptExit
+       	return AL_OnFilterScriptExit();
+	#else
+	   	return 1;
+	#endif
+}
+#if defined _ALS_OnFilterScriptExit
+    #undef OnFilterScriptExit
+#else
+    #define _ALS_OnFilterScriptExit
+#endif
+#define OnFilterScriptExit AL_OnFilterScriptExit
+#if defined AL_OnFilterScriptExit
+    forward AL_OnFilterScriptExit();
+#endif
+
+public OnGameModeInit()
+{
+    ArrayList::Dump(Player);
+	for (new i, j = GetPlayerPoolSize(); i <= j; i++)
+	{
+		if (IsPlayerConnected(i))
+		{
+			ArrayList::Add(Player, i);
+  		}
+	}
+
+	#if defined AL_OnGameModeInit
+       	return AL_OnGameModeInit();
+	#else
+	   	return 1;
+	#endif
+}
+#if defined _ALS_OnGameModeInit
+    #undef OnGameModeInit
+#else
+    #define _ALS_OnGameModeInit
+#endif
+#define OnGameModeInit AL_OnGameModeInit
+#if defined AL_OnGameModeInit
+    forward AL_OnGameModeInit();
+#endif
+
+public OnGameModeExit()
+{
+    ArrayList_Dump(Player);
+
+	#if defined AL_OnGameModeExit
+       	return AL_OnGameModeExit();
+	#else
+	   	return 1;
+	#endif
+}
+#if defined _ALS_OnGameModeExit
+    #undef OnGameModeExit
+#else
+    #define _ALS_OnGameModeExit
+#endif
+#define OnGameModeExit AL_OnGameModeExit
+#if defined AL_OnGameModeExit
+    forward AL_OnGameModeExit();
+#endif
