@@ -1,4 +1,4 @@
-// arraylist.inc v1.1 - by Gammix - updated on 4 Dec, 2016
+// arraylist.inc v1.1.1 - by Gammix - updated on 4 Dec, 2016
 #if defined arraylist_included
 	#endinput
 #endif
@@ -188,15 +188,33 @@ stock ArrayList_InternalRemove(type, array[][], size, contentsize, &pool, {Float
 }
 
 #define ArrayList_RemoveIndex(%1,%2) \
-	ArrayList_InternalRemoveIndex(%1_ARRAY_Type, _: %1_ARRAY_Con, %1_ARRAY_Size, %1_ARRAY_ConSize, %1_ARRAY_Pool, %2)
+	ArrayList_InternalRemoveIndex(%1_ARRAY_Type, _: %1_ARRAY_Con, %1_ARRAY_ConSize, %1_ARRAY_Pool, %2)
 
-stock ArrayList_InternalRemoveIndex(type, array[][], size, contentsize, &pool, index)
+stock ArrayList_InternalRemoveIndex(type, array[][], contentsize, &pool, index)
 {
 	if (index >= pool)
 	{
 		return 0;
 	}
 
+	switch (type)
+	{
+		case INT, FLT:
+		{
+			for (new i = index; i < (pool - 1); i++)
+			{
+				array[i][0] = array[i + 1][0];
+			}
+		}
+		
+		default:
+		{
+			for (new i = index; i < (pool - 1); i++)
+			{
+				format(array[i], contentsize, array[i + 1]);
+			}
+		}
+	}
 	pool--;
 	return 1;
 }
