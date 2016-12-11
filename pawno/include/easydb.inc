@@ -1,4 +1,4 @@
-// easydb.inc v2.5.7 - by Gammix - updated on 26 Nov, 2016
+// easydb.inc v2.5.8 - by Gammix - updated on 11 Dec, 2016
 #if defined easydb_included
 	#endinput
 #endif
@@ -895,7 +895,7 @@ stock DB_CLOSE(DBIndex: idx = DBIndex: 0)
 	return 1;
 }
 
-stock DB_DELETE_ROW(const table[], const sortfield[] = "", sorttype = SORT_ASCE, const condition[] = "", {Float, _}:...)
+stock DB_DELETE_ROW(const table[], const condition[] = "", {Float, _}:...)
 {
 	if (!DBInitiated)
 	    return 0;
@@ -907,10 +907,7 @@ stock DB_DELETE_ROW(const table[], const sortfield[] = "", sorttype = SORT_ASCE,
 	}
 
 	new string[64 + DB_MAX_CONDITION_SIZE];
-	if (sortfield[0])
-		format(string, sizeof (string), "DELETE FROM `%s` WHERE %s ORDER BY `%s` %s", table, DB_ReturnStringArg(condition, 4), sortfield, ((sorttype == SORT_ASCE) ? ("ASC") : ("DESC")));
-	else
-		format(string, sizeof (string), "DELETE FROM `%s` WHERE %s", table, DB_ReturnStringArg(condition, 4));
+	format(string, sizeof (string), "DELETE FROM `%s` WHERE %s", table, DB_ReturnStringArg(condition, 2));
 
 	#if defined SQL_SERVER
 		mysql_tquery(DBId, string);
