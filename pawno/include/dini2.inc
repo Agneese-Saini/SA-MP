@@ -1,4 +1,4 @@
-// Dini2.inc - v2.4.0 - By Gammix - Last updated on 17 Dec,2016
+// Dini2.inc - v2.4.1 - By Gammix - Last updated on 18 Dec,2016
 #if defined dini2_included
 	#endinput
 #endif
@@ -44,7 +44,7 @@ static INI_OpenFileInstance(const file[])
 	    print("[dini2] - Error: File name not specified while opening file.");
 	    return -1;
 	}
-	
+
 	for (new i; i < INI_iFilesCount; i++)
 	{
 	    if (!strcmp(INI_sFiles[i], file))
@@ -52,25 +52,25 @@ static INI_OpenFileInstance(const file[])
 	        return i;
 	    }
 	}
-	
+
 	if (INI_iFilesCount == INI_MAX_INSTANCES)
 	{
 	    KillTimer(INI_iFilesTimer[0]);
 	    OnFileTimeout(0);
 	}
-	
+
 	new File:h = fopen(file, ((fexist(file)) ? (io_read) : (io_readwrite)));
 	if (!h)
 	{
 	    return -1;
 	}
-	
+
 	new i,
 		x,
 		pos,
 		len,
 		string[INI_MAX_FIELD_NAME + INI_MAX_FIELD_VALUE];
-		
+
 	i = INI_iFilesCount++;
 	format(INI_sFiles[i], INI_MAX_FILE_NAME, file);
     INI_iFilesTimer[i] = SetTimerEx("OnFileTimeout", INI_TIMER_INTERVAL, false, "i", i);
@@ -83,12 +83,12 @@ static INI_OpenFileInstance(const file[])
         {
             continue;
         }
-        
+
         if (x == INI_MAX_FIELDS)
         {
             break;
         }
-        
+
         len = strlen(string);
         if (string[len - 2] == '\r')
         {
@@ -98,12 +98,12 @@ static INI_OpenFileInstance(const file[])
         {
             string[len - 1] = EOS;
 		}
-		
+
 		x = INI_iFilesFieldsCount[i]++;
 		strmid(INI_sFilesFields[i][x], string, 0, pos, INI_MAX_FIELD_NAME);
 		format(INI_sFilesValues[i][x], INI_MAX_FIELD_VALUE, string[pos + 1]);
     }
-    
+
     fclose(h);
     return i;
 }
@@ -162,6 +162,11 @@ native dini_Get(const file[], const field[]);
 stock dini_Get(const file[], const field[])
 {
 	static dump[INI_MAX_FIELD_VALUE];
+
+	if (!fexist(file))
+	{
+	    return dump;
+	}
 
 	new instance = INI_OpenFileInstance(file);
 	if (instance == -1)
@@ -229,7 +234,7 @@ stock dini_Set(const file[], const field[], value[])
 	    printf("[dini2] - Error: Field \"%s\" couldn't be created in file \"%s\", increase \"INI_MAX_FIELDS\" value to %i.", field, file, (INI_MAX_FIELDS + 1));
 		return 0;
 	}
-	
+
 	new i = INI_iFilesFieldsCount[instance]++;
 	format(INI_sFilesFields[instance][i], INI_MAX_FIELD_NAME, field);
 	format(INI_sFilesValues[instance][i], INI_MAX_FIELD_VALUE, value);
@@ -345,7 +350,7 @@ native dini_UnSet(const file[], const field[]);
 */
 stock dini_UnSet(const file[], const field[])
 {
-	new instance = INI_OpenFileInstance(file, "dini_Set");
+	new instance = INI_OpenFileInstance(file);
 	if (instance == -1)
 	{
 	    return 0;
@@ -375,7 +380,7 @@ native dini_IsSet(const file[], const field[]);
 */
 stock dini_IsSet(const file[], const field[])
 {
-	new instance = INI_OpenFileInstance(file, "dini_Set");
+	new instance = INI_OpenFileInstance(file);
 	if (instance == -1)
 	{
 	    return 0;
@@ -404,7 +409,7 @@ stock DINI_fcopytextfile(const file[], const newfile[])
 	{
 		return 0;
 	}
-	
+
 	handles[1] = fopen(newfile, io_write);
 	if (!handles[1])
 	{
