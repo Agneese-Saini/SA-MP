@@ -123,7 +123,7 @@ public OnFileTimeout(instance)
 		fclose(h);
 	}
 
-	for (new i = instance; i < INI_iFilesCount; i++)
+	for (new i = instance; i < (INI_iFilesCount - 1); i++)
 	{
 	    format(INI_sFiles[i], INI_MAX_FILE_NAME, INI_sFiles[i + 1]);
 	    INI_iFilesTimer[i] = INI_iFilesTimer[i + 1];
@@ -360,7 +360,7 @@ stock dini_UnSet(const file[], const field[])
 	{
  		if (!strcmp(field, INI_sFilesFields[instance][i]))
  		{
- 		    for (; i < INI_iFilesFieldsCount[instance]; i++)
+ 		    for (; i < (INI_iFilesFieldsCount[instance] - 1);   i++)
  		    {
  		        format(INI_sFilesFields[instance][i], INI_MAX_FIELD_NAME, INI_sFilesFields[instance][i + 1]);
 				format(INI_sFilesValues[instance][i], INI_MAX_FIELD_VALUE, INI_sFilesValues[instance][i + 1]);
