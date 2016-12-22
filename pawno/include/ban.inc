@@ -1,30 +1,22 @@
+// Ban.inc - v2.0.0 - By Gammix - Last updated on 22 Dec, 2016
 #if defined ban_included
 	#endinput
 #endif
 #define ban_included
 
-/*
- * ban.inc
- * Version: 1.2.4 (last updated on 9 August, 2016)
- * By Gammix
- *
- * Functions:
-   native Ban_Init(const database[], const host[] = "", const user[] = "", const password[] = "", port = 3306, bool:autoreconnect = true, pool_size = 2);
-   native Ban_Exit();
-   native Ban(playerid, const name[] = "", const ip[] = "", range = 0, expiredate = 0);
-   native BanEx(playerid, const reason[], const name[] = "", const ip[] = "", range = 0, expiredate = 0);
-   native GetBanId(const name[] = "", const ip[] = "");
-   native UnBan(banid);
-   native SetBanData(banid, const field[], type, {Float, _}:...);
-   native GetBanData(banid, const field[], type, {Float, _}:...);
- *
- */
+#if !defined SQL_DATABASE
+	#define SQL_DATABASE "sa-mp"
+#endif
 
-#if defined CONNECTION_TYPE_MYSQL
-	#tryinclude <a_mysql>
+#if defined SQL_SERVER
+	#include <a_mysql>
 
-	#if !defined mysql_included
-		#undef CONNECTION_TYPE_MYSQL
+	#if !defined SQL_USERNAME
+	    #define SQL_USERNAME "root"
+	#endif
+
+	#if !defined SQL_PASSWORD
+	    #define SQL_PASSWORD ""
 	#endif
 #endif
 
@@ -34,50 +26,56 @@ public	_ban_anti_crash()
 	strcat("", "", 0);
 }
 
-#if !defined CONNECTION_TYPE_MYSQL
-	static DB:bandb;
+#if defined SQL_SERVER
+	static MySQL:db;
 #else
-	static mysqlconn;
+	static DB:db;
 #endif
 
-stock static BAN_ip2long(const ip[])
+stock static BAN_IpToLong(const ip[])
 {
   	new len = strlen(ip);
-	if(! (len > 0 && len < 17))
-    {
-        return 0;
-    }
+	if (!(len > 0 && len < 17))
+	{
+    	return 0;
+	}
 
-	new count = 0;
-    for (new i; i < len; i++)
-    {
-     	if(ip[i] == '.')
+	new count,
+		pos,
+		dest[3],
+		val[4];
+	for (new i; i < len; i++)
+	{
+		if (ip[i] == '.' || i == len)
 		{
+			strmid(dest, ip, pos, i);
+			pos = (i + 1);
+
+		    val[count] = strval(dest);
+		    if (!(1 <= val[count] <= 255))
+		    {
+		        return 0;
+			}
+
 			count++;
+			if (count > 3)
+			{
+				return 0;
+			}
 		}
 	}
-	if (! (count == 3))
+
+	if (count != 3)
 	{
 	    return 0;
 	}
-
- 	new address = strval(ip) << 24;
-    count = strfind(ip, ".", false, 0) + 1;
-
-	address += strval(ip[count]) << 16;
-	count = strfind(ip, ".", false, count) + 1;
-
-	address += strval(ip[count]) << 8;
-	count = strfind(ip, ".", false, count) + 1;
-
-	address += strval(ip[count]);
-	return address;
+	return ((val[0] * 16777216) + (val[1] * 65536) + (val[2] * 256) + (val[3]));
 }
 
-stock static BAN_ipmatch(const ip1[], const ip2[], rangetype = 26)
+stock static BAN_IpMatch(const ip1[], const ip2[], rangetype = 26)
 {
-   	new ip = BAN_ip2long(ip1);
-    new subnet = BAN_ip2long(ip2);
+   	new ip = BAN_IpToLong(ip1);
+    new subnet = BAN_IpToLong(ip2);
 
     new mask = -1 << (32 - rangetype);
     subnet &= mask;
@@ -85,40 +83,122 @@ stock static BAN_ipmatch(const ip1[], const ip2[], rangetype = 26)
     return bool:((ip & mask) == subnet);
 }
 
-stock Ban_Init(database[], const host[] = "", const user[] = "", const password[] = "", port = 3306, bool:autoreconnect = true, pool_size = 2)
+#define MASK (-1 << (32 - 36))
+
+#if defined FILTERSCRIPT
+	public OnFilterScriptInit()
+#else
+	public OnGameModeInit()
+#endif
 {
-	#if !defined CONNECTION_TYPE_MYSQL
-		#pragma unused host
-		#pragma unused user
-		#pragma unused password
-		#pragma unused port
-		#pragma unused autoreconnect
-		#pragma unused pool_size
+	#if defined SQL_SERVER
+        mysql_log(ERROR | DEBUG);
 
-		bandb = db_open(database);
+	    new MySQLOpt: options = mysql_init_options();
+		mysql_set_option(options, AUTO_RECONNECT, false);
+		mysql_set_option(options, POOL_SIZE, 0);
 
-		db_free_result(db_query(bandb, "CREATE TABLE IF NOT EXISTS `Bans` (`BanId` INTEGER PRIMARY KEY, `Name` TEXT, `Ip` TEXT, `RangeBan` INTEGER, `ExpireDate` INTEGER)"));
-		db_free_result(db_query(bandb, "CREATE TABLE IF NOT EXISTS `BansData` (`BanId` INTEGER, `Field` TEXT, `Value` TEXT)"));
+		db = mysql_connect(SQL_SERVER, SQL_USERNAME, SQL_PASSWORD, SQL_DATABASE, options);
+		if (mysql_errno() == 0)
+		{
+			mysql_tquery(db, "CREATE TABLE IF NOT EXISTS `bans` (`id` INT NOT NULL AUTO_INCREMENT, `name` VARCHAR(24) NOT NULL DEFAULT '', `ip` VARCHAR(18) NOT NULL DEFAULT '', `longip` INT NOT NULL DEFAULT '0', `expire` INT NOT NULL DEFAULT '0', PRIMARY KEY (`id`))");
+	    	mysql_tquery(db, "CREATE TABLE IF NOT EXISTS `bans_data` (`bans_id` INT NOT NULL DEFAULT '0', `field` VARCHAR(128) NOT NULL DEFAULT '', `value` VARCHAR(512) NOT NULL DEFAULT '')");
+		}
 	#else
-	    mysqlconn = mysql_connect(host, user, database, password, port, autoreconnect, pool_size);
+	    db = db_open(SQL_DATABASE ".db");
+	    if (db)
+	    {
+		    db_query(db, "PRAGMA synchronous = NORMAL");
+	       	db_query(db, "PRAGMA journal_mode = WAL");
 
-	    mysql_tquery(mysqlconn, "CREATE TABLE IF NOT EXISTS `Bans` (`BanId` INT NOT NULL AUTO_INCREMENT, `Name` VARCHAR(24) NOT NULL DEFAULT '', `Ip` VARCHAR(18) NOT NULL DEFAULT '', `RangeBan` INT NOT NULL DEFAULT '0', `ExpireDate` INT NOT NULL DEFAULT '0', PRIMARY KEY (`BanId`))");
-	    mysql_tquery(mysqlconn, "CREATE TABLE IF NOT EXISTS `BansData` (`BanId` INT, `Field` VARCHAR(32) NOT NULL DEFAULT '', `Value` VARCHAR(512) NOT NULL DEFAULT '')");
+			db_query(db, "CREATE TABLE IF NOT EXISTS `bans` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(24) NOT NULL DEFAULT '', `ip` VARCHAR(18) NOT NULL DEFAULT '', `longip` INT NOT NULL DEFAULT '0', `expire` INT NOT NULL DEFAULT '0')");
+			db_query(db, "CREATE TABLE IF NOT EXISTS `bans_data` (`bans_id` INT NOT NULL DEFAULT '0', `field` VARCHAR(128) NOT NULL DEFAULT '', `value` VARCHAR(512) NOT NULL DEFAULT '')");
+		}
 	#endif
 
-	return 1;
-}
-
-stock Ban_Exit()
-{
-	#if !defined CONNECTION_TYPE_MYSQL
-		db_close(bandb);
+	#if defined FILTERSCRIPT
+		#if defined BAN_OnFilterScriptInit
+			return BAN_OnFilterScriptInit();
+		#else
+		    return 1;
+		#endif
 	#else
-		mysql_close(mysqlconn);
+		#if defined BAN_OnGameModeInit
+			return BAN_OnGameModeInit();
+		#else
+		    return 1;
+		#endif
+	#endif
+}
+#if defined FILTERSCRIPT
+	#if defined _ALS_OnFilterScriptInit
+		#undef OnFilterScriptInit
+	#else
+		#define _ALS_OnFilterScriptInit
+	#endif
+	#define OnFilterScriptInit BAN_OnFilterScriptInit
+	#if defined BAN_OnFilterScriptInit
+		forward BAN_OnFilterScriptInit();
+	#endif
+#else
+	#if defined _ALS_OnGameModeInit
+		#undef OnGameModeInit
+	#else
+		#define _ALS_OnGameModeInit
+	#endif
+	#define OnGameModeInit BAN_OnGameModeInit
+	#if defined BAN_OnGameModeInit
+		forward BAN_OnGameModeInit();
+	#endif
+#endif
+
+#if defined FILTERSCRIPT
+	public OnFilterScriptExit()
+#else
+	public OnGameModeExit()
+#endif
+{
+	#if defined SQL_SERVER
+        mysql_close(db);
+	#else
+	    db_close(db);
 	#endif
 
-	return 1;
+	#if defined FILTERSCRIPT
+		#if defined BAN_OnFilterScriptExit
+			return BAN_OnFilterScriptExit();
+		#else
+		    return 1;
+		#endif
+	#else
+		#if defined BAN_OnGameModeExit
+			return BAN_OnGameModeExit();
+		#else
+		    return 1;
+		#endif
+	#endif
 }
+#if defined FILTERSCRIPT
+	#if defined _ALS_OnFilterScriptExit
+		#undef OnFilterScriptExit
+	#else
+		#define _ALS_OnFilterScriptExit
+	#endif
+	#define OnFilterScriptExit BAN_OnFilterScriptExit
+	#if defined BAN_OnFilterScriptExit
+		forward BAN_OnFilterScriptExit();
+	#endif
+#else
+	#if defined _ALS_OnGameModeExit
+		#undef OnGameModeExit
+	#else
+		#define _ALS_OnGameModeExit
+	#endif
+	#define OnGameModeExit BAN_OnGameModeExit
+	#if defined BAN_OnGameModeExit
+		forward BAN_OnGameModeExit();
+	#endif
+#endif
 
 public OnPlayerConnect(playerid)
 {
@@ -129,13 +209,14 @@ public OnPlayerConnect(playerid)
 	GetPlayerIp(playerid, ip, sizeof (ip));
 
 	new banid = GetBanId(name, ip);
-	if (banid >= 0)
+	if (banid != -1)
 	{
-	    #if defined OnBannedPlayerConnect
-            if (!bool:OnBannedPlayerConnect(playerid, banid))
-                return 1;
+		#if defined OnBannedPlayerConnect
+	  		if (bool:OnBannedPlayerConnect(playerid, banid))
+	   		{
+		    	return 1;
+			}
 		#endif
-
 		return Kick(playerid);
 	}
 
@@ -155,447 +236,467 @@ public OnPlayerConnect(playerid)
     forward BAN_OnPlayerConnect(playerid);
 #endif
 
-stock _Ban(playerid, const name[] = "", const ip[] = "", range = 0, expiredate = 0)
+#if defined OnBannedPlayerConnect
+	forward OnBannedPlayerConnect(playerid, banid);
+#endif
+
+/*
+native Ban(playerid, const name[] = "", const ip[] = "", bool:range = false, expire = 0);
+*/
+stock BAN_Ban(playerid, name[MAX_PLAYER_NAME] = "", ip[18] = "", bool:range = false, expire = 0)
 {
-	new _name[MAX_PLAYER_NAME];
-	new _ip[18];
 	if (IsPlayerConnected(playerid))
 	{
-	    GetPlayerName(playerid, _name, MAX_PLAYER_NAME);
-	    GetPlayerIp(playerid, _ip, sizeof (_ip));
+	    GetPlayerName(playerid, name, MAX_PLAYER_NAME);
+	    GetPlayerIp(playerid, ip, 18);
 	}
 	else
 	{
-	    strcat(_name, name);
-	    strcat(_ip, ip);
+	    if (!name[0] && !ip[0])
+	    {
+	        return 0;
+	    }
 	}
 
-	new query[512];
-	format(query, sizeof (query), "SELECT * FROM `Bans` WHERE `Name` = '%q' AND `Ip` = '%q'", _name, _ip);
-
-	#if !defined CONNECTION_TYPE_MYSQL
-	    new DBResult:result;
-	 	result = db_query(bandb, query);
-	 	if (db_num_rows(result))
-	    {
-			db_free_result(result);
-			return 0;
+	new string[256];
+	#if defined SQL_SERVER
+		mysql_format(db, string, sizeof(string), "SELECT 0 FROM `bans` WHERE `name` = '%s' OR `ip` = '%s' LIMIT 1", name, ip);
+		new Cache:result = mysql_query(db, string);
+		if (cache_num_rows() > 0)
+		{
+		    cache_delete(result);
+		    return 0;
 		}
-		db_free_result(result);
+		else
+		{
+		    mysql_format(db, string, sizeof(string), "INSERT INTO `bans`(`name`, `ip`, `longip`, `expire`) VALUES('%s', '%s', %i, %i)", name, ip, ((range) ? (BAN_IpToLong(ip)) : (0)), expire);
+		    mysql_tquery(db, string);
+		}
 	#else
-	    new Cache:result;
-	 	result = mysql_query(mysqlconn, query);
-	 	if (cache_get_row_count(mysqlconn))
-	    {
-			cache_delete(result, mysqlconn);
-			return 0;
+		format(string, sizeof(string), "SELECT 0 FROM `bans` WHERE `name` = '%s' OR `ip` = '%s' LIMIT 1", name, ip);
+		new DBResult:result = db_query(db, string);
+		if (db_num_rows(result) > 0)
+		{
+		    db_free_result(result);
+      		return 0;
 		}
-		cache_delete(result, mysqlconn);
+		else
+		{
+		    format(string, sizeof(string), "INSERT INTO `bans`(`name`, `ip`, `longip`, `expire`) VALUES('%s', '%s', %i, %i)", name, ip, ((range) ? (BAN_IpToLong(ip)) : (0)), expire);
+		    db_query(db, string);
+		}
 	#endif
 
-	format(query, sizeof (query), "INSERT INTO `Bans` (`Name`, `Ip`, `RangeBan`, `ExpireDate`) VALUES ('%q', '%q', %d, %d)", _name, _ip, bool:range, expiredate);
-
-	#if !defined CONNECTION_TYPE_MYSQL
-	    if (!db_query(bandb, query))
-	        return 0;
-	#else
-	    mysql_tquery(mysqlconn, query);
-	    if (mysql_errno(mysqlconn) != 0)
-	        return 0;
-	#endif
-
-	Kick(playerid);
-	return 1;
+	return Kick(playerid);
 }
 #if defined _ALS_Ban
 	#undef Ban
 #else
 	#define _ALS_Ban
 #endif
-#define Ban _Ban
+#define Ban BAN_Ban
 
-stock _BanEx(playerid, const reason[], const name[] = "", const ip[] = "", range = 0, expiredate = 0)
+/*
+native BanEx(playerid, const reason[], const name[] = "", const ip[] = "", bool:range = false, expire = 0);
+*/
+stock BAN_BanEx(playerid, const reason[], name[MAX_PLAYER_NAME] = "", ip[18] = "", bool:range = false, expire = 0)
 {
-	new _name[MAX_PLAYER_NAME];
-	new _ip[18];
 	if (IsPlayerConnected(playerid))
 	{
-	    GetPlayerName(playerid, _name, MAX_PLAYER_NAME);
-	    GetPlayerIp(playerid, _ip, sizeof (_ip));
+	    GetPlayerName(playerid, name, MAX_PLAYER_NAME);
+	    GetPlayerIp(playerid, ip, 18);
 	}
 	else
 	{
-	    strcat(_name, name);
-	    strcat(_ip, ip);
+	    if (!name[0] && !ip[0])
+	    {
+	        return 0;
+	    }
 	}
 
-	new query[512];
-	format(query, sizeof (query), "SELECT * FROM `Bans` WHERE `Name` = '%q' AND `Ip` = '%q'", _name, _ip);
-
-	#if !defined CONNECTION_TYPE_MYSQL
-	    new DBResult:result;
-	 	result = db_query(bandb, query);
-	 	if (db_num_rows(result))
-	    {
-			db_free_result(result);
-			return 0;
+	new string[256];
+	#if defined SQL_SERVER
+		mysql_format(db, string, sizeof(string), "SELECT 0 FROM `bans` WHERE `name` = '%s' OR `ip` = '%s' LIMIT 1", name, ip);
+		new Cache:result = mysql_query(db, string);
+		if (cache_num_rows() > 0)
+		{
+		    cache_delete(result);
+		    return (IsPlayerConnected(playerid)) ? (Kick(playerid)) : (1);
 		}
-		db_free_result(result);
-	#else
-	    new Cache:result;
-	 	result = mysql_query(mysqlconn, query);
-	 	if (cache_get_row_count(mysqlconn))
-	    {
-			cache_delete(result, mysqlconn);
-			return 0;
+		else
+		{
+		    cache_delete(result);
+		    mysql_format(db, string, sizeof(string), "INSERT INTO `bans`(`name`, `ip`, `longip`, `expire`) VALUES('%s', '%s', %i, %i)", name, ip, ((range) ? (BAN_IpToLong(ip)) : (0)), expire);
+		    mysql_tquery(db, string);
+
+		    mysql_format(db, string, sizeof(string), "SELECT `id` FROM `bans` WHERE `name` = '%s' AND `ip` = '%s' LIMIT 1", name, ip);
+		    result = mysql_query(db, string);
+		    new banid;
+		    cache_get_value_index_int(0, 0, banid);
+		    cache_delete(result);
+
+		    mysql_format(db, string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, 'reason', '%e')", banid, reason, reason);
+		    mysql_tquery(db, string);
 		}
-		cache_delete(result, mysqlconn);
-	#endif
-
-	format(query, sizeof (query), "INSERT INTO `Bans` (`Name`, `Ip`, `RangeBan`, `ExpireDate`) VALUES ('%q', '%q', %d, %d)", _name, _ip, bool:range, expiredate);
-
-	#if !defined CONNECTION_TYPE_MYSQL
-	    if (!db_query(bandb, query))
-	        return 0;
 	#else
-	    mysql_tquery(mysqlconn, query);
-	    if (mysql_errno(mysqlconn) != 0)
-	        return 0;
+		format(string, sizeof(string), "SELECT 0 FROM `bans` WHERE `name` = '%s' OR `ip` = '%s' LIMIT 1", name, ip);
+		new DBResult:result = db_query(db, string);
+		if (db_num_rows(result) > 0)
+		{
+		    db_free_result(result);
+      		return (IsPlayerConnected(playerid)) ? (Kick(playerid)) : (1);
+		}
+		else
+		{
+		    db_free_result(result);
+		    format(string, sizeof(string), "INSERT INTO `bans`(`name`, `ip`, `longip`, `expire`) VALUES('%s', '%s', %i, %i)", name, ip, ((range) ? (BAN_IpToLong(ip)) : (0)), expire);
+		    db_query(db, string);
+
+		    format(string, sizeof(string), "SELECT `id` FROM `bans` WHERE `name` = '%s' AND `ip` = '%s' LIMIT 1", name, ip);
+		    result = db_query(db, string);
+
+		    format(string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, 'reason', '%q')", db_get_field_int(result, 0), reason);
+		    db_query(db, string);
+
+		    db_free_result(result);
+		}
 	#endif
 
-	new banid;
-	#if !defined CONNECTION_TYPE_MYSQL
-	    format(query, sizeof (query), "SELECT * FROM `Bans` WHERE `Name` = '%q', `Ip` = '%q'", _name, _ip);
-	    result = db_query(bandb, query);
-	    banid = db_get_field_assoc_int(result, "BanId");
-	    db_free_result(result);
-	#else
-	    mysql_format(mysql_conn, query, sizeof (query), "SELECT * FROM `Bans` WHERE `Name` = '%q', `Ip` = '%q'", _name, _ip);
-	    result = mysql_query(mysqlconn, query);
-	    banid = cache_get_field_content_int(0, "BanId", mysqlconn);
-	    cache_delete(result, mysqlconn);
-	#endif
-
-	format(query, sizeof (query), "INSERT INTO `BansData` (`BanId`, `Field`, `Value`) VALUES (%d, 'Reason', '%q')", banid, reason);
-
-	#if !defined CONNECTION_TYPE_MYSQL
-	    if (!db_query(bandb, query))
-	        return 0;
-	#else
-	    mysql_tquery(mysqlconn, query);
-	    if (mysql_errno(mysqlconn) != 0)
-	        return 0;
-	#endif
-
-	Kick(playerid);
-	return 1;
+	return Kick(playerid);
 }
 #if defined _ALS_BanEx
 	#undef BanEx
 #else
 	#define _ALS_BanEx
 #endif
-#define BanEx _BanEx
+#define BanEx BAN_BanEx
 
-stock GetBanId(const name[] = "", const ip[] = "")
+/*
+native GetBanId(const name[], const ip[]);
+*/
+stock GetBanId(const name[], const ip[])
 {
-	new query[512];
-	format(query, sizeof (query), "SELECT `BanId`, `ExpireDate` FROM `Bans` WHERE `Name` = '%q' OR `Ip` = '%q'", name, ip);
+	if (!name[0] && !ip[0])
+ 	{
+		return 0;
+	}
+	    
+    new string[256];
+	#if defined SQL_SERVER
+		mysql_format(db, string, sizeof(string), "SELECT `id`, `expire` FROM `bans` WHERE `name` = '%s' OR `ip` = '%s' LIMIT 1", name, ip);
+		new Cache:result = mysql_query(db, string);
+		if (cache_num_rows() > 0)
+		{
+		    new banid;
+		    cache_get_value_index_int(0, 0, banid);
+		    new expire;
+		    cache_get_value_index_int(0, 1, expire);
+			cache_delete(result);
 
-	#if !defined CONNECTION_TYPE_MYSQL
-	    new DBResult:result;
-	 	result = db_query(bandb, query);
-	    if (db_num_rows(result))
-	    {
-	    	new ret = db_get_field_int(result, 0);
-	    	new expire = db_get_field_int(result, 1);
-	        db_free_result(result);
+			if (expire != 0 && (gettime() - expire) >= 0)
+			{
+			   	mysql_format(db, string, sizeof(string), "DELETE FROM `bans` WHERE `id` = %i", banid);
+				mysql_tquery(db, string);
+			   	mysql_format(db, string, sizeof(string), "DELETE FROM `bans_data` WHERE `bans_id` = %i", banid);
+				mysql_tquery(db, string);
+				return -1;
+			}
+			return banid;
+		}
+		cache_delete(result);
+	#else
+		format(string, sizeof(string), "SELECT `id`, `expire` FROM `bans` WHERE `name` = '%s' OR `ip` = '%s' LIMIT 1", name, ip);
+		new DBResult:result = db_query(db, string);
+		if (db_num_rows(result) > 0)
+		{
+		    new banid = db_get_field_int(result, 0);
+		    new expire = db_get_field_int(result, 1);
+            db_free_result(result);
 
-	        if (expire >= 1 && expire < gettime())
-	        {
-	            format(query, sizeof (query), "DELETE FROM `Bans` WHERE `BanId` = %d", ret);
-	    		db_query(bandb, query);
-	            format(query, sizeof (query), "DELETE FROM `BansData` WHERE `BanId` = %d", ret);
-	    		db_query(bandb, query);
-	    		return -1;
-	        }
-			return ret;
+			if (expire != 0 && (gettime() - expire) >= 0)
+			{
+			   	format(string, sizeof(string), "DELETE FROM `bans` WHERE `id` = %i", banid);
+				db_query(db, string);
+			   	format(string, sizeof(string), "DELETE FROM `bans_data` WHERE `bans_id` = %i", banid);
+				db_query(db, string);
+				return -1;
+			}
+			return banid;
+		}
+        db_free_result(result);
+	#endif
+
+	if (!ip[0])
+	{
+	    return -1;
+	}
+
+	#if defined SQL_SERVER
+	    mysql_format(db, string, sizeof(string), "SELECT `id`, `expire` FROM `bans` WHERE (`longip` != 0) AND ((`longip` & %i) = %i) LIMIT 1", MASK, (BAN_IpToLong(ip) & MASK));
+		result = mysql_query(db, string);
+		if (cache_num_rows() > 0)
+		{
+  			new banid;
+			cache_get_value_index_int(i, 0, banid);
+		    new expire;
+			cache_get_value_index_int(i, 1, expire);
+            cache_delete(result);
+
+		    if (expire != 0 && (gettime() - expire) >= 0)
+			{
+				mysql_format(db, string, sizeof(string), "DELETE FROM `bans` WHERE `id` = %i", banid);
+				mysql_tquery(db, string);
+   				mysql_format(db, string, sizeof(string), "DELETE FROM `bans_data` WHERE `bans_id` = %i", banid);
+				mysql_tquery(db, string);
+				return -1;
+			}
+            return banid;
+		}
+		cache_delete(result);
+	#else
+	    format(string, sizeof(string), "SELECT `id`, `expire` FROM `bans` WHERE (`longip` != 0) AND ((`longip` & %i) = %i) LIMIT 1", MASK, (BAN_IpToLong(ip) & MASK));
+	    result = db_query(db, string);
+		if (db_num_rows(result) > 0)
+		{
+			new banid = db_get_field_int(result, 0);
+		    new expire = db_get_field_int(result, 1);
+			db_free_result(result);
+
+		    if (expire != 0 && (gettime() - expire) >= 0)
+			{
+				format(string, sizeof(string), "DELETE FROM `bans` WHERE `id` = %i", banid);
+				db_query(db, string);
+   				format(string, sizeof(string), "DELETE FROM `bans_data` WHERE `bans_id` = %i", banid);
+				db_query(db, string);
+				return -1;
+			}
+      		return banid;
 		}
 		db_free_result(result);
-	#else
-	    new Cache:result;
-	 	result = mysql_query(mysqlconn, query);
-	 	if (cache_get_row_count(mysqlconn))
-	    {
-	    	new ret = cache_get_row_int(0, 0, mysqlconn);
-	    	new expire = cache_get_row_int(0, 1, mysqlconn);
-	        cache_delete(result, mysqlconn);
-
-	        if (expire >= 1 && expire < gettime())
-	        {
-	            format(query, sizeof (query), "DELETE FROM `Bans` WHERE `BanId` = %d", ret);
-	    		mysql_tquery(mysqlconn, query);
-	            format(query, sizeof (query), "DELETE FROM `BansData` WHERE `BanId` = %d", ret);
-	    		mysql_tquery(mysqlconn, query);
-	    		return -1;
-	        }
-			return ret;
-		}
-		cache_delete(result, mysqlconn);
 	#endif
-
-	#if !defined CONNECTION_TYPE_MYSQL
-	 	result = db_query(bandb, "SELECT `BanId`, `Ip`, `ExpireDate` FROM `Bans` WHERE `RangeBan` = 1");
-		if (db_num_rows(result) <= 0)
-		{
-	 		db_free_result(result);
-			return -1;
-		}
-	#else
-	 	result = mysql_query(mysqlconn, "SELECT `BanId`, `Ip`, `ExpireDate` FROM `Bans` WHERE `RangeBan` = 1");
-	 	if (cache_get_row_count(mysqlconn) <= 0)
-		{
-	 		cache_delete(result, mysqlconn);
-			return -1;
-		}
-	#endif
-
-	new row_ip[18];
-
-	#if !defined CONNECTION_TYPE_MYSQL
-		do
-		{
-			db_get_field(result, 1, row_ip, sizeof (row_ip));
-			if (BAN_ipmatch(row_ip, ip))
-		    {
-		    	new ret = db_get_field_int(result, 0);
-		    	new expire = db_get_field_int(result, 2);
-		        db_free_result(result);
-
-		        if (expire >= 1 && expire < gettime())
-		        {
-		            format(query, sizeof (query), "DELETE FROM `Bans` WHERE `BanId` = %d", ret);
-		    		db_free_result(db_query(bandb, query));
-		            format(query, sizeof (query), "DELETE FROM `BansData` WHERE `BanId` = %d", ret);
-		    		db_free_result(db_query(bandb, query));
-		    		return -1;
-		        }
-				return ret;
-		    }
-		}
-		while (db_next_row(result));
-
-		db_free_result(result);
-	#else
-		for (new i, j = cache_get_row_count(mysqlconn); i < j; i++)
-		{
-			cache_get_row(i, 1, row_ip, mysqlconn);
-			if (BAN_ipmatch(row_ip, ip))
-		    {
-		    	new ret = cache_get_row_int(0, 0, mysqlconn);
-		    	new expire = cache_get_row_int(0, 2, mysqlconn);
-	        	cache_delete(result, mysqlconn);
-
-		        if (expire >= 1 && expire < gettime())
-		        {
-		            format(query, sizeof (query), "DELETE FROM `Bans` WHERE `BanId` = %d", ret);
-		    		mysql_tquery(mysqlconn, query);
-		            format(query, sizeof (query), "DELETE FROM `BansData` WHERE `BanId` = %d", ret);
-		    		mysql_tquery(mysqlconn, query);
-		    		return -1;
-		        }
-				return ret;
-		    }
-		}
-
-		cache_delete(result, mysqlconn);
-	#endif
-
 	return -1;
 }
 
+/*
+native UnBan(banid);
+*/
 stock UnBan(banid)
 {
-	new query[256];
-    format(query, sizeof (query), "DELETE FROM `Bans` WHERE `BanId` = %d", banid);
-
-	#if !defined CONNECTION_TYPE_MYSQL
-	    if (!db_query(bandb, query))
-	        return 0;
+    new string[128];
+	#if defined SQL_SERVER
+	    mysql_format(db, string, sizeof(string), "DELETE FROM `bans` WHERE `id` = %i", banid);
+		mysql_tquery(db, string);
+		mysql_format(db, string, sizeof(string), "DELETE FROM `bans_data` WHERE `bans_id` = %i", banid);
+		mysql_tquery(db, string);
 	#else
-	    mysql_tquery(mysqlconn, query);
-	    if (mysql_errno(mysqlconn) != 0)
-	        return 0;
+	    format(string, sizeof(string), "DELETE FROM `bans` WHERE `id` = %i", banid);
+		db_query(db, string);
+ 		format(string, sizeof(string), "DELETE FROM `bans_data` WHERE `bans_id` = %i", banid);
+		db_query(db, string);
 	#endif
-
-	format(query, sizeof (query), "DELETE FROM `BansData` WHERE `BanId` = %d", banid);
-
-	#if !defined CONNECTION_TYPE_MYSQL
-	    if (!db_query(bandb, query))
-	        return 0;
-	#else
-	    mysql_tquery(mysqlconn, query);
-	    if (mysql_errno(mysqlconn) != 0)
-	        return 0;
-	#endif
-
 	return 1;
 }
 
-#if !defined STRING
-	#define STRING 	(0)
-	#define TEXT 	(STRING)
-	#define REAL 	(STRING)
-#endif
-
-#if !defined INTEGER
-	#define INTEGER (1)
-	#define NUMBER 	(INTEGER)
-#endif
-
-#if !defined FLOAT
-	#define FLOAT 	(2)
-#endif
-
-stock static __getstringarg(dest[], arg, len = sizeof (dest))
+/*
+native SetBanString(banid, const field[], const value[]);
+*/
+stock SetBanString(banid, const field[], const value[])
 {
-    #emit LOAD.S.pri arg
-    #emit SMUL.C     4
-    #emit LOAD.S.alt 0
-    #emit ADD
-    #emit ADD.C      12
-    #emit LOAD.I
-    #emit PUSH.S     len
-    #emit PUSH.pri
-    #emit LOAD.S.alt dest
-    #emit CONST.pri  0
-    #emit STOR.I
-    #emit PUSH.alt
-    #emit PUSH.C     12
-    #emit SYSREQ.C   strcat
-    #emit STACK      16
-}
-
-stock SetBanData(banid, const field[], type, {Float, _}:...)
-{
-	new query[256];
-    format(query, sizeof (query), "SELECT * FROM `BansData` WHERE `Field` = '%q' AND `BanId` = %d", field, banid);
-
-	new value[512];
-	switch (type)
-	{
-	    case STRING:
-	        __getstringarg(value, 3);
-
-		case INTEGER:
-		    valstr(value, getarg(3));
-
-		case FLOAT:
-			format(value, sizeof (value), "%f", Float:getarg(3));
-	}
-
-	#if !defined CONNECTION_TYPE_MYSQL
-	    new DBResult:result;
-	 	result = db_query(bandb, query);
-	    if (db_num_rows(result))
-	    {
-	        format(query, sizeof (query), "UPDATE `BansData` SET `Value` = '%q' WHERE `Field` = '%q' AND `BanId` = %d", value, field, banid);
-			db_query(bandb, query);
-        }
-        else
-        {
-        	format(query, sizeof (query), "INSERT INTO `BansData` (`BanId`, `Field`, `Value`) VALUES (%d, '%q', '%q')", banid, field, value);
-			db_query(bandb, query);
-        }
+	new string[256];
+	#if defined SQL_SERVER
+		mysql_format(db, string, sizeof(string), "SELECT 0 FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
+		new Cache:result = mysql_query(db, string);
+		if (cache_num_rows() > 0)
+		{
+		    mysql_format(db, string, sizeof(string), "UPDATE `bans_data` SET `%e` = '%e' WHERE `bans_id` = %i", field, value, banid);
+			mysql_tquery(db, string);
+		}
+		else
+		{
+		    mysql_format(db, string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, '%e', '%e')", banid, field, value);
+			mysql_tquery(db, string);
+		}
+		cache_delete(result);
+	#else
+    	format(string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
+		new DBResult:result = db_query(db, string);
+		if (db_num_rows(result) > 0)
+		{
+		    format(string, sizeof(string), "UPDATE `bans_data` SET `%q` = '%q' WHERE `bans_id` = %i", field, value, banid);
+			db_query(db, string);
+		}
+		else
+		{
+		    format(string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, '%q', '%q')", banid, field, value);
+			db_query(db, string);
+		}
 		db_free_result(result);
-	#else
-	    new Cache:result;
-	 	result = mysql_query(mysqlconn, query);
-	 	if (cache_get_row_count(mysqlconn))
-	    {
-	        format(query, sizeof (query), "UPDATE `BansData` SET `Value` = '%q' WHERE `Field` = '%q' AND `BanId` = %d", value, field, banid);
-			mysql_tquery(mysqlconn, query);
-        }
-        else
-        {
-        	format(query, sizeof (query), "INSERT INTO `BansData` (`BanId`, `Field`, `Value`) VALUES (%d, '%q', '%q')", banid, field, value);
-			mysql_tquery(mysqlconn, query);
-        }
-		cache_delete(result, mysqlconn);
 	#endif
-
 	return 1;
 }
 
-stock static __setstringarg(arg, const value[], len = sizeof (value))
+/*
+native SetBanInt(banid, const field[], value);
+*/
+stock SetBanInt(banid, const field[], value)
 {
-	new address;
-
-    #emit LOAD.S.pri arg
-    #emit SMUL.C     4
-	#emit LOAD.S.alt 0
-    #emit ADD
-    #emit ADD.C      12
-    #emit LOAD.I
-	#emit STOR.S.PRI address
-	#emit PUSH.S     len
-	#emit PUSH.S     value
-	#emit CONST.pri  0
-	#emit SREF.S.pri address
-	#emit PUSH.S     address
-	#emit PUSH.C     12
-	#emit SYSREQ.C   strcat
-	#emit STACK      16
+	new string[256];
+	#if defined SQL_SERVER
+		mysql_format(db, string, sizeof(string), "SELECT 0 FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
+		new Cache:result = mysql_query(db, string);
+		if (cache_num_rows() > 0)
+		{
+		    mysql_format(db, string, sizeof(string), "UPDATE `bans_data` SET `%e` = %i WHERE `bans_id` = %i", field, value, banid);
+			mysql_tquery(db, string);
+		}
+		else
+		{
+		    mysql_format(db, string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, '%e', %i)", banid, field, value);
+			mysql_tquery(db, string);
+		}
+		cache_delete(result);
+	#else
+    	format(string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
+		new DBResult:result = db_query(db, string);
+		if (db_num_rows(result) > 0)
+		{
+		    format(string, sizeof(string), "UPDATE `bans_data` SET `%q` = %i WHERE `bans_id` = %i", field, value, banid);
+			db_query(db, string);
+		}
+		else
+		{
+		    format(string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, '%q', %i)", banid, field, value);
+			db_query(db, string);
+		}
+	 	db_free_result(result);
+	#endif
+	return 1;
 }
 
-stock GetBanData(banid, const field[], type, {Float, _}:...)
+/*
+native SetBanFloat(banid, const field[], Float:value);
+*/
+stock SetBanFloat(banid, const field[], Float:value)
 {
-	new query[256];
-    format(query, sizeof (query), "SELECT `Value` FROM `BansData` WHERE `Field` = '%q' AND `BanId` = %d", field, banid);
+	new string[256];
+	#if defined SQL_SERVER
+		mysql_format(db, string, sizeof(string), "SELECT 0 FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
+		new Cache:result = mysql_query(db, string);
+		if (cache_num_rows() > 0)
+		{
+		    mysql_format(db, string, sizeof(string), "UPDATE `bans_data` SET `%e` = %f WHERE `bans_id` = %i", field, value, banid);
+			mysql_tquery(db, string);
+		}
+		else
+		{
+		    mysql_format(db, string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, '%e', %f)", banid, field, value);
+			mysql_tquery(db, string);
+		}
+		cache_delete(result);
+	#else
+    	format(string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
+		new DBResult:result = db_query(db, string);
+		if (db_num_rows(result) > 0)
+		{
+		    format(string, sizeof(string), "UPDATE `bans_data` SET `%q` = %f WHERE `bans_id` = %i", field, value, banid);
+			db_query(db, string);
+		}
+		else
+		{
+		    format(string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, '%q', %f)", banid, field, value);
+			db_query(db, string);
+		}
+	 	db_free_result(result);
+	#endif
+	return 1;
+}
 
-	new value[512];
-
-	#if !defined CONNECTION_TYPE_MYSQL
-	    new DBResult:result;
-	 	result = db_query(bandb, query);
-	    if (db_num_rows(result))
-	    {
-			db_get_field(result, 0, value, sizeof (value));
-
-	        switch (type)
-			{
-			    case STRING:
-					__setstringarg(3, value);
-
-			    case INTEGER, FLOAT:
-			        setarg(3, 0, strval(value));
-			}
-	    }
-
+/*
+native GetBanString(banid, const field[], dest[], maxlength = sizeof(dest));
+*/
+stock GetBanString(banid, const field[], dest[], maxlength = sizeof(dest))
+{
+	new string[256];
+	#if defined SQL_SERVER
+		mysql_format(db, string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
+		new Cache:result = mysql_query(db, string);
+		if (cache_num_rows() > 0)
+		{
+		    cache_get_value_index(0, 0, dest, maxlength);
+			cache_delete(result);
+		    return 1;
+		}
+		cache_delete(result);
+	#else
+    	format(string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
+		new DBResult:result = db_query(db, string);
+		if (db_num_rows(result) > 0)
+		{
+		    db_get_field(result, 0, dest, maxlength);
+		    db_free_result(result);
+		    return 1;
+		}
 		db_free_result(result);
-	#else
-	    new Cache:result;
-	 	result = mysql_query(mysqlconn, query);
-	 	if (cache_get_row_count(mysqlconn))
-	    {
-			cache_get_row(0, 0, value, mysqlconn);
-
-	        switch (type)
-			{
-			    case STRING:
-					__setstringarg(3, value);
-
-			    case INTEGER, FLOAT:
-			        setarg(3, 0, strval(value));
-			}
-	    }
-
-		cache_delete(result, mysqlconn);
 	#endif
-
-	return 1;
+	return 0;
 }
 
-#if defined OnBannedPlayerConnect
-	forward OnBannedPlayerConnect(playerid, banid);
-#endif
+/*
+native GetBanInt(banid, const field[]);
+*/
+stock GetBanInt(banid, const field[])
+{
+	new string[256];
+	#if defined SQL_SERVER
+		mysql_format(db, string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
+		new Cache:result = mysql_query(db, string);
+		if (cache_num_rows() > 0)
+		{
+		    new ret = cache_get_value_index_int(0, 0, ret);
+		    cache_delete(result);
+		    return ret;
+		}
+		cache_delete(result);
+	#else
+    	format(string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
+		new DBResult:result = db_query(db, string);
+		if (db_num_rows(result) > 0)
+		{
+		    new ret = db_get_field_int(result, 0);
+		    db_free_result(result);
+		    return ret;
+		}
+		db_free_result(result);
+	#endif
+	return 0;
+}
+
+/*
+native Float:GetBanFloat(banid, const field[]);
+*/
+stock Float:GetBanFloat(banid, const field[])
+{
+	new string[256];
+	#if defined SQL_SERVER
+		mysql_format(db, string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
+		new Cache:result = mysql_query(db, string);
+		if (cache_num_rows() > 0)
+		{
+		    new ret = cache_get_value_index_float(0, 0, ret);
+		    cache_delete(result);
+		    return ret;
+		}
+		cache_delete(result);
+	#else
+    	format(string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
+		new DBResult:result = db_query(db, string);
+		if (db_num_rows(result) > 0)
+		{
+		    new ret = db_get_field_float(result, 0);
+		    db_free_result(result);
+		    return ret;
+		}
+		db_free_result(result);
+	#endif
+	return 0;
+}
