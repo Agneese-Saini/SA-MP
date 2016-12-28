@@ -5,7 +5,7 @@
 
 /*
  * gmenu.inc
- * Version: 2.0.1 (last updated on 21 August, 2016)
+ * Version: 2.1.0 (last updated on 28 Dec, 2016)
  * By Gammix
  *
  * Functions:
@@ -31,6 +31,9 @@
 #if !defined MENU_SOUND_SELECT
 	#define MENU_SOUND_SELECT (1083)
 #endif
+
+#define MAX_MENU_ITEMS (50)
+#define MAX_MENU_ITEM_SIZE (64)
 
 #define Menu_CountPages(%0,%1) \
 	(((%0) - 1) / (%1) + 1)
@@ -62,6 +65,7 @@ enum E_PLAYER_MENU
 	E_PLAYER_MENU_TICKCOUNT
 };
 static p_Menu[MAX_PLAYERS][E_PLAYER_MENU];
+static p_MenuItems[MAX_PLAYERS][MAX_MENU_ITEMS][MAX_MENU_ITEM_SIZE];
 static PlayerText:p_MenuTextDraw[MAX_PLAYERS][15];
 
 static PlayerText:Menu_PlayerTextDrawCreate(playerid, Float:posX, Float:posY, string[], bgcolor, font, Float:lettersizeX, Float:lettersizeY, textcolor, allign = 0, outline = 1, proportional = 1, shadow = 1, usebox = 1, boxcolor = 0, Float:textsizeX = -1.0, Float:textsizeY = -1.0)
@@ -90,25 +94,17 @@ static PlayerText:Menu_PlayerTextDrawCreate(playerid, Float:posX, Float:posY, st
 
 stock ShowPlayerMenu(playerid, menuid, caption[], info[], type[] = "Interaction Menu", selectioncolor = 0x3F7FBFFF, textcolor = 0xFFFFFFFF, caption_boxcolor = 0xC51A71FF, listitem_boxcolor = 0x000000FF)
 {
-    static varname[45];
-
 	if (p_Menu[playerid][E_PLAYER_MENU_ID] >= 0)
 	{
 	    for(new i, j = (4 + ((p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS] >= 10) ? (10) : (p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS]))); i < j; i++)
 	    {
 	        PlayerTextDrawDestroy(playerid, p_MenuTextDraw[playerid][i]);
 	    }
-
-	    for (new i, j = p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS]; i < j; i++)
-	    {
-	        format(varname, sizeof (varname), "MenuListitem:%i", i);
-			DeletePVar(playerid, varname);
-	    }
 	}
 
 	p_Menu[playerid][E_PLAYER_MENU_ID] = menuid;
-	p_Menu[playerid][E_PLAYER_MENU_PAGE] = 1;
-	p_Menu[playerid][E_PLAYER_MENU_LISTITEM] = 1;
+	p_Menu[playerid][E_PLAYER_MENU_PAGE] = 0;
+	p_Menu[playerid][E_PLAYER_MENU_LISTITEM] = 0;
 	p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS] = 0;
 	p_Menu[playerid][E_PLAYER_MENU_SELECTION_COLOR] = selectioncolor;
 	p_Menu[playerid][E_PLAYER_MENU_ITEMBOX_COLOR] = listitem_boxcolor;
@@ -139,9 +135,7 @@ stock ShowPlayerMenu(playerid, menuid, caption[], info[], type[] = "Interaction 
 	    if (!string[0])
 	        continue;
 
-		format(varname, sizeof (varname), "MenuListitem:%i", p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS]);
-		SetPVarString(playerid, varname, string);
-
+		format(p_MenuItems[playerid][p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS]], MAX_MENU_ITEM_SIZE, string);
 		p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS]++;
 	}
 
@@ -151,7 +145,7 @@ stock ShowPlayerMenu(playerid, menuid, caption[], info[], type[] = "Interaction 
 	p_MenuTextDraw[playerid][1] = Menu_PlayerTextDrawCreate(playerid, 83.000000, 164.000000, caption, 0, 1, 0.470000, 1.900000, textcolor, 2, 1, 1);
     PlayerTextDrawShow(playerid, p_MenuTextDraw[playerid][1]);
 
-	p_MenuTextDraw[playerid][2] = Menu_PlayerTextDrawCreate(playerid, 20.000000, 191.000000, type, 255, 1, 0.139999, 0.799999, textcolor, 1, 0, 1, 1, 1, Menu_SetOpacity(listitem_boxcolor, 200), 150.000000, 0.000000);
+	p_MenuTextDraw[playerid][2] = Menu_PlayerTextDrawCreate(playerid, 20.000000, 191.000000, type, 255, 1, 0.139999, 0.799999, textcolor, 1, 0, 1, 1, 1, Menu_SetOpacity(listitem_boxcolor, 150), 150.000000, 0.000000);
 	PlayerTextDrawShow(playerid, p_MenuTextDraw[playerid][2]);
 
 	format(string, sizeof (string), "1/%i", p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS]);
@@ -163,20 +157,16 @@ stock ShowPlayerMenu(playerid, menuid, caption[], info[], type[] = "Interaction 
 
 	for(new i, j = ((p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS] > 10) ? (10) : (p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS])); i < j; i++)
 	{
-		format(varname, sizeof (varname), "MenuListitem:%i", i);
-		GetPVarString(playerid, varname, string, sizeof (string));
-
 		if(Menu_IsEven(i))
-			p_MenuTextDraw[playerid][(4 + i)] = Menu_PlayerTextDrawCreate(playerid, MENU_BASE_X, MENU_BASE_Y + (i * 10.0), string, 255, 1, 0.139999, 0.799999, textcolor, 1, 0, 1, 1, 1, Menu_SetOpacity(listitem_boxcolor, 150), 150.000000, 0.000000);
+			p_MenuTextDraw[playerid][(4 + i)] = Menu_PlayerTextDrawCreate(playerid, MENU_BASE_X, MENU_BASE_Y + (i * 10.0), p_MenuItems[playerid][i], 255, 1, 0.139999, 0.799999, textcolor, 1, 0, 1, 1, 1, Menu_SetOpacity(listitem_boxcolor, 120), 150.000000, 0.000000);
 		else
-			p_MenuTextDraw[playerid][(4 + i)] = Menu_PlayerTextDrawCreate(playerid, MENU_BASE_X, MENU_BASE_Y + (i * 10), string, 255, 1, 0.139999, 0.799999, textcolor, 1, 0, 1, 1, 1, Menu_SetOpacity(listitem_boxcolor, 100), 150.000000, 0.000000);
+			p_MenuTextDraw[playerid][(4 + i)] = Menu_PlayerTextDrawCreate(playerid, MENU_BASE_X, MENU_BASE_Y + (i * 10), p_MenuItems[playerid][i], 255, 1, 0.139999, 0.799999, textcolor, 1, 0, 1, 1, 1, Menu_SetOpacity(listitem_boxcolor, 100), 150.000000, 0.000000);
 
 		PlayerTextDrawShow(playerid, p_MenuTextDraw[playerid][(4 + i)]);
 	}
 
-	PlayerTextDrawBoxColor(playerid, p_MenuTextDraw[playerid][4], Menu_SetOpacity(selectioncolor, 200));
+	PlayerTextDrawBoxColor(playerid, p_MenuTextDraw[playerid][4], Menu_SetOpacity(selectioncolor, 150));
     PlayerTextDrawShow(playerid, p_MenuTextDraw[playerid][4]);
-
 	return 1;
 }
 
@@ -214,105 +204,106 @@ public OnPlayerUpdate(playerid)
 		if (updown == KEY_DOWN && (GetTickCount() - p_Menu[playerid][E_PLAYER_MENU_TICKCOUNT]) >= 200)
 		{
     		p_Menu[playerid][E_PLAYER_MENU_TICKCOUNT] = GetTickCount();
-
-    		if ((p_Menu[playerid][E_PLAYER_MENU_LISTITEM] + 1) > ((p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS] > 10) ? (10) : (p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS])))
-    		{
-    		    if ((p_Menu[playerid][E_PLAYER_MENU_PAGE] + 1) > Menu_CountPages(p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS], 10))
-    		    {
-    		        PlayerPlaySound(playerid, MENU_SOUND_UP, 0.0, 0.0, 0.0);
-
-    		        #if defined Menu_OnPlayerUpdate
-				       	return Menu_OnPlayerUpdate(playerid);
-					#else
-					   	return 1;
-					#endif
-    		    }
-
-    		    p_Menu[playerid][E_PLAYER_MENU_LISTITEM] = 1;
-    		    p_Menu[playerid][E_PLAYER_MENU_PAGE]++;
-    		}
-    		else
-    		{
-    		    p_Menu[playerid][E_PLAYER_MENU_LISTITEM]++;
-    		}
-
-			format(string, sizeof (string), "%i/%i", p_Menu[playerid][E_PLAYER_MENU_LISTITEM], p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS]);
+			PlayerPlaySound(playerid, MENU_SOUND_DOWN, 0.0, 0.0, 0.0);
+			
+			if (((p_Menu[playerid][E_PLAYER_MENU_LISTITEM] + 1) + (p_Menu[playerid][E_PLAYER_MENU_PAGE] * 10)) == p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS])
+			{
+				p_Menu[playerid][E_PLAYER_MENU_LISTITEM] = 0;
+				p_Menu[playerid][E_PLAYER_MENU_PAGE] = 0;
+			}
+			else if ((p_Menu[playerid][E_PLAYER_MENU_LISTITEM] + 1) == ((p_Menu[playerid][E_PLAYER_MENU_PAGE] + 1) * 10))
+			{
+				p_Menu[playerid][E_PLAYER_MENU_LISTITEM] = 0;
+				p_Menu[playerid][E_PLAYER_MENU_PAGE]++;
+			}
+			else
+			{
+				p_Menu[playerid][E_PLAYER_MENU_LISTITEM]++;
+			}
+			
+			format(string, sizeof (string), "%i/%i", ((p_Menu[playerid][E_PLAYER_MENU_LISTITEM] + (p_Menu[playerid][E_PLAYER_MENU_PAGE] * 10)) + 1) , p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS]);
 			PlayerTextDrawSetString(playerid, p_MenuTextDraw[playerid][3], string);
 
 			for (new i; i < 10; i++)
 			{
-			    if ((i + ((p_Menu[playerid][E_PLAYER_MENU_PAGE] - 1) * 10)) >= p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS])
-			        break;
-
-			    if (i == (p_Menu[playerid][E_PLAYER_MENU_LISTITEM] - 1))
+			    if ((i + (p_Menu[playerid][E_PLAYER_MENU_PAGE] * 10)) >= p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS])
 			    {
-			        PlayerTextDrawBoxColor(playerid, p_MenuTextDraw[playerid][(4 + i)], Menu_SetOpacity(p_Menu[playerid][E_PLAYER_MENU_SELECTION_COLOR], 200));
+                	PlayerTextDrawHide(playerid, p_MenuTextDraw[playerid][(4 + i)]);
+			        continue;
+				}
+				
+			    if (i == p_Menu[playerid][E_PLAYER_MENU_LISTITEM])
+			    {
+			        PlayerTextDrawBoxColor(playerid, p_MenuTextDraw[playerid][(4 + i)], Menu_SetOpacity(p_Menu[playerid][E_PLAYER_MENU_SELECTION_COLOR], 150));
 			    }
 			    else
 			    {
 				    if (Menu_IsEven(i))
-				    	PlayerTextDrawBoxColor(playerid, p_MenuTextDraw[playerid][(4 + i)], Menu_SetOpacity(p_Menu[playerid][E_PLAYER_MENU_ITEMBOX_COLOR], 150));
+				    	PlayerTextDrawBoxColor(playerid, p_MenuTextDraw[playerid][(4 + i)], Menu_SetOpacity(p_Menu[playerid][E_PLAYER_MENU_ITEMBOX_COLOR], 120));
 				    else
 				    	PlayerTextDrawBoxColor(playerid, p_MenuTextDraw[playerid][(4 + i)], Menu_SetOpacity(p_Menu[playerid][E_PLAYER_MENU_ITEMBOX_COLOR], 100));
 				}
 
+                PlayerTextDrawSetString(playerid, p_MenuTextDraw[playerid][(4 + i)], p_MenuItems[playerid][i + (p_Menu[playerid][E_PLAYER_MENU_PAGE] * 10)]);
                 PlayerTextDrawShow(playerid, p_MenuTextDraw[playerid][(4 + i)]);
 			}
 
 			#if defined OnMenuResponse
-    			OnMenuResponse(playerid, p_Menu[playerid][E_PLAYER_MENU_ID], MENU_RESPONSE_DOWN, (p_Menu[playerid][E_PLAYER_MENU_LISTITEM] * p_Menu[playerid][E_PLAYER_MENU_PAGE]));
+    			OnMenuResponse(playerid, p_Menu[playerid][E_PLAYER_MENU_ID], MENU_RESPONSE_DOWN, (p_Menu[playerid][E_PLAYER_MENU_LISTITEM] + (p_Menu[playerid][E_PLAYER_MENU_PAGE] * 10)));
 			#endif
 		}
 		else if (updown == KEY_UP && (GetTickCount() - p_Menu[playerid][E_PLAYER_MENU_TICKCOUNT]) >= 200)
 		{
     		p_Menu[playerid][E_PLAYER_MENU_TICKCOUNT] = GetTickCount();
+			PlayerPlaySound(playerid, MENU_SOUND_UP, 0.0, 0.0, 0.0);
 
-    		if ((p_Menu[playerid][E_PLAYER_MENU_LISTITEM] - 1) == 0)
-    		{
-    		    if ((p_Menu[playerid][E_PLAYER_MENU_PAGE] - 1) == 0)
-    		    {
-    		        PlayerPlaySound(playerid, MENU_SOUND_UP, 0.0, 0.0, 0.0);
+    		if ((p_Menu[playerid][E_PLAYER_MENU_LISTITEM] - 1) == -1)
+			{
+			    if (p_Menu[playerid][E_PLAYER_MENU_PAGE] == 0)
+			    {
+					p_Menu[playerid][E_PLAYER_MENU_LISTITEM] = ((10 - ((Menu_CountPages(p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS], 10) * 10) - p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS])) - 1);
+					p_Menu[playerid][E_PLAYER_MENU_PAGE] = (Menu_CountPages(p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS], 10) - 1);
+				}
+				else
+				{
+					p_Menu[playerid][E_PLAYER_MENU_LISTITEM] = (10 - 1);
+					p_Menu[playerid][E_PLAYER_MENU_PAGE]--;
+				}
+			}
+			else
+			{
+				p_Menu[playerid][E_PLAYER_MENU_LISTITEM]--;
+			}
 
-    		        #if defined Menu_OnPlayerUpdate
-				       	return Menu_OnPlayerUpdate(playerid);
-					#else
-					   	return 1;
-					#endif
-    		    }
-
-    		    p_Menu[playerid][E_PLAYER_MENU_LISTITEM] = 1;
-    		    p_Menu[playerid][E_PLAYER_MENU_PAGE]--;
-    		}
-    		else
-    		{
-    		    p_Menu[playerid][E_PLAYER_MENU_LISTITEM]--;
-    		}
-
-			format(string, sizeof (string), "%i/%i", p_Menu[playerid][E_PLAYER_MENU_LISTITEM], p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS]);
+			format(string, sizeof (string), "%i/%i", ((p_Menu[playerid][E_PLAYER_MENU_LISTITEM] + (p_Menu[playerid][E_PLAYER_MENU_PAGE] * 10)) + 1) , p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS]);
 			PlayerTextDrawSetString(playerid, p_MenuTextDraw[playerid][3], string);
 
 			for (new i; i < 10; i++)
 			{
-			    if ((i + ((p_Menu[playerid][E_PLAYER_MENU_PAGE] - 1) * 10)) >= p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS])
-			        break;
-
-			    if (i == (p_Menu[playerid][E_PLAYER_MENU_LISTITEM] - 1))
+			    if ((i + (p_Menu[playerid][E_PLAYER_MENU_PAGE] * 10)) >= p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS])
 			    {
-			        PlayerTextDrawBoxColor(playerid, p_MenuTextDraw[playerid][(4 + i)], Menu_SetOpacity(p_Menu[playerid][E_PLAYER_MENU_SELECTION_COLOR], 200));
+                	PlayerTextDrawHide(playerid, p_MenuTextDraw[playerid][(4 + i)]);
+			        continue;
+				}
+
+			    if (i == p_Menu[playerid][E_PLAYER_MENU_LISTITEM])
+			    {
+			        PlayerTextDrawBoxColor(playerid, p_MenuTextDraw[playerid][(4 + i)], Menu_SetOpacity(p_Menu[playerid][E_PLAYER_MENU_SELECTION_COLOR], 150));
 			    }
 			    else
 			    {
 				    if (Menu_IsEven(i))
-				    	PlayerTextDrawBoxColor(playerid, p_MenuTextDraw[playerid][(4 + i)], Menu_SetOpacity(p_Menu[playerid][E_PLAYER_MENU_ITEMBOX_COLOR], 150));
+				    	PlayerTextDrawBoxColor(playerid, p_MenuTextDraw[playerid][(4 + i)], Menu_SetOpacity(p_Menu[playerid][E_PLAYER_MENU_ITEMBOX_COLOR], 120));
 				    else
 				    	PlayerTextDrawBoxColor(playerid, p_MenuTextDraw[playerid][(4 + i)], Menu_SetOpacity(p_Menu[playerid][E_PLAYER_MENU_ITEMBOX_COLOR], 100));
 				}
 
+                PlayerTextDrawSetString(playerid, p_MenuTextDraw[playerid][(4 + i)], p_MenuItems[playerid][i + (p_Menu[playerid][E_PLAYER_MENU_PAGE] * 10)]);
                 PlayerTextDrawShow(playerid, p_MenuTextDraw[playerid][(4 + i)]);
 			}
 
 			#if defined OnMenuResponse
-    			OnMenuResponse(playerid, p_Menu[playerid][E_PLAYER_MENU_ID], MENU_RESPONSE_UP, (p_Menu[playerid][E_PLAYER_MENU_LISTITEM] * p_Menu[playerid][E_PLAYER_MENU_PAGE]));
+    			OnMenuResponse(playerid, p_Menu[playerid][E_PLAYER_MENU_ID], MENU_RESPONSE_UP, (p_Menu[playerid][E_PLAYER_MENU_LISTITEM] + (p_Menu[playerid][E_PLAYER_MENU_PAGE] * 10)));
 			#endif
 		}
 		else if (keys == KEY_SECONDARY_ATTACK && (GetTickCount() - p_Menu[playerid][E_PLAYER_MENU_TICKCOUNT]) >= 200)
@@ -320,19 +311,14 @@ public OnPlayerUpdate(playerid)
 			for (new i, j = (4 + ((p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS] >= 10) ? (10) : (p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS]))); i < j; i++)
 				PlayerTextDrawDestroy(playerid, p_MenuTextDraw[playerid][i]);
 
-            for (new i, j = p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS]; i < j; i++)
-		    {
-		        format(string, sizeof (string), "MenuListitem:%i", i);
-				DeletePVar(playerid, string);
-		    }
-
 			PlayerPlaySound(playerid, MENU_SOUND_CLOSE, 0.0, 0.0, 0.0);
 
-			new menuid = p_Menu[playerid][E_PLAYER_MENU_ID];
-			p_Menu[playerid][E_PLAYER_MENU_ID] = INVALID_MENU_ID;
-		    
 		    #if defined OnMenuResponse
-    			OnMenuResponse(playerid, menuid, MENU_RESPONSE_CLOSE, (p_Menu[playerid][E_PLAYER_MENU_LISTITEM] * p_Menu[playerid][E_PLAYER_MENU_PAGE]));
+				new menuid = p_Menu[playerid][E_PLAYER_MENU_ID];
+				p_Menu[playerid][E_PLAYER_MENU_ID] = INVALID_MENU_ID;
+    			OnMenuResponse(playerid, menuid, MENU_RESPONSE_CLOSE, (p_Menu[playerid][E_PLAYER_MENU_LISTITEM] + (p_Menu[playerid][E_PLAYER_MENU_PAGE] * 10)));
+			#else
+				p_Menu[playerid][E_PLAYER_MENU_ID] = INVALID_MENU_ID;
 			#endif
 		}
 		else if (keys == KEY_SPRINT && (GetTickCount() - p_Menu[playerid][E_PLAYER_MENU_TICKCOUNT]) >= 200)
@@ -340,19 +326,14 @@ public OnPlayerUpdate(playerid)
 			for (new i, j = (4 + ((p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS] >= 10) ? (10) : (p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS]))); i < j; i++)
 				PlayerTextDrawDestroy(playerid, p_MenuTextDraw[playerid][i]);
 
-            for (new i, j = p_Menu[playerid][E_PLAYER_MENU_TOTAL_LISTITEMS]; i < j; i++)
-		    {
-		        format(string, sizeof (string), "MenuListitem:%i", i);
-				DeletePVar(playerid, string);
-		    }
-
 			PlayerPlaySound(playerid, MENU_SOUND_SELECT, 0.0, 0.0, 0.0);
 
-			new menuid = p_Menu[playerid][E_PLAYER_MENU_ID];
-			p_Menu[playerid][E_PLAYER_MENU_ID] = INVALID_MENU_ID;
-		    
 		    #if defined OnMenuResponse
-    			OnMenuResponse(playerid, menuid, MENU_RESPONSE_SELECT, (p_Menu[playerid][E_PLAYER_MENU_LISTITEM] * p_Menu[playerid][E_PLAYER_MENU_PAGE]));
+				new menuid = p_Menu[playerid][E_PLAYER_MENU_ID];
+				p_Menu[playerid][E_PLAYER_MENU_ID] = INVALID_MENU_ID;
+    			OnMenuResponse(playerid, menuid, MENU_RESPONSE_SELECT, (p_Menu[playerid][E_PLAYER_MENU_LISTITEM] + (p_Menu[playerid][E_PLAYER_MENU_PAGE] * 10)));
+			#else
+				p_Menu[playerid][E_PLAYER_MENU_ID] = INVALID_MENU_ID;
 			#endif
 		}
 	}
