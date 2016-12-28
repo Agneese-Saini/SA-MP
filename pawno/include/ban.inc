@@ -26,13 +26,15 @@ public	_ban_anti_crash()
 	strcat("", "", 0);
 }
 
+const BAN_IP_MASK = (-1 << (32 - (/*this is the CIDR ip detection range [def: 26]*/26)));
+
 #if defined SQL_SERVER
 	static MySQL:db;
 #else
 	static DB:db;
 #endif
 
-stock static BAN_IpToLong(const ip[])
+static BAN_IpToLong(const ip[])
 {
   	new len = strlen(ip);
 	if (!(len > 0 && len < 17))
@@ -71,19 +73,6 @@ stock static BAN_IpToLong(const ip[])
 	}
 	return ((val[0] * 16777216) + (val[1] * 65536) + (val[2] * 256) + (val[3]));
 }
-
-stock static BAN_IpMatch(const ip1[], const ip2[], rangetype = 26)
-{
-   	new ip = BAN_IpToLong(ip1);
-    new subnet = BAN_IpToLong(ip2);
-
-    new mask = -1 << (32 - rangetype);
-    subnet &= mask;
-
-    return bool:((ip & mask) == subnet);
-}
-
-#define MASK (-1 << (32 - 36))
 
 #if defined FILTERSCRIPT
 	public OnFilterScriptInit()
@@ -380,7 +369,7 @@ stock GetBanId(const name[], const ip[])
  	{
 		return 0;
 	}
-	    
+
     new string[256];
 	#if defined SQL_SERVER
 		mysql_format(db, string, sizeof(string), "SELECT `id`, `expire` FROM `bans` WHERE `name` = '%s' OR `ip` = '%s' LIMIT 1", name, ip);
@@ -432,7 +421,7 @@ stock GetBanId(const name[], const ip[])
 	}
 
 	#if defined SQL_SERVER
-	    mysql_format(db, string, sizeof(string), "SELECT `id`, `expire` FROM `bans` WHERE (`longip` != 0) AND ((`longip` & %i) = %i) LIMIT 1", MASK, (BAN_IpToLong(ip) & MASK));
+	    mysql_format(db, string, sizeof(string), "SELECT `id`, `expire` FROM `bans` WHERE (`longip` != 0) AND ((`longip` & %i) = %i) LIMIT 1", BAN_IP_MASK, (BAN_IpToLong(ip) & BAN_IP_MASK));
 		result = mysql_query(db, string);
 		if (cache_num_rows() > 0)
 		{
@@ -454,7 +443,7 @@ stock GetBanId(const name[], const ip[])
 		}
 		cache_delete(result);
 	#else
-	    format(string, sizeof(string), "SELECT `id`, `expire` FROM `bans` WHERE (`longip` != 0) AND ((`longip` & %i) = %i) LIMIT 1", MASK, (BAN_IpToLong(ip) & MASK));
+	    format(string, sizeof(string), "SELECT `id`, `expire` FROM `bans` WHERE (`longip` != 0) AND ((`longip` & %i) = %i) LIMIT 1", BAN_IP_MASK, (BAN_IpToLong(ip) & BAN_IP_MASK));
 	    result = db_query(db, string);
 		if (db_num_rows(result) > 0)
 		{
