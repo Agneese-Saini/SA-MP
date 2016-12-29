@@ -2,7 +2,6 @@
 #include <zcmd>
 #include <sscanf2>
 #include <easydialog>
-#include <timestamptodate>
 #include <kickban>
 
 #define COLOR_WHITE (0xFFFFFFFF)
