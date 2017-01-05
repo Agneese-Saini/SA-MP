@@ -153,19 +153,21 @@ main()
 
 public OnGameModeInit()
 {
+	db_debug_openresults();
     db = db_open("database.db");
+	db_query(db, "PRAGMA synchronous = NORMAL");
+ 	db_query(db, "PRAGMA journal_mode = WAL");
 
 	new string[1024];
-	strcat(string, "CREATE TABLE IF NOT EXISTS `users`(\
+	string = "CREATE TABLE IF NOT EXISTS `users`(\
 		`id` INTEGER PRIMARY KEY, \
 		`name` VARCHAR(24) NOT NULL DEFAULT '', \
 		`ip` VARCHAR(18) NOT NULL DEFAULT '', \
 		`longip` INT NOT NULL DEFAULT '0', \
 		`password` VARCHAR(64) NOT NULL DEFAULT '', \
 		`salt` VARCHAR(64) NOT NULL DEFAULT '', \
-		`lock_timestamp` INT NOT NULL DEFAULT '0', \
 		`sec_question` INT NOT NULL DEFAULT '0', \
-		`sec_answer` VARCHAR(64) NOT NULL DEFAULT '', ");
+		`sec_answer` VARCHAR(64) NOT NULL DEFAULT '', ";
 	strcat(string, "`register_timestamp` INT NOT NULL DEFAULT '0', \
 		`lastlogin_timestamp` INT NOT NULL DEFAULT '0', \
 		`kills` INT NOT NULL DEFAULT '0', \
@@ -175,6 +177,11 @@ public OnGameModeInit()
 		`adminlevel` INT NOT NULL DEFAULT '0', \
 		`viplevel` INT NOT NULL DEFAULT '0')");
 	db_query(db, string);
+	
+	db_query(db, "CREATE TABLE IF NOT EXISTS `temp_blocked_users` (\
+		`ip` VARCHAR(18) NOT NULL DEFAULT '', \
+		`lock_timestamp` INT NOT NULL DEFAULT '0', \
+		`user_id` INT NOT NULL DEFAULT '-1')");
 
     EnableVehicleFriendlyFire();
     DisableInteriorEnterExits();
@@ -263,8 +270,34 @@ public OnPlayerJoin(playerid)
 	else
 	{
 		eUser[playerid][e_USER_SQLID] = db_get_field_assoc_int(result, "id");
+		
+		format(string, sizeof(string), "SELECT `lock_timestamp` FROM `temp_blocked_users` WHERE `user_id` = %i LIMIT 1", eUser[playerid][e_USER_SQLID]);
+		new DBResult:lock_result = db_query(db, string);
+		if (db_num_rows(lock_result) == 1)
+		{
+			new lock_timestamp = db_get_field_int(lock_result, 0);
+			if ((gettime() - lock_timestamp) < 0)
+		    {
+		        SendClientMessage(playerid, COLOR_TOMATO, "Sorry! The account is temporarily locked on your IP. due to "#MAX_LOGIN_ATTEMPTS"/"#MAX_LOGIN_ATTEMPTS" failed login attempts.");
+		        format(string, sizeof(string), "You'll be able to try again in %s.", ReturnTimelapse(gettime(), lock_timestamp));
+				SendClientMessage(playerid, COLOR_TOMATO, string);
+				db_free_result(result);
+				db_free_result(lock_result);
+				return Kick(playerid);
+		    }
+		    else
+		    {
+		        new ip[18];
+				GetPlayerIp(playerid, ip, 18);
+		        format(string, sizeof(string), "DELETE FROM `temp_blocked_users` WHERE `user_id` = %i AND `ip` = '%s'", eUser[playerid][e_USER_SQLID], ip);
+		        db_query(db, string);
+		    }
+		}
+		db_free_result(lock_result);
+		
 		db_get_field_assoc(result, "password", eUser[playerid][e_USER_PASSWORD], 64);
 		db_get_field_assoc(result, "salt", eUser[playerid][e_USER_SALT], 64);
+		eUser[playerid][e_USER_SALT][0] = EOS;
 		eUser[playerid][e_USER_KILLS] = db_get_field_assoc_int(result, "kills");
 		eUser[playerid][e_USER_DEATHS] = db_get_field_assoc_int(result, "deaths");
 		eUser[playerid][e_USER_SCORE] = db_get_field_assoc_int(result, "score");
@@ -276,15 +309,6 @@ public OnPlayerJoin(playerid)
 		eUser[playerid][e_USER_SECURITY_QUESTION] = db_get_field_assoc_int(result, "sec_question");
 		db_get_field_assoc(result, "sec_answer", eUser[playerid][e_USER_SECURITY_ANSWER], MAX_PASSWORD_LENGTH * 2);
 
-	    new lock_timestamp = db_get_field_assoc_int(result, "lock_timestamp");
-	    if ((gettime() - lock_timestamp) < 0)
-	    {
-	        SendClientMessage(playerid, COLOR_TOMATO, "Sorry! The account is temporarily locked due to "#MAX_LOGIN_ATTEMPTS"/"#MAX_LOGIN_ATTEMPTS" failed login attempts.");
-	        format(string, sizeof(string), "You'll be able to try again in %s.", ReturnTimelapse(gettime(), lock_timestamp));
-			SendClientMessage(playerid, COLOR_TOMATO, string);
-			db_free_result(result);
-			return Kick(playerid);
-	    }
 		Dialog_Show(playerid, LOGIN, DIALOG_STYLE_PASSWORD, "Account Login...", COL_WHITE "Insert your secret password to access this account. If you failed in "COL_YELLOW""#MAX_LOGIN_ATTEMPTS" "COL_WHITE"attempts, account will be locked for "COL_YELLOW""#MAX_ACCOUNT_LOCKTIME" "COL_WHITE"minutes.", "Continue", "Options");
 	}
 
@@ -309,11 +333,13 @@ Dialog:LOGIN(playerid, response, listitem, inputtext[])
 		if (++iLoginAttempts[playerid] == MAX_LOGIN_ATTEMPTS)
 		{
 		    new lock_timestamp = gettime() + (MAX_ACCOUNT_LOCKTIME * 60);
-			format(string, sizeof(string), "UPDATE `users` SET `lock_timestamp` = %i WHERE `id` = %i", lock_timestamp, eUser[playerid][e_USER_SQLID]);
+		    new ip[18];
+		    GetPlayerIp(playerid, ip, 18);
+			format(string, sizeof(string), "INSERT INTO `temp_blocked_users` VALUES('%s', %i, %i)", ip, lock_timestamp, eUser[playerid][e_USER_SQLID]);
 			db_query(db, string);
 
-		    SendClientMessage(playerid, COLOR_TOMATO, "Sorry! The account has been temporarily locked due to "#MAX_LOGIN_ATTEMPTS"/"#MAX_LOGIN_ATTEMPTS" failed login attempts.");
-		    format(string, sizeof(string), "If you forgot your password/username, click on 'Options' in login window otherwise wait for retry in %s.", ReturnTimelapse(gettime(), lock_timestamp));
+		    SendClientMessage(playerid, COLOR_TOMATO, "Sorry! The account has been temporarily locked on your IP. due to "#MAX_LOGIN_ATTEMPTS"/"#MAX_LOGIN_ATTEMPTS" failed login attempts.");
+		    format(string, sizeof(string), "If you forgot your password/username, click on 'Options' in login window next time (you may retry in %s).", ReturnTimelapse(gettime(), lock_timestamp));
 			SendClientMessage(playerid, COLOR_TOMATO, string);
 		    return Kick(playerid);
 		}
@@ -554,11 +580,13 @@ Dialog:FORGOT_PASSWORD(playerid, response, listitem, inputtext[])
 		if (++iAnswerAttempts[playerid] == MAX_LOGIN_ATTEMPTS)
 		{
 		    new lock_timestamp = gettime() + (MAX_ACCOUNT_LOCKTIME * 60);
-			format(string, sizeof(string), "UPDATE `users` SET `lock_timestamp` = %i WHERE `id` = %i", lock_timestamp, eUser[playerid][e_USER_SQLID]);
+		    new ip[18];
+		    GetPlayerIp(playerid, ip, 18);
+            format(string, sizeof(string), "INSERT INTO `temp_blocked_users` VALUES('%s', %i, %i)", ip, lock_timestamp, eUser[playerid][e_USER_SQLID]);
 			db_query(db, string);
 
-		    SendClientMessage(playerid, COLOR_TOMATO, "Sorry! The account has been temporarily locked due to "#MAX_LOGIN_ATTEMPTS"/"#MAX_LOGIN_ATTEMPTS" failed login attempts.");
-		    format(string, sizeof(string), "If you forgot your password/username, click on 'Options' in login window otherwise wait for retry in %s.", ReturnTimelapse(gettime(), lock_timestamp));
+		    SendClientMessage(playerid, COLOR_TOMATO, "Sorry! The account has been temporarily locked on your IP. due to "#MAX_LOGIN_ATTEMPTS"/"#MAX_LOGIN_ATTEMPTS" failed login attempts.");
+		    format(string, sizeof(string), "If you forgot your password/username, click on 'Options' in login window next time (you may retry in %s).", ReturnTimelapse(gettime(), lock_timestamp));
 			SendClientMessage(playerid, COLOR_TOMATO, string);
 		    return Kick(playerid);
 		}
@@ -799,7 +827,7 @@ CMD:stats(playerid, params[])
 
 	new name[MAX_PLAYER_NAME];
 	GetPlayerName(targetid, name, MAX_PLAYER_NAME);
-	
+
 	new string[150];
 	SendClientMessage(playerid, COLOR_GREEN, "_______________________________________________");
 	SendClientMessage(playerid, COLOR_GREEN, "");
@@ -807,7 +835,7 @@ CMD:stats(playerid, params[])
 	SendClientMessage(playerid, COLOR_GREEN, string);
 
 	new Float:ratio = ((eUser[targetid][e_USER_DEATHS] < 0) ? (0.0) : (floatdiv(eUser[targetid][e_USER_KILLS], eUser[targetid][e_USER_DEATHS])));
-	
+
 	static levelname[6][25];
 	if (!levelname[0][0])
 	{
