@@ -57,10 +57,6 @@ public OnPlayerConnect(playerid)
 	forward ANIM_OnPlayerConnect(playerid);
 #endif
 
-#if defined OnBannedPlayerConnect
-	forward OnBannedPlayerConnect(playerid);
-#endif
-
 stock ANIM_ClearAnimations(playerid, forcesync = 0)
 {
     if (playerid < 0 || playerid >= MAX_PLAYERS)
@@ -91,6 +87,11 @@ stock ANIM_ApplyAnimation(playerid, animlib[], animname[], Float:fDelta = 4.1, l
     if (playerid < 0 || playerid >= MAX_PLAYERS)
     {
     	return 0;
+	}
+	
+	if (!animlib[0] || !animname[0])
+	{
+		return 0;
 	}
 	
 	for (new i; i < sizeof(ANIM_LIST); i ++)
