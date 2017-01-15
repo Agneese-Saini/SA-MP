@@ -1,3 +1,4 @@
+// Advance login & register - by Gammix - v2.1 - last updated: 15 Jan, 2017
 #include <a_samp>
 #include <zcmd>
 #include <sscanf2>
@@ -62,44 +63,12 @@ enum e_USER
 	e_USER_VIP_LEVEL,
 	e_USER_REGISTER_TIMESTAMP,
 	e_USER_LASTLOGIN_TIMESTAMP,
-	e_USER_SECURITY_QUESTION,
+	e_USER_SECURITY_QUESTION[MAX_SECURITY_QUESTION_SIZE],
 	e_USER_SECURITY_ANSWER[64 + 1]
 };
 new eUser[MAX_PLAYERS][e_USER];
 new iLoginAttempts[MAX_PLAYERS];
 new iAnswerAttempts[MAX_PLAYERS];
-
-IpToLong(const ip[])
-{
-  	new len = strlen(ip);
-	if (!(len > 0 && len < 17))
-		return 0;
-
-	new count,
-		pos,
-		dest[3],
-		val[4];
-	for (new i; i < len; i++)
-	{
-		if (ip[i] == '.' || i == len)
-		{
-			strmid(dest, ip, pos, i);
-			pos = (i + 1);
-
-		    val[count] = strval(dest);
-		    if (!(1 <= val[count] <= 255))
-		    	return 0;
-
-			count++;
-			if (count > 3)
-				return 0;
-		}
-	}
-
-	if (count != 3)
-		return 0;
-	return ((val[0] * 16777216) + (val[1] * 65536) + (val[2] * 256) + (val[3]));
-}
 
 ReturnTimelapse(start, till)
 {
@@ -166,7 +135,7 @@ public OnGameModeInit()
 		`longip` INT NOT NULL DEFAULT '0', \
 		`password` VARCHAR(64) NOT NULL DEFAULT '', \
 		`salt` VARCHAR(64) NOT NULL DEFAULT '', \
-		`sec_question` INT NOT NULL DEFAULT '0', \
+		`sec_question` VARCHAR("#MAX_SECURITY_QUESTION_SIZE") NOT NULL DEFAULT '', \
 		`sec_answer` VARCHAR(64) NOT NULL DEFAULT '', ";
 	strcat(string, "`register_timestamp` INT NOT NULL DEFAULT '0', \
 		`lastlogin_timestamp` INT NOT NULL DEFAULT '0', \
@@ -177,7 +146,7 @@ public OnGameModeInit()
 		`adminlevel` INT NOT NULL DEFAULT '0', \
 		`viplevel` INT NOT NULL DEFAULT '0')");
 	db_query(db, string);
-	
+
 	db_query(db, "CREATE TABLE IF NOT EXISTS `temp_blocked_users` (\
 		`ip` VARCHAR(18) NOT NULL DEFAULT '', \
 		`lock_timestamp` INT NOT NULL DEFAULT '0', \
@@ -205,7 +174,7 @@ public OnPlayerDisconnect(playerid, reason)
 	new string[1024],
 		name[MAX_PLAYER_NAME];
 	GetPlayerName(playerid, name, MAX_PLAYER_NAME);
-    format(string, sizeof(string), "UPDATE `users` SET `name` = '%s', `password` = '%q', `salt` = '%q', `sec_question` = %i, `sec_answer` = '%q', `kills` = %i, `deaths` = %i, `score` = %i, `money` = %i, `adminlevel` = %i, `viplevel` = %i WHERE `id` = %i",
+    format(string, sizeof(string), "UPDATE `users` SET `name` = '%s', `password` = '%q', `salt` = '%q', `sec_question` = '%q', `sec_answer` = '%q', `kills` = %i, `deaths` = %i, `score` = %i, `money` = %i, `adminlevel` = %i, `viplevel` = %i WHERE `id` = %i",
 		name, eUser[playerid][e_USER_PASSWORD], eUser[playerid][e_USER_SALT], eUser[playerid][e_USER_SECURITY_QUESTION], eUser[playerid][e_USER_SECURITY_ANSWER],  eUser[playerid][e_USER_KILLS], eUser[playerid][e_USER_DEATHS], GetPlayerScore(playerid), GetPlayerMoney(playerid), eUser[playerid][e_USER_ADMIN_LEVEL], eUser[playerid][e_USER_VIP_LEVEL], eUser[playerid][e_USER_SQLID]);
 	db_query(db, string);
 	return 1;
@@ -264,13 +233,29 @@ public OnPlayerJoin(playerid)
 	if (db_num_rows(result) == 0)
 	{
 	    eUser[playerid][e_USER_SQLID] = -1;
+	    eUser[playerid][e_USER_PASSWORD][0] = EOS;
+	    eUser[playerid][e_USER_SALT][0] = EOS;
+		eUser[playerid][e_USER_KILLS] = 0;
+		eUser[playerid][e_USER_DEATHS] = 0;
+		eUser[playerid][e_USER_SCORE] = 0;
+		eUser[playerid][e_USER_MONEY] = 0;
+		eUser[playerid][e_USER_ADMIN_LEVEL] = 0;
+		eUser[playerid][e_USER_VIP_LEVEL] = 0;
+		eUser[playerid][e_USER_REGISTER_TIMESTAMP] = 0;
+		eUser[playerid][e_USER_LASTLOGIN_TIMESTAMP] = 0;
+		eUser[playerid][e_USER_SECURITY_QUESTION][0] = EOS;
+		eUser[playerid][e_USER_SECURITY_ANSWER][0] = EOS;
+
 		Dialog_Show(playerid, REGISTER, DIALOG_STYLE_PASSWORD, "Account Registeration... [Step: 1/3]", COL_WHITE "Welcome to our server. We will take you through "COL_GREEN"3 simple steps "COL_WHITE"to register your account with a backup option in case you forgot your password!\nPlease enter a password, "COL_TOMATO"case sensitivity"COL_WHITE" is on.", "Continue", "Options");
 		SendClientMessage(playerid, COLOR_WHITE, "[Step: 1/3] Enter your new account's password.");
 	}
 	else
 	{
+		iLoginAttempts[playerid] = 0;
+		iAnswerAttempts[playerid] = 0;
+
 		eUser[playerid][e_USER_SQLID] = db_get_field_assoc_int(result, "id");
-		
+
 		format(string, sizeof(string), "SELECT `lock_timestamp` FROM `temp_blocked_users` WHERE `user_id` = %i LIMIT 1", eUser[playerid][e_USER_SQLID]);
 		new DBResult:lock_result = db_query(db, string);
 		if (db_num_rows(lock_result) == 1)
@@ -294,10 +279,10 @@ public OnPlayerJoin(playerid)
 		    }
 		}
 		db_free_result(lock_result);
-		
+
 		db_get_field_assoc(result, "password", eUser[playerid][e_USER_PASSWORD], 64);
 		db_get_field_assoc(result, "salt", eUser[playerid][e_USER_SALT], 64);
-		eUser[playerid][e_USER_SALT][0] = EOS;
+		eUser[playerid][e_USER_SALT][64] = EOS;
 		eUser[playerid][e_USER_KILLS] = db_get_field_assoc_int(result, "kills");
 		eUser[playerid][e_USER_DEATHS] = db_get_field_assoc_int(result, "deaths");
 		eUser[playerid][e_USER_SCORE] = db_get_field_assoc_int(result, "score");
@@ -306,7 +291,7 @@ public OnPlayerJoin(playerid)
 		eUser[playerid][e_USER_VIP_LEVEL] = db_get_field_assoc_int(result, "viplevel");
 		eUser[playerid][e_USER_REGISTER_TIMESTAMP] = db_get_field_assoc_int(result, "register_timestamp");
 		eUser[playerid][e_USER_LASTLOGIN_TIMESTAMP] = db_get_field_assoc_int(result, "lastlogin_timestamp");
-		eUser[playerid][e_USER_SECURITY_QUESTION] = db_get_field_assoc_int(result, "sec_question");
+		db_get_field_assoc(result, "sec_question", eUser[playerid][e_USER_SECURITY_QUESTION], MAX_SECURITY_QUESTION_SIZE);
 		db_get_field_assoc(result, "sec_answer", eUser[playerid][e_USER_SECURITY_ANSWER], MAX_PASSWORD_LENGTH * 2);
 
 		Dialog_Show(playerid, LOGIN, DIALOG_STYLE_PASSWORD, "Account Login...", COL_WHITE "Insert your secret password to access this account. If you failed in "COL_YELLOW""#MAX_LOGIN_ATTEMPTS" "COL_WHITE"attempts, account will be locked for "COL_YELLOW""#MAX_ACCOUNT_LOCKTIME" "COL_WHITE"minutes.", "Continue", "Options");
@@ -351,10 +336,12 @@ Dialog:LOGIN(playerid, response, listitem, inputtext[])
 	}
 
 	new name[MAX_PLAYER_NAME],
-		ip[18];
+		ip[18],
+		longip;
 	GetPlayerName(playerid, name, MAX_PLAYER_NAME);
 	GetPlayerIp(playerid, ip, 18);
-	format(string, sizeof(string), "UPDATE `users` SET `lastlogin_timestamp` = %i, `ip` = '%s', `longip` = %i WHERE `id` = %i", gettime(), ip, IpToLong(ip), eUser[playerid][e_USER_SQLID]);
+	sscanf(ip, "p<.>a<i>[4]", longip);
+	format(string, sizeof(string), "UPDATE `users` SET `lastlogin_timestamp` = %i, `ip` = '%s', `longip` = %i WHERE `id` = %i", gettime(), ip, longip, eUser[playerid][e_USER_SQLID]);
 	db_query(db, string);
 
 	format(string, sizeof(string), "Successfully logged in! Welcome back to our server %s, we hope you enjoy your stay. [Last login: %s ago]", name, ReturnTimelapse(eUser[playerid][e_USER_LASTLOGIN_TIMESTAMP], gettime()));
@@ -436,7 +423,7 @@ Dialog:SEC_QUESTION(playerid, response, listitem, inputtext[])
 		return 1;
 	}
 
-	eUser[playerid][e_USER_SECURITY_QUESTION] = listitem;
+	format(eUser[playerid][e_USER_SECURITY_QUESTION], MAX_SECURITY_QUESTION_SIZE, SECURITY_QUESTIONS[listitem]);
 
 	new string[256];
 	format(string, sizeof(string), COL_TOMATO "%s\n"COL_WHITE"Insert your answer below in the box. (don't worry about CAPS, answers are NOT case sensitive).", SECURITY_QUESTIONS[listitem]);
@@ -465,7 +452,7 @@ Dialog:SEC_ANSWER(playerid, response, listitem, inputtext[])
 
 	if (strlen(inputtext) < MIN_PASSWORD_LENGTH || inputtext[0] == ' ')
 	{
-	    format(string, sizeof(string), COL_TOMATO "%s\n"COL_WHITE"Insert your answer below in the box. (don't worry about CAPS, answers are NOT case sensitive).", SECURITY_QUESTIONS[eUser[playerid][e_USER_SECURITY_QUESTION]]);
+	    format(string, sizeof(string), COL_TOMATO "%s\n"COL_WHITE"Insert your answer below in the box. (don't worry about CAPS, answers are NOT case sensitive).", SECURITY_QUESTIONS[listitem]);
 		Dialog_Show(playerid, SEC_ANSWER, DIALOG_STYLE_INPUT, "Account Registeration... [Step: 3/3]", string, "Confirm", "Back");
 		SendClientMessage(playerid, COLOR_TOMATO, "Security answer cannot be an less than "#MIN_PASSWORD_LENGTH" characters.");
 		return 1;
@@ -473,15 +460,17 @@ Dialog:SEC_ANSWER(playerid, response, listitem, inputtext[])
 
 	for (new i, j = strlen(inputtext); i < j; i++)
 	{
-        inputtext[i] |= 0x20;
+        inputtext[i] = tolower(inputtext[i]);
 	}
 	SHA256_PassHash(inputtext, eUser[playerid][e_USER_SALT], eUser[playerid][e_USER_SECURITY_ANSWER], 64);
 
 	new name[MAX_PLAYER_NAME],
-		ip[18];
+		ip[18],
+		longip;
 	GetPlayerName(playerid, name, MAX_PLAYER_NAME);
 	GetPlayerIp(playerid, ip, 18);
-	format(string, sizeof(string), "INSERT INTO `users`(`name`, `ip`, `longip`, `password`, `salt`, `sec_question`, `sec_answer`, `register_timestamp`, `lastlogin_timestamp`) VALUES('%s', '%s', %i, '%q', '%q', %i, '%q', %i, %i)", name, ip, IpToLong(ip), eUser[playerid][e_USER_PASSWORD], eUser[playerid][e_USER_SALT], eUser[playerid][e_USER_SECURITY_QUESTION], eUser[playerid][e_USER_SECURITY_ANSWER], gettime(), gettime());
+	sscanf(ip, "p<.>a<i>[4]", longip);
+	format(string, sizeof(string), "INSERT INTO `users`(`name`, `ip`, `longip`, `password`, `salt`, `sec_question`, `sec_answer`, `register_timestamp`, `lastlogin_timestamp`) VALUES('%s', '%s', %i, '%q', '%q', '%q', '%q', %i, %i)", name, ip, longip, eUser[playerid][e_USER_PASSWORD], eUser[playerid][e_USER_SALT], eUser[playerid][e_USER_SECURITY_QUESTION], eUser[playerid][e_USER_SECURITY_ANSWER], gettime(), gettime());
 	db_query(db, string);
 
 	format(string, sizeof(string), "SELECT `id` FROM `users` WHERE `name` = '%q' LIMIT 1", name);
@@ -520,16 +509,18 @@ Dialog:OPTIONS(playerid, response, listitem, inputtext[])
 	        }
 
 			new string[64 + MAX_SECURITY_QUESTION_SIZE];
-			format(string, sizeof(string), COL_WHITE "Answer your security question to reset password.\n\n"COL_TOMATO"%s", SECURITY_QUESTIONS[eUser[playerid][e_USER_SECURITY_QUESTION]]);
+			format(string, sizeof(string), COL_WHITE "Answer your security question to reset password.\n\n"COL_TOMATO"%s", eUser[playerid][e_USER_SECURITY_QUESTION]);
 			Dialog_Show(playerid, FORGOT_PASSWORD, DIALOG_STYLE_INPUT, "Forgot Password:", string, "Next", "Cancel");
 	    }
 	    case 1:
 	    {
 	        const MASK = (-1 << (32 - 36));
 			new string[256],
-				ip[18];
+				ip[18],
+				longip;
 			GetPlayerIp(playerid, ip, 18);
-			format(string, sizeof(string), "SELECT `name`, `lastlogin_timestamp` FROM `users` WHERE ((`longip` & %i) = %i) LIMIT 1", MASK, (IpToLong(ip) & MASK));
+			sscanf(ip, "p<.>a<i>[4]", longip);
+			format(string, sizeof(string), "SELECT `name`, `lastlogin_timestamp` FROM `users` WHERE ((`longip` & %i) = %i) LIMIT 1", MASK, (longip & MASK));
 			new DBResult:result = db_query(db, string);
 			if (db_num_rows(result) == 0)
 			{
@@ -591,7 +582,7 @@ Dialog:FORGOT_PASSWORD(playerid, response, listitem, inputtext[])
 		    return Kick(playerid);
 		}
 
-	    format(string, sizeof(string), COL_WHITE "Answer your security question to reset password.\n\n"COL_TOMATO"%s", SECURITY_QUESTIONS[eUser[playerid][e_USER_SECURITY_QUESTION]]);
+	    format(string, sizeof(string), COL_WHITE "Answer your security question to reset password.\n\n"COL_TOMATO"%s", eUser[playerid][e_USER_SECURITY_QUESTION]);
 		Dialog_Show(playerid, FORGOT_PASSWORD, DIALOG_STYLE_INPUT, "Forgot Password:", string, "Next", "Cancel");
 		format(string, sizeof(string), "Incorrect answer! Your tries left: %i/"#MAX_LOGIN_ATTEMPTS" attempts.", iAnswerAttempts[playerid]);
 		SendClientMessage(playerid, COLOR_TOMATO, string);
@@ -652,10 +643,12 @@ Dialog:RESET_PASSWORD(playerid, response, listitem, inputtext[])
 	SHA256_PassHash(inputtext, eUser[playerid][e_USER_SALT], eUser[playerid][e_USER_PASSWORD], 64);
 
 	new name[MAX_PLAYER_NAME],
-		ip[18];
+		ip[18],
+		longip;
 	GetPlayerName(playerid, name, MAX_PLAYER_NAME);
 	GetPlayerIp(playerid, ip, 18);
-	format(string, sizeof(string), "UPDATE `users` SET `password` = '%q', `ip` = '%s', `longip` = %i, `lastlogin_timestamp` = %i WHERE `id` = %i", eUser[playerid][e_USER_PASSWORD], ip, IpToLong(ip), gettime(), eUser[playerid][e_USER_SQLID]);
+	sscanf(ip, "p<.>a<i>[4]", longip);
+	format(string, sizeof(string), "UPDATE `users` SET `password` = '%q', `ip` = '%s', `longip` = %i, `lastlogin_timestamp` = %i WHERE `id` = %i", eUser[playerid][e_USER_PASSWORD], ip, longip, gettime(), eUser[playerid][e_USER_SQLID]);
 	db_query(db, string);
 
 	format(string, sizeof(string), "Successfully logged in with new password! Welcome back to our server %s, we hope you enjoy your stay. [Last login: %s ago]", name, ReturnTimelapse(eUser[playerid][e_USER_LASTLOGIN_TIMESTAMP], gettime()));
@@ -680,7 +673,7 @@ CMD:changepass(playerid, params[])
 		return 1;
 	}
 
-    Dialog_Show(playerid, CHANGE_PASSWORD, DIALOG_STYLE_PASSWORD, "Change account password...", COL_WHITE "Insert a new password for your account, Passwords are "COL_TOMATO"case sensitive"COL_WHITE".", "Confirm", "Cancel");
+    Dialog_Show(playerid, CHANGE_PASSWORD, DIALOG_STYLE_PASSWORD, "Change account password...", COL_WHITE "Insert a new password for your account, Passwords are "COL_YELLOW"case sensitive"COL_WHITE".", "Confirm", "Cancel");
 	SendClientMessage(playerid, COLOR_WHITE, "Enter your new password.");
 	PlayerPlaySound(playerid, 1054, 0.0, 0.0, 0.0);
 	return 1;
@@ -693,7 +686,7 @@ Dialog:CHANGE_PASSWORD(playerid, response, listitem, inputtext[])
 
 	if (!(MIN_PASSWORD_LENGTH <= strlen(inputtext) <= MAX_PASSWORD_LENGTH))
 	{
-	    Dialog_Show(playerid, CHANGE_PASSWORD, DIALOG_STYLE_PASSWORD, "Change account password...", COL_WHITE "Insert a new password for your account, Passwords are "COL_TOMATO"case sensitive"COL_WHITE".", "Confirm", "Cancel");
+	    Dialog_Show(playerid, CHANGE_PASSWORD, DIALOG_STYLE_PASSWORD, "Change account password...", COL_WHITE "Insert a new password for your account, Passwords are "COL_YELLOW"case sensitive"COL_WHITE".", "Confirm", "Cancel");
 		SendClientMessage(playerid, COLOR_TOMATO, "Invalid password length, must be between "#MIN_PASSWORD_LENGTH" - "#MAX_PASSWORD_LENGTH" characters.");
 	    return 1;
 	}
@@ -720,7 +713,7 @@ Dialog:CHANGE_PASSWORD(playerid, response, listitem, inputtext[])
 
 		if (!contain_number || !contain_highercase || !contain_lowercase)
 		{
-		    Dialog_Show(playerid, CHANGE_PASSWORD, DIALOG_STYLE_INPUT, "Change account password...", COL_WHITE "Insert a new password for your account, Passwords are "COL_TOMATO"case sensitive"COL_WHITE".", "Confirm", "Cancel");
+		    Dialog_Show(playerid, CHANGE_PASSWORD, DIALOG_STYLE_INPUT, "Change account password...", COL_WHITE "Insert a new password for your account, Passwords are "COL_YELLOW"case sensitive"COL_WHITE".", "Confirm", "Cancel");
 			SendClientMessage(playerid, COLOR_TOMATO, "Password must contain atleast a Highercase, a Lowercase and a Number.");
 		    return 1;
 		}
@@ -767,7 +760,7 @@ Dialog:CHANGE_SEC_QUESTION(playerid, response, listitem, inputext[])
 	SetPVarInt(playerid, "Question", listitem);
 
 	new string[256];
-	format(string, sizeof(string), COL_TOMATO "%s\n"COL_WHITE"Insert your answer below in the box. (don't worry about CAPS, answers are NOT case sensitive).", SECURITY_QUESTIONS[listitem]);
+	format(string, sizeof(string), COL_YELLOW "%s\n"COL_WHITE"Insert your answer below in the box. (don't worry about CAPS, answers are NOT case sensitive).", SECURITY_QUESTIONS[listitem]);
 	Dialog_Show(playerid, CHANGE_SEC_ANSWER, DIALOG_STYLE_INPUT, "Change account security question... [Step: 2/2]", string, "Confirm", "Back");
 	SendClientMessage(playerid, COLOR_WHITE, "[Step: 2/2] Write the answer to your secuirty question.");
 	PlayerPlaySound(playerid, 1054, 0.0, 0.0, 0.0);
@@ -793,21 +786,21 @@ Dialog:CHANGE_SEC_ANSWER(playerid, response, listitem, inputtext[])
 
 	if (strlen(inputtext) < MIN_PASSWORD_LENGTH || inputtext[0] == ' ')
 	{
-	    format(string, sizeof(string), COL_TOMATO "%s\n"COL_WHITE"Insert your answer below in the box. (don't worry about CAPS, answers are NOT case sensitive).", SECURITY_QUESTIONS[listitem]);
+	    format(string, sizeof(string), COL_YELLOW "%s\n"COL_WHITE"Insert your answer below in the box. (don't worry about CAPS, answers are NOT case sensitive).", SECURITY_QUESTIONS[listitem]);
 		Dialog_Show(playerid, CHANGE_SEC_ANSWER, DIALOG_STYLE_INPUT, "Change account security question... [Step: 2/2]", string, "Confirm", "Back");
 		SendClientMessage(playerid, COLOR_TOMATO, "Security answer cannot be an less than "#MIN_PASSWORD_LENGTH" characters.");
 		return 1;
 	}
 
-	eUser[playerid][e_USER_SECURITY_QUESTION] = GetPVarInt(playerid, "Question");
+	format(eUser[playerid][e_USER_SECURITY_QUESTION], MAX_SECURITY_QUESTION_SIZE, SECURITY_QUESTIONS[GetPVarInt(playerid, "Question")]);
 	DeletePVar(playerid, "Question");
 
 	for (new i, j = strlen(inputtext); i < j; i++)
 	{
-        inputtext[i] |= 0x20;
+        inputtext[i] = tolower(inputtext[i]);
 	}
 	SHA256_PassHash(inputtext, eUser[playerid][e_USER_SALT], eUser[playerid][e_USER_SECURITY_ANSWER], 64);
-	format(string, sizeof(string), "Successfully changed your security answer and question [Q: %s].", SECURITY_QUESTIONS[eUser[playerid][e_USER_SECURITY_QUESTION]]);
+	format(string, sizeof(string), "Successfully changed your security answer and question [Q: %s].", eUser[playerid][e_USER_SECURITY_QUESTION]);
 	SendClientMessage(playerid, COLOR_GREEN, string);
 	PlayerPlaySound(playerid, 1057, 0.0, 0.0, 0.0);
 	return 1;
