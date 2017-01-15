@@ -1,5 +1,11 @@
 // Advance login & register - by Gammix - v2.1 - last updated: 15 Jan, 2017
 #include <a_samp>
+
+main()
+{
+	SetGameModeText("Mode name here.");
+}
+
 #include <zcmd>
 #include <sscanf2>
 #include <easydialog>
@@ -70,6 +76,13 @@ new eUser[MAX_PLAYERS][e_USER];
 new iLoginAttempts[MAX_PLAYERS];
 new iAnswerAttempts[MAX_PLAYERS];
 
+IpToLong(const address[])
+{
+	new parts[4];
+	sscanf(address, "p<.>a<i>[4]", parts);
+	return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]);
+}
+
 ReturnTimelapse(start, till)
 {
     new ret[32];
@@ -114,10 +127,6 @@ ReturnTimelapse(start, till)
 			format(ret, sizeof(ret), "%i years", years);
 	}
 	return ret;
-}
-
-main()
-{
 }
 
 public OnGameModeInit()
@@ -336,12 +345,10 @@ Dialog:LOGIN(playerid, response, listitem, inputtext[])
 	}
 
 	new name[MAX_PLAYER_NAME],
-		ip[18],
-		longip;
+		ip[18];
 	GetPlayerName(playerid, name, MAX_PLAYER_NAME);
 	GetPlayerIp(playerid, ip, 18);
-	sscanf(ip, "p<.>a<i>[4]", longip);
-	format(string, sizeof(string), "UPDATE `users` SET `lastlogin_timestamp` = %i, `ip` = '%s', `longip` = %i WHERE `id` = %i", gettime(), ip, longip, eUser[playerid][e_USER_SQLID]);
+	format(string, sizeof(string), "UPDATE `users` SET `lastlogin_timestamp` = %i, `ip` = '%s', `longip` = %i WHERE `id` = %i", gettime(), ip, IpToLong(ip), eUser[playerid][e_USER_SQLID]);
 	db_query(db, string);
 
 	format(string, sizeof(string), "Successfully logged in! Welcome back to our server %s, we hope you enjoy your stay. [Last login: %s ago]", name, ReturnTimelapse(eUser[playerid][e_USER_LASTLOGIN_TIMESTAMP], gettime()));
@@ -465,12 +472,10 @@ Dialog:SEC_ANSWER(playerid, response, listitem, inputtext[])
 	SHA256_PassHash(inputtext, eUser[playerid][e_USER_SALT], eUser[playerid][e_USER_SECURITY_ANSWER], 64);
 
 	new name[MAX_PLAYER_NAME],
-		ip[18],
-		longip;
+		ip[18];
 	GetPlayerName(playerid, name, MAX_PLAYER_NAME);
 	GetPlayerIp(playerid, ip, 18);
-	sscanf(ip, "p<.>a<i>[4]", longip);
-	format(string, sizeof(string), "INSERT INTO `users`(`name`, `ip`, `longip`, `password`, `salt`, `sec_question`, `sec_answer`, `register_timestamp`, `lastlogin_timestamp`) VALUES('%s', '%s', %i, '%q', '%q', '%q', '%q', %i, %i)", name, ip, longip, eUser[playerid][e_USER_PASSWORD], eUser[playerid][e_USER_SALT], eUser[playerid][e_USER_SECURITY_QUESTION], eUser[playerid][e_USER_SECURITY_ANSWER], gettime(), gettime());
+	format(string, sizeof(string), "INSERT INTO `users`(`name`, `ip`, `longip`, `password`, `salt`, `sec_question`, `sec_answer`, `register_timestamp`, `lastlogin_timestamp`) VALUES('%s', '%s', %i, '%q', '%q', '%q', '%q', %i, %i)", name, ip, IpToLong(ip), eUser[playerid][e_USER_PASSWORD], eUser[playerid][e_USER_SALT], eUser[playerid][e_USER_SECURITY_QUESTION], eUser[playerid][e_USER_SECURITY_ANSWER], gettime(), gettime());
 	db_query(db, string);
 
 	format(string, sizeof(string), "SELECT `id` FROM `users` WHERE `name` = '%q' LIMIT 1", name);
@@ -516,11 +521,9 @@ Dialog:OPTIONS(playerid, response, listitem, inputtext[])
 	    {
 	        const MASK = (-1 << (32 - 36));
 			new string[256],
-				ip[18],
-				longip;
+				ip[18];
 			GetPlayerIp(playerid, ip, 18);
-			sscanf(ip, "p<.>a<i>[4]", longip);
-			format(string, sizeof(string), "SELECT `name`, `lastlogin_timestamp` FROM `users` WHERE ((`longip` & %i) = %i) LIMIT 1", MASK, (longip & MASK));
+			format(string, sizeof(string), "SELECT `name`, `lastlogin_timestamp` FROM `users` WHERE ((`longip` & %i) = %i) LIMIT 1", MASK, (IpToLong(ip) & MASK));
 			new DBResult:result = db_query(db, string);
 			if (db_num_rows(result) == 0)
 			{
@@ -643,12 +646,10 @@ Dialog:RESET_PASSWORD(playerid, response, listitem, inputtext[])
 	SHA256_PassHash(inputtext, eUser[playerid][e_USER_SALT], eUser[playerid][e_USER_PASSWORD], 64);
 
 	new name[MAX_PLAYER_NAME],
-		ip[18],
-		longip;
+		ip[18];
 	GetPlayerName(playerid, name, MAX_PLAYER_NAME);
 	GetPlayerIp(playerid, ip, 18);
-	sscanf(ip, "p<.>a<i>[4]", longip);
-	format(string, sizeof(string), "UPDATE `users` SET `password` = '%q', `ip` = '%s', `longip` = %i, `lastlogin_timestamp` = %i WHERE `id` = %i", eUser[playerid][e_USER_PASSWORD], ip, longip, gettime(), eUser[playerid][e_USER_SQLID]);
+	format(string, sizeof(string), "UPDATE `users` SET `password` = '%q', `ip` = '%s', `longip` = %i, `lastlogin_timestamp` = %i WHERE `id` = %i", eUser[playerid][e_USER_PASSWORD], ip, IpToLong(ip), gettime(), eUser[playerid][e_USER_SQLID]);
 	db_query(db, string);
 
 	format(string, sizeof(string), "Successfully logged in with new password! Welcome back to our server %s, we hope you enjoy your stay. [Last login: %s ago]", name, ReturnTimelapse(eUser[playerid][e_USER_LASTLOGIN_TIMESTAMP], gettime()));
