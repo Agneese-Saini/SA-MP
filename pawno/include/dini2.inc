@@ -1,4 +1,4 @@
-// Dini2.inc - v2.4.2 - By Gammix - Last updated on 18 Dec,2016
+// Dini2.inc - v2.4.2 - By Gammix - Last updated on 16 Jan, 2017
 #if defined dini2_included
 	#endinput
 #endif
@@ -76,6 +76,7 @@ static INI_OpenFileInstance(const file[])
     INI_iFilesTimer[i] = SetTimerEx("OnFileTimeout", INI_TIMER_INTERVAL, false, "i", i);
     INI_bFilesChanged[i] = false;
     INI_iFilesFieldsCount[i] = 0;
+
     while (fread(h, string))
     {
         pos = strfind(string, "=");
@@ -239,7 +240,8 @@ stock dini_Set(const file[], const field[], value[])
 	new i = INI_iFilesFieldsCount[instance]++;
 	format(INI_sFilesFields[instance][i], INI_MAX_FIELD_NAME, field);
 	format(INI_sFilesValues[instance][i], INI_MAX_FIELD_VALUE, value);
-	INI_bFilesChanged[instance] = true;
+
+    INI_bFilesChanged[instance] = true;
 	return 0;
 }
 
@@ -273,6 +275,7 @@ stock dini_IntSet(const file[], const field[], value)
 	new i = INI_iFilesFieldsCount[instance]++;
 	format(INI_sFilesFields[instance][i], INI_MAX_FIELD_NAME, field);
 	valstr(INI_sFilesValues[instance][i], value);
+
     INI_bFilesChanged[instance] = true;
 	return 1;
 }
@@ -307,6 +310,7 @@ stock dini_FloatSet(const file[], const field[], Float:value)
 	new i = INI_iFilesFieldsCount[instance]++;
 	format(INI_sFilesFields[instance][i], INI_MAX_FIELD_NAME, field);
 	format(INI_sFilesValues[instance][i], INI_MAX_FIELD_VALUE, "%f", value);
+
     INI_bFilesChanged[instance] = true;
 	return 1;
 }
@@ -341,6 +345,7 @@ stock dini_BoolSet(const file[], const field[], bool:value)
 	new i = INI_iFilesFieldsCount[instance]++;
 	format(INI_sFilesFields[instance][i], INI_MAX_FIELD_NAME, field);
 	valstr(INI_sFilesValues[instance][i], _:value);
+
     INI_bFilesChanged[instance] = true;
 	return 1;
 }
@@ -360,7 +365,7 @@ stock dini_UnSet(const file[], const field[])
 	{
  		if (!strcmp(field, INI_sFilesFields[instance][i]))
  		{
- 		    for (; i < (INI_iFilesFieldsCount[instance] - 1);   i++)
+ 		    for (; i < INI_iFilesFieldsCount[instance]; i++)
  		    {
  		        format(INI_sFilesFields[instance][i], INI_MAX_FIELD_NAME, INI_sFilesFields[instance][i + 1]);
 				format(INI_sFilesValues[instance][i], INI_MAX_FIELD_VALUE, INI_sFilesValues[instance][i + 1]);
@@ -371,6 +376,7 @@ stock dini_UnSet(const file[], const field[])
  		    return 1;
  		}
 	}
+
 	return 0;
 }
 
@@ -392,6 +398,7 @@ stock dini_IsSet(const file[], const field[])
  		    return 1;
  		}
 	}
+
 	return 0;
 }
 
