@@ -1,43 +1,8 @@
+// Gangzones.inc - By Gammix - v2.0.1 - Last updated 21 January, 2017
 #if defined gangzones_included
 	#endinput
 #endif
 #define gangzones_included
-
-/*
- * gangzones.inc
- * Version: 2.0 (last updated on 21 August, 2016)
- * By Gammix 
- *
- * Functions:
-   native GangZoneCreate(Float:minx, Float:miny, Float:maxx, Float:maxy, color = -1, Float:bordersize = 1.0, bordercolor = 0x00000060, interior = -1, virtualworld = -1);
-   native GangZoneDestory(zone);
-   native GangZoneExist(zone);
-   native GangZoneShowForPlayer(playerid, zone, color = -1, bordercolor = -1);
-   native GangZoneHideForPlayer(playerid, zone);
-   native GangZoneShowForAll(zone, color = -1, bordercolor = -1);
-   native GangZoneHideForAll(zone);
-   native GangZoneFlashForPlayer(playerid, zone, flashcolor = -1, flashbordercolor = -1);
-   native GangZoneStopFlashForPlayer(playerid, zone);
-   native GangZoneFlashForAll(zone, flashcolor = -1, flashbordercolor = -1);
-   native GangZoneStopFlashForAll(zone);
-   native GangZoneSetInterior(zone, interior);
-   native GangZoneGetInterior(zone);
-   native GangZoneSetVirtualWorld(zone, virtualworld);
-   native GangZoneGetVirtualWorld(zone);
-   native CountAllGangZones();
-   native DestroyAllGangZones();
-   native ShowAllGangZonesForPlayer(playerid, color = -1, bordercolor = -1);
-   native ShowAllGangZonesForAll(color = -1, bordercolor = -1);
-   native HideAllGangZonesForPlayer(playerid);
-   native HideAllGangZonesForAll();
-   native IsPlayerInAnyGangZone(playerid);
-   native GetPlayerGangZone(playerid);
- *
- * Callbacks:
-   forward OnPlayerEnterGangZone(playerid, zone);
-   forward OnPlayerLeaveGangZone(playerid, zone);
- *
- */
 
 #include <streamer>
 
@@ -53,24 +18,27 @@ enum GZ_e_DATA
             GZ_e_DATA_BORDERID[4],
             GZ_e_DATA_AREAID
 };
-static GZ_g_Data[MAX_GANGZONES][GZ_e_DATA];
+static GZ_eData[MAX_GANGZONES][GZ_e_DATA];
 
-static bool:GZ_p_Shown[MAX_PLAYERS][MAX_GANGZONES];
-static GZ_p_ShownColor[MAX_PLAYERS][MAX_GANGZONES];
-static GZ_p_ShownBorderColor[MAX_PLAYERS][MAX_GANGZONES];
+static bool:GZ_bIsShown[MAX_PLAYERS][MAX_GANGZONES];
+static GZ_iShownColor[MAX_PLAYERS][MAX_GANGZONES];
+static GZ_iShownBorderColor[MAX_PLAYERS][MAX_GANGZONES];
 
-static bool:GZ_p_Flashing[MAX_PLAYERS][MAX_GANGZONES];
-static GZ_p_FlashColor[MAX_PLAYERS][MAX_GANGZONES];
-static GZ_p_FlashBorderColor[MAX_PLAYERS][MAX_GANGZONES];
+static bool:GZ_bIsFlashing[MAX_PLAYERS][MAX_GANGZONES];
+static GZ_iFlashColor[MAX_PLAYERS][MAX_GANGZONES];
+static GZ_iFlashBorderColor[MAX_PLAYERS][MAX_GANGZONES];
 
-static GZ_p_Worldid[MAX_PLAYERS];
+static GZ_iPlayerWorldid[MAX_PLAYERS];
 
+/*
+native GangZoneCreate(Float:minx, Float:miny, Float:maxx, Float:maxy, color = -1, Float:bordersize = 1.0, bordercolor = 0x00000060, interior = -1, virtualworld = -1)
+*/
 stock GZ_GangZoneCreate(Float:minx, Float:miny, Float:maxx, Float:maxy, color = -1, Float:bordersize = 1.0, bordercolor = 0x00000060, interior = -1, virtualworld = -1)
 {
 	new zone = -1;
 	for (new i; i < MAX_GANGZONES; i++)
 	{
-	    if (!GZ_g_Data[i][GZ_e_DATA_VALID])
+	    if (!GZ_eData[i][GZ_e_DATA_VALID])
 	    {
 	        zone = i;
 	        break;
@@ -82,23 +50,23 @@ stock GZ_GangZoneCreate(Float:minx, Float:miny, Float:maxx, Float:maxy, color = 
 
 	new Float:SEPERATION = (2.0*bordersize);
 
-    GZ_g_Data[zone][GZ_e_DATA_VALID] = true;
-	GZ_g_Data[zone][GZ_e_DATA_ZONEID] = GangZoneCreate(minx, miny, maxx, maxy);
-	GZ_g_Data[zone][GZ_e_DATA_BORDERID][0] = GangZoneCreate((minx - SEPERATION), miny, (minx + SEPERATION), maxy);
-	GZ_g_Data[zone][GZ_e_DATA_BORDERID][1] = GangZoneCreate((minx - SEPERATION), (maxy - SEPERATION), maxx, (maxy + SEPERATION));
-	GZ_g_Data[zone][GZ_e_DATA_BORDERID][2] = GangZoneCreate((maxx - SEPERATION), miny, (maxx + SEPERATION), maxy);
-	GZ_g_Data[zone][GZ_e_DATA_BORDERID][3] = GangZoneCreate((minx - SEPERATION), (miny - SEPERATION), maxx, (miny + SEPERATION));
-	GZ_g_Data[zone][GZ_e_DATA_AREAID] = CreateDynamicRectangle(minx, miny, maxx, maxy, virtualworld, interior, -1);
+    GZ_eData[zone][GZ_e_DATA_VALID] = true;
+	GZ_eData[zone][GZ_e_DATA_ZONEID] = GangZoneCreate(minx, miny, maxx, maxy);
+	GZ_eData[zone][GZ_e_DATA_BORDERID][0] = GangZoneCreate((minx - SEPERATION), miny, (minx + SEPERATION), maxy);
+	GZ_eData[zone][GZ_e_DATA_BORDERID][1] = GangZoneCreate((minx - SEPERATION), (maxy - SEPERATION), maxx, (maxy + SEPERATION));
+	GZ_eData[zone][GZ_e_DATA_BORDERID][2] = GangZoneCreate((maxx - SEPERATION), miny, (maxx + SEPERATION), maxy);
+	GZ_eData[zone][GZ_e_DATA_BORDERID][3] = GangZoneCreate((minx - SEPERATION), (miny - SEPERATION), maxx, (miny + SEPERATION));
+	GZ_eData[zone][GZ_e_DATA_AREAID] = CreateDynamicRectangle(minx, miny, maxx, maxy, virtualworld, interior, -1);
 
 	for (new i; i < MAX_PLAYERS; i++)
  	{
-        GZ_p_Shown[i][zone] = false;
- 	    GZ_p_ShownColor[i][zone] = color;
-        GZ_p_ShownBorderColor[i][zone] = bordercolor;
+        GZ_bIsShown[i][zone] = false;
+ 	    GZ_iShownColor[i][zone] = color;
+        GZ_iShownBorderColor[i][zone] = bordercolor;
 
-		GZ_p_Flashing[i][zone] = false;
-		GZ_p_FlashColor[i][zone] = -1;
-		GZ_p_FlashBorderColor[i][zone] = -1;
+		GZ_bIsFlashing[i][zone] = false;
+		GZ_iFlashColor[i][zone] = -1;
+		GZ_iFlashBorderColor[i][zone] = -1;
 	}
 
 	return zone;
@@ -110,31 +78,34 @@ stock GZ_GangZoneCreate(Float:minx, Float:miny, Float:maxx, Float:maxy, color = 
 #endif
 #define GangZoneCreate GZ_GangZoneCreate
 
+/*
+native GangZoneDestroy(zone);
+*/
 stock GZ_GangZoneDestroy(zone)
 {
 	if (zone < 0 || zone >= MAX_GANGZONES)
 	    return 0;
 
-  	if (!GZ_g_Data[zone][GZ_e_DATA_VALID])
+  	if (!GZ_eData[zone][GZ_e_DATA_VALID])
 	  	return 0;
 
-    GZ_g_Data[zone][GZ_e_DATA_VALID] = false;
-    GangZoneDestroy(GZ_g_Data[zone][GZ_e_DATA_ZONEID]);
-    GangZoneDestroy(GZ_g_Data[zone][GZ_e_DATA_BORDERID][0]);
-    GangZoneDestroy(GZ_g_Data[zone][GZ_e_DATA_BORDERID][1]);
-    GangZoneDestroy(GZ_g_Data[zone][GZ_e_DATA_BORDERID][2]);
-    GangZoneDestroy(GZ_g_Data[zone][GZ_e_DATA_BORDERID][3]);
-	DestroyDynamicArea(GZ_g_Data[zone][GZ_e_DATA_AREAID]);
+    GZ_eData[zone][GZ_e_DATA_VALID] = false;
+    GangZoneDestroy(GZ_eData[zone][GZ_e_DATA_ZONEID]);
+    GangZoneDestroy(GZ_eData[zone][GZ_e_DATA_BORDERID][0]);
+    GangZoneDestroy(GZ_eData[zone][GZ_e_DATA_BORDERID][1]);
+    GangZoneDestroy(GZ_eData[zone][GZ_e_DATA_BORDERID][2]);
+    GangZoneDestroy(GZ_eData[zone][GZ_e_DATA_BORDERID][3]);
+	DestroyDynamicArea(GZ_eData[zone][GZ_e_DATA_AREAID]);
 
 	for (new i; i < MAX_PLAYERS; i++)
  	{
-        GZ_p_Shown[i][zone] = false;
- 	    GZ_p_ShownColor[i][zone] = -1;
-        GZ_p_ShownBorderColor[i][zone] = -1;
+        GZ_bIsShown[i][zone] = false;
+ 	    GZ_iShownColor[i][zone] = -1;
+        GZ_iShownBorderColor[i][zone] = -1;
 
-		GZ_p_Flashing[i][zone] = false;
-		GZ_p_FlashColor[i][zone] = -1;
-		GZ_p_FlashBorderColor[i][zone] = -1;
+		GZ_bIsFlashing[i][zone] = false;
+		GZ_iFlashColor[i][zone] = -1;
+		GZ_iFlashBorderColor[i][zone] = -1;
 	}
 
   	return 1;
@@ -146,35 +117,41 @@ stock GZ_GangZoneDestroy(zone)
 #endif
 #define GangZoneDestroy GZ_GangZoneDestroy
 
+/*
+native GangZoneExist(zone);
+*/
 stock GangZoneExist(zone)
 {
 	if (zone < 0 || zone >= MAX_GANGZONES)
 	    return 0;
 
-	return GZ_g_Data[zone][GZ_e_DATA_VALID];
+	return GZ_eData[zone][GZ_e_DATA_VALID];
 }
 
+/*
+native GangZoneShowForPlayer(playerid, zone, color = -1, bordercolor = -1);
+*/
 stock GZ_GangZoneShowForPlayer(playerid, zone, color = -1, bordercolor = -1)
 {
 	if (zone < 0 || zone >= MAX_GANGZONES)
 	    return 0;
 
-  	if (!GZ_g_Data[zone][GZ_e_DATA_VALID])
+  	if (!GZ_eData[zone][GZ_e_DATA_VALID])
 	  	return 0;
 
   	if (color != -1)
-	  	GZ_p_ShownColor[playerid][zone] = color;
+	  	GZ_iShownColor[playerid][zone] = color;
 
   	if (bordercolor != -1)
-	  	GZ_p_ShownBorderColor[playerid][zone] = bordercolor;
+	  	GZ_iShownBorderColor[playerid][zone] = bordercolor;
 
-	GangZoneShowForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_ZONEID], GZ_p_ShownColor[playerid][zone]);
-	GangZoneShowForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_BORDERID][0], GZ_p_ShownBorderColor[playerid][zone]);
-	GangZoneShowForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_BORDERID][1], GZ_p_ShownBorderColor[playerid][zone]);
-	GangZoneShowForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_BORDERID][2], GZ_p_ShownBorderColor[playerid][zone]);
-	GangZoneShowForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_BORDERID][3], GZ_p_ShownBorderColor[playerid][zone]);
+	GangZoneShowForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_ZONEID], GZ_iShownColor[playerid][zone]);
+	GangZoneShowForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_BORDERID][0], GZ_iShownBorderColor[playerid][zone]);
+	GangZoneShowForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_BORDERID][1], GZ_iShownBorderColor[playerid][zone]);
+	GangZoneShowForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_BORDERID][2], GZ_iShownBorderColor[playerid][zone]);
+	GangZoneShowForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_BORDERID][3], GZ_iShownBorderColor[playerid][zone]);
 
-	GZ_p_Shown[playerid][zone] = true;
+	GZ_bIsShown[playerid][zone] = true;
 	return 1;
 }
 #if defined _ALS_GangZoneShowForPlayer
@@ -184,21 +161,24 @@ stock GZ_GangZoneShowForPlayer(playerid, zone, color = -1, bordercolor = -1)
 #endif
 #define GangZoneShowForPlayer GZ_GangZoneShowForPlayer
 
+/*
+native GangZoneHideForPlayer(playerid, zone);
+*/
 stock GZ_GangZoneHideForPlayer(playerid, zone)
 {
 	if (zone < 0 || zone >= MAX_GANGZONES)
 	    return 0;
 
-  	if (!GZ_g_Data[zone][GZ_e_DATA_VALID])
+  	if (!GZ_eData[zone][GZ_e_DATA_VALID])
 	  	return 0;
 
-	GangZoneHideForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_ZONEID]);
-	GangZoneHideForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_BORDERID][0]);
-	GangZoneHideForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_BORDERID][1]);
-	GangZoneHideForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_BORDERID][2]);
-	GangZoneHideForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_BORDERID][3]);
+	GangZoneHideForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_ZONEID]);
+	GangZoneHideForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_BORDERID][0]);
+	GangZoneHideForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_BORDERID][1]);
+	GangZoneHideForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_BORDERID][2]);
+	GangZoneHideForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_BORDERID][3]);
 
-	GZ_p_Shown[playerid][zone] = false;
+	GZ_bIsShown[playerid][zone] = false;
 	return 1;
 }
 #if defined _ALS_GangZoneHideForPlayer
@@ -208,29 +188,32 @@ stock GZ_GangZoneHideForPlayer(playerid, zone)
 #endif
 #define GangZoneHideForPlayer GZ_GangZoneHideForPlayer
 
+/*
+native GangZoneShowForAll(zone, color = -1, bordercolor = -1);
+*/
 stock GZ_GangZoneShowForAll(zone, color = -1, bordercolor = -1)
 {
 	if (zone < 0 || zone >= MAX_GANGZONES)
 	    return 0;
 
-  	if (!GZ_g_Data[zone][GZ_e_DATA_VALID])
+  	if (!GZ_eData[zone][GZ_e_DATA_VALID])
 	  	return 0;
 
  	for (new i; i < MAX_PLAYERS; i++)
  	{
 	  	if (color != -1)
-		  	GZ_p_ShownColor[i][zone] = color;
+		  	GZ_iShownColor[i][zone] = color;
 
 	  	if (bordercolor != -1)
-		  	GZ_p_ShownBorderColor[i][zone] = bordercolor;
+		  	GZ_iShownBorderColor[i][zone] = bordercolor;
 
-		GangZoneShowForPlayer(i, GZ_g_Data[zone][GZ_e_DATA_ZONEID], GZ_p_ShownColor[i][zone]);
-		GangZoneShowForPlayer(i, GZ_g_Data[zone][GZ_e_DATA_BORDERID][0], GZ_p_ShownBorderColor[i][zone]);
-		GangZoneShowForPlayer(i, GZ_g_Data[zone][GZ_e_DATA_BORDERID][1], GZ_p_ShownBorderColor[i][zone]);
-		GangZoneShowForPlayer(i, GZ_g_Data[zone][GZ_e_DATA_BORDERID][2], GZ_p_ShownBorderColor[i][zone]);
-		GangZoneShowForPlayer(i, GZ_g_Data[zone][GZ_e_DATA_BORDERID][3], GZ_p_ShownBorderColor[i][zone]);
+		GangZoneShowForPlayer(i, GZ_eData[zone][GZ_e_DATA_ZONEID], GZ_iShownColor[i][zone]);
+		GangZoneShowForPlayer(i, GZ_eData[zone][GZ_e_DATA_BORDERID][0], GZ_iShownBorderColor[i][zone]);
+		GangZoneShowForPlayer(i, GZ_eData[zone][GZ_e_DATA_BORDERID][1], GZ_iShownBorderColor[i][zone]);
+		GangZoneShowForPlayer(i, GZ_eData[zone][GZ_e_DATA_BORDERID][2], GZ_iShownBorderColor[i][zone]);
+		GangZoneShowForPlayer(i, GZ_eData[zone][GZ_e_DATA_BORDERID][3], GZ_iShownBorderColor[i][zone]);
 
-		GZ_p_Shown[i][zone] = true;
+		GZ_bIsShown[i][zone] = true;
 	}
 	return 1;
 }
@@ -241,22 +224,25 @@ stock GZ_GangZoneShowForAll(zone, color = -1, bordercolor = -1)
 #endif
 #define GangZoneShowForAll GZ_GangZoneShowForAll
 
+/*
+native GangZoneHideForAll(zone);
+*/
 stock GZ_GangZoneHideForAll(zone)
 {
 	if (zone < 0 || zone >= MAX_GANGZONES)
 	    return 0;
 
-  	if (!GZ_g_Data[zone][GZ_e_DATA_VALID])
+  	if (!GZ_eData[zone][GZ_e_DATA_VALID])
 	  	return 0;
 
-	GangZoneHideForAll(GZ_g_Data[zone][GZ_e_DATA_ZONEID]);
-	GangZoneHideForAll(GZ_g_Data[zone][GZ_e_DATA_BORDERID][0]);
-	GangZoneHideForAll(GZ_g_Data[zone][GZ_e_DATA_BORDERID][1]);
-	GangZoneHideForAll(GZ_g_Data[zone][GZ_e_DATA_BORDERID][2]);
-	GangZoneHideForAll(GZ_g_Data[zone][GZ_e_DATA_BORDERID][3]);
+	GangZoneHideForAll(GZ_eData[zone][GZ_e_DATA_ZONEID]);
+	GangZoneHideForAll(GZ_eData[zone][GZ_e_DATA_BORDERID][0]);
+	GangZoneHideForAll(GZ_eData[zone][GZ_e_DATA_BORDERID][1]);
+	GangZoneHideForAll(GZ_eData[zone][GZ_e_DATA_BORDERID][2]);
+	GangZoneHideForAll(GZ_eData[zone][GZ_e_DATA_BORDERID][3]);
 
  	for (new i; i < MAX_PLAYERS; i++)
- 		GZ_p_Shown[i][zone] = false;
+ 		GZ_bIsShown[i][zone] = false;
 	return 1;
 }
 #if defined _ALS_GangZoneHideForAll
@@ -266,30 +252,33 @@ stock GZ_GangZoneHideForAll(zone)
 #endif
 #define GangZoneHideForAll GZ_GangZoneHideForAll
 
+/*
+native GangZoneFlashForPlayer(playerid, zone, flashcolor = -1, flashbordercolor = -1);
+*/
 stock GZ_GangZoneFlashForPlayer(playerid, zone, flashcolor = -1, flashbordercolor = -1)
 {
 	if (zone < 0 || zone >= MAX_GANGZONES)
 	    return 0;
 
-  	if (!GZ_g_Data[zone][GZ_e_DATA_VALID])
+  	if (!GZ_eData[zone][GZ_e_DATA_VALID])
 	  	return 0;
 
   	if (flashcolor != -1)
   	{
-	  	GZ_p_FlashColor[playerid][zone] = flashcolor;
-		GangZoneFlashForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_ZONEID], GZ_p_FlashColor[playerid][zone]);
+	  	GZ_iFlashColor[playerid][zone] = flashcolor;
+		GangZoneFlashForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_ZONEID], GZ_iFlashColor[playerid][zone]);
 	}
 
   	if (flashbordercolor != -1)
 	{
-	  	GZ_p_FlashBorderColor[playerid][zone] = flashbordercolor;
-		GangZoneShowForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_BORDERID][0], GZ_p_FlashBorderColor[playerid][zone]);
-		GangZoneShowForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_BORDERID][1], GZ_p_FlashBorderColor[playerid][zone]);
-		GangZoneShowForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_BORDERID][2], GZ_p_FlashBorderColor[playerid][zone]);
-		GangZoneShowForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_BORDERID][3], GZ_p_FlashBorderColor[playerid][zone]);
+	  	GZ_iFlashBorderColor[playerid][zone] = flashbordercolor;
+		GangZoneShowForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_BORDERID][0], GZ_iFlashBorderColor[playerid][zone]);
+		GangZoneShowForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_BORDERID][1], GZ_iFlashBorderColor[playerid][zone]);
+		GangZoneShowForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_BORDERID][2], GZ_iFlashBorderColor[playerid][zone]);
+		GangZoneShowForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_BORDERID][3], GZ_iFlashBorderColor[playerid][zone]);
 	}
 
-	GZ_p_Flashing[playerid][zone] = true;
+	GZ_bIsFlashing[playerid][zone] = true;
 	return 1;
 }
 #if defined _ALS_GangZoneFlashForPlayer
@@ -299,21 +288,24 @@ stock GZ_GangZoneFlashForPlayer(playerid, zone, flashcolor = -1, flashbordercolo
 #endif
 #define GangZoneFlashForPlayer GZ_GangZoneFlashForPlayer
 
+/*
+native GangZoneStopFlashForPlayer(playerid, zone);
+*/
 stock GZ_GangZoneStopFlashForPlayer(playerid, zone)
 {
 	if (zone < 0 || zone >= MAX_GANGZONES)
 	    return 0;
 
-  	if (!GZ_g_Data[zone][GZ_e_DATA_VALID])
+  	if (!GZ_eData[zone][GZ_e_DATA_VALID])
 	  	return 0;
 
-	GangZoneStopFlashForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_ZONEID]);
-	GangZoneStopFlashForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_BORDERID][0]);
-	GangZoneStopFlashForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_BORDERID][1]);
-	GangZoneStopFlashForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_BORDERID][2]);
-	GangZoneStopFlashForPlayer(playerid, GZ_g_Data[zone][GZ_e_DATA_BORDERID][3]);
+	GangZoneStopFlashForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_ZONEID]);
+	GangZoneStopFlashForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_BORDERID][0]);
+	GangZoneStopFlashForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_BORDERID][1]);
+	GangZoneStopFlashForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_BORDERID][2]);
+	GangZoneStopFlashForPlayer(playerid, GZ_eData[zone][GZ_e_DATA_BORDERID][3]);
 
-	GZ_p_Flashing[playerid][zone] = false;
+	GZ_bIsFlashing[playerid][zone] = false;
 	return 1;
 }
 #if defined _ALS_GangZoneStopFlashForPlayer
@@ -323,30 +315,33 @@ stock GZ_GangZoneStopFlashForPlayer(playerid, zone)
 #endif
 #define GangZoneStopFlashForPlayer GZ_GangZoneStopFlashForPlayer
 
+/*
+native GangZoneFlashForAll(zone, flashcolor = -1, flashbordercolor = -1);
+*/
 stock GZ_GangZoneFlashForAll(zone, flashcolor = -1, flashbordercolor = -1)
 {
 	if (zone < 0 || zone >= MAX_GANGZONES)
 	    return 0;
 
-  	if (!GZ_g_Data[zone][GZ_e_DATA_VALID])
+  	if (!GZ_eData[zone][GZ_e_DATA_VALID])
 	  	return 0;
 
 	if (flashcolor != -1)
-		GangZoneFlashForAll(GZ_g_Data[zone][GZ_e_DATA_ZONEID], flashcolor);
+		GangZoneFlashForAll(GZ_eData[zone][GZ_e_DATA_ZONEID], flashcolor);
 
 	if (flashbordercolor != -1)
 	{
-		GangZoneFlashForAll(GZ_g_Data[zone][GZ_e_DATA_BORDERID][0], flashbordercolor);
-		GangZoneFlashForAll(GZ_g_Data[zone][GZ_e_DATA_BORDERID][1], flashbordercolor);
-		GangZoneFlashForAll(GZ_g_Data[zone][GZ_e_DATA_BORDERID][2], flashbordercolor);
-		GangZoneFlashForAll(GZ_g_Data[zone][GZ_e_DATA_BORDERID][3], flashbordercolor);
+		GangZoneFlashForAll(GZ_eData[zone][GZ_e_DATA_BORDERID][0], flashbordercolor);
+		GangZoneFlashForAll(GZ_eData[zone][GZ_e_DATA_BORDERID][1], flashbordercolor);
+		GangZoneFlashForAll(GZ_eData[zone][GZ_e_DATA_BORDERID][2], flashbordercolor);
+		GangZoneFlashForAll(GZ_eData[zone][GZ_e_DATA_BORDERID][3], flashbordercolor);
 	}
 
 	for (new i; i < MAX_PLAYERS; i++)
  	{
-		GZ_p_Flashing[i][zone] = true;
-	  	GZ_p_FlashColor[i][zone] = flashcolor;
-		GZ_p_FlashBorderColor[i][zone] = flashbordercolor;
+		GZ_bIsFlashing[i][zone] = true;
+	  	GZ_iFlashColor[i][zone] = flashcolor;
+		GZ_iFlashBorderColor[i][zone] = flashbordercolor;
 	}
 	return 1;
 }
@@ -357,22 +352,25 @@ stock GZ_GangZoneFlashForAll(zone, flashcolor = -1, flashbordercolor = -1)
 #endif
 #define GangZoneFlashForAll GZ_GangZoneFlashForAll
 
+/*
+native GangZoneStopFlashForAll(zone);
+*/
 stock GZ_GangZoneStopFlashForAll(zone)
 {
 	if (zone < 0 || zone >= MAX_GANGZONES)
 	    return 0;
 
-  	if (!GZ_g_Data[zone][GZ_e_DATA_VALID])
+  	if (!GZ_eData[zone][GZ_e_DATA_VALID])
 	  	return 0;
 
-	GangZoneStopFlashForAll(GZ_g_Data[zone][GZ_e_DATA_ZONEID]);
-	GangZoneStopFlashForAll(GZ_g_Data[zone][GZ_e_DATA_BORDERID][0]);
-	GangZoneStopFlashForAll(GZ_g_Data[zone][GZ_e_DATA_BORDERID][1]);
-	GangZoneStopFlashForAll(GZ_g_Data[zone][GZ_e_DATA_BORDERID][2]);
-	GangZoneStopFlashForAll(GZ_g_Data[zone][GZ_e_DATA_BORDERID][3]);
+	GangZoneStopFlashForAll(GZ_eData[zone][GZ_e_DATA_ZONEID]);
+	GangZoneStopFlashForAll(GZ_eData[zone][GZ_e_DATA_BORDERID][0]);
+	GangZoneStopFlashForAll(GZ_eData[zone][GZ_e_DATA_BORDERID][1]);
+	GangZoneStopFlashForAll(GZ_eData[zone][GZ_e_DATA_BORDERID][2]);
+	GangZoneStopFlashForAll(GZ_eData[zone][GZ_e_DATA_BORDERID][3]);
 
 	for (new i; i < MAX_PLAYERS; i++)
- 		GZ_p_Flashing[i][zone] = false;
+ 		GZ_bIsFlashing[i][zone] = false;
 	return 1;
 }
 #if defined _ALS_GangZoneStopFlashForAll
@@ -382,63 +380,81 @@ stock GZ_GangZoneStopFlashForAll(zone)
 #endif
 #define GangZoneStopFlashForAll GZ_GangZoneStopFlashForAll
 
+/*
+native GangZoneSetInterior(zone, interiorid);
+*/
 stock GangZoneSetInterior(zone, interiorid)
 {
 	if (zone < 0 || zone >= MAX_GANGZONES)
 	    return 0;
 
-  	if (!GZ_g_Data[zone][GZ_e_DATA_VALID])
+  	if (!GZ_eData[zone][GZ_e_DATA_VALID])
 	  	return 0;
 
-    Streamer_SetIntData(STREAMER_TYPE_AREA, GZ_g_Data[zone][GZ_e_DATA_AREAID], E_STREAMER_INTERIOR_ID, interiorid);
+    Streamer_SetIntData(STREAMER_TYPE_AREA, GZ_eData[zone][GZ_e_DATA_AREAID], E_STREAMER_INTERIOR_ID, interiorid);
 	return 1;
 }
 
+/*
+native GangZoneGetInterior(zone);
+*/
 stock GangZoneGetInterior(zone)
 {
 	if (zone < 0 || zone >= MAX_GANGZONES)
 	    return 0;
 
-  	if (!GZ_g_Data[zone][GZ_e_DATA_VALID])
+  	if (!GZ_eData[zone][GZ_e_DATA_VALID])
 	  	return 0;
 
-	return Streamer_GetIntData(STREAMER_TYPE_AREA, GZ_g_Data[zone][GZ_e_DATA_AREAID], E_STREAMER_INTERIOR_ID);
+	return Streamer_GetIntData(STREAMER_TYPE_AREA, GZ_eData[zone][GZ_e_DATA_AREAID], E_STREAMER_INTERIOR_ID);
 }
 
+/*
+native GangZoneSetVituralWorld(zone, virtualworldid);
+*/
 stock GangZoneSetVituralWorld(zone, virtualworldid)
 {
 	if (zone < 0 || zone >= MAX_GANGZONES)
 	    return 0;
 
-  	if (!GZ_g_Data[zone][GZ_e_DATA_VALID])
+  	if (!GZ_eData[zone][GZ_e_DATA_VALID])
 	  	return 0;
 
-    Streamer_SetIntData(STREAMER_TYPE_AREA, GZ_g_Data[zone][GZ_e_DATA_AREAID], E_STREAMER_WORLD_ID, virtualworldid);
+    Streamer_SetIntData(STREAMER_TYPE_AREA, GZ_eData[zone][GZ_e_DATA_AREAID], E_STREAMER_WORLD_ID, virtualworldid);
     return 1;
 }
 
+/*
+native GangZoneGetVirtualWorld(zone);
+*/
 stock GangZoneGetVirtualWorld(zone)
 {
 	if (zone < 0 || zone >= MAX_GANGZONES)
 	    return 0;
 
-  	if (!GZ_g_Data[zone][GZ_e_DATA_VALID])
+  	if (!GZ_eData[zone][GZ_e_DATA_VALID])
 	  	return 0;
 
-	return Streamer_GetIntData(STREAMER_TYPE_AREA, GZ_g_Data[zone][GZ_e_DATA_AREAID], E_STREAMER_WORLD_ID);
+	return Streamer_GetIntData(STREAMER_TYPE_AREA, GZ_eData[zone][GZ_e_DATA_AREAID], E_STREAMER_WORLD_ID);
 }
 
+/*
+native CountAllGangZones();
+*/
 stock CountAllGangZones()
 {
 	new count = 0;
     for (new i; i < MAX_GANGZONES; i++)
 	{
-	    if (GZ_g_Data[i][GZ_e_DATA_VALID])
+	    if (GZ_eData[i][GZ_e_DATA_VALID])
 	    	count++;
 	}
 	return count;
 }
 
+/*
+native DestroyAllGangZones();
+*/
 stock DestroyAllGangZones()
 {
     for (new i; i < MAX_GANGZONES; i++)
@@ -446,95 +462,106 @@ stock DestroyAllGangZones()
 	return 1;
 }
 
+/*
+native ShowAllGangZonesForPlayer(playerid, color = -1, bordercolor = -1);
+*/
 stock ShowAllGangZonesForPlayer(playerid, color = -1, bordercolor = -1)
 {
 	for (new i; i < MAX_GANGZONES; i++)
 	{
-	    if (GZ_g_Data[i][GZ_e_DATA_VALID])
-	    	GangZoneShowForPlayer(playerid, zone, color, bordercolor);
+	    if (GZ_eData[i][GZ_e_DATA_VALID])
+	    	GangZoneShowForPlayer(playerid, i, color, bordercolor);
 	}
 	return 1;
 }
 
+/*
+native HideAllGangZonesForPlayer(playerid);
+*/
 stock HideAllGangZonesForPlayer(playerid)
 {
 	for (new i; i < MAX_GANGZONES; i++)
 	{
-	    if (GZ_g_Data[i][GZ_e_DATA_VALID])
-	    	GangZoneHideForPlayer(playerid, zone);
+	    if (GZ_eData[i][GZ_e_DATA_VALID])
+	    	GangZoneHideForPlayer(playerid, i);
 	}
 	return 1;
 }
 
+/*
+native ShowAllGangZonesForAll(color = -1, bordercolor = -1);
+*/
 stock ShowAllGangZonesForAll(color = -1, bordercolor = -1)
 {
 	for (new i; i < MAX_GANGZONES; i++)
 	{
-	    if (GZ_g_Data[i][GZ_e_DATA_VALID])
-			GangZoneShowForAll(zone, color, bordercolor);
+	    if (GZ_eData[i][GZ_e_DATA_VALID])
+			GangZoneShowForAll(i, color, bordercolor);
 	}
 	return 1;
 }
 
+/*
+native HideAllGangZonesForAll();
+*/
 stock HideAllGangZonesForAll()
 {
 	for (new i; i < MAX_GANGZONES; i++)
 	{
-	    if (GZ_g_Data[i][GZ_e_DATA_VALID])
-			GangZoneHideForAll(zone);
+	    if (GZ_eData[i][GZ_e_DATA_VALID])
+			GangZoneHideForAll(i);
 	}
 	return 1;
 }
 
-stock IsPlayerInAnyGangZone(playerid)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	    return 0;
-
-	for (new i; i < MAX_GANGZONES; i++)
-	{
-	    if (GZ_g_Data[i][GZ_e_DATA_VALID])
-	    {
-	        if (IsPlayerInDynamicArea(playerid, GZ_g_Data[i][GZ_e_DATA_AREAID]))
-	            return 1;
-		}
-	}
-	return 0;
-}
-
+/*
+native GetPlayerGangZone(playerid);
+*/
 stock GetPlayerGangZone(playerid)
 {
 	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	    return 0;
+	    return -1;
 
 	for (new i; i < MAX_GANGZONES; i++)
 	{
-	    if (GZ_g_Data[i][GZ_e_DATA_VALID])
+	    if (GZ_eData[i][GZ_e_DATA_VALID])
 	    {
-	        if (IsPlayerInDynamicArea(playerid, GZ_g_Data[i][GZ_e_DATA_AREAID]))
+	        if (IsPlayerInDynamicArea(playerid, GZ_eData[i][GZ_e_DATA_AREAID]))
 	            return i;
 		}
 	}
 	return 1;
 }
 
+/*
+native IsPlayerInGangZone(playerid, zone);
+*/
+#define IsPlayerInGangZone(%1,%2) \
+    (GetPlayerGangZone(%1) == %2)
+
+/*
+native IsPlayerInAnyGangZone(playerid);
+*/
+#define IsPlayerInAnyGangZone(%1) \
+    (GetPlayerGangZone(%1) != -1)
+
 public OnPlayerInteriorChange(playerid, newinteriorid, oldinteriorid)
 {
     for (new i; i < MAX_GANGZONES; i++)
 	{
-        if (GZ_g_Data[i][GZ_e_DATA_VALID])
+        if (GZ_eData[i][GZ_e_DATA_VALID])
 	    {
-		    if (Streamer_GetIntData(STREAMER_TYPE_AREA, GZ_g_Data[i][GZ_e_DATA_AREAID], E_STREAMER_INTERIOR_ID) != -1)
+		    if (Streamer_GetIntData(STREAMER_TYPE_AREA, GZ_eData[i][GZ_e_DATA_AREAID], E_STREAMER_INTERIOR_ID) != -1)
 		    {
-		        if (GZ_p_Shown[playerid][i])
+		        if (GZ_bIsShown[playerid][i])
 		        {
-		            if (newinteriorid != Streamer_GetIntData(STREAMER_TYPE_AREA, GZ_g_Data[i][GZ_e_DATA_AREAID], E_STREAMER_INTERIOR_ID))
+		            if (newinteriorid != Streamer_GetIntData(STREAMER_TYPE_AREA, GZ_eData[i][GZ_e_DATA_AREAID], E_STREAMER_INTERIOR_ID))
 		            	GangZoneHideForPlayer(playerid, i);
 		        	else
 		        	{
 		        	    GangZoneShowForPlayer(playerid, i);
-		        	    if (GZ_p_Flashing[playerid][i])
-		        	    	GangZoneFlashForPlayer(playerid, i, GZ_p_FlashColor[playerid][i], GZ_p_FlashBorderColor[playerid][i]);
+		        	    if (GZ_bIsFlashing[playerid][i])
+		        	    	GangZoneFlashForPlayer(playerid, i, GZ_iFlashColor[playerid][i], GZ_iFlashBorderColor[playerid][i]);
 		        	}
 				}
 			}
@@ -559,25 +586,25 @@ public OnPlayerInteriorChange(playerid, newinteriorid, oldinteriorid)
 public OnPlayerUpdate(playerid)
 {
 	new worldid = GetPlayerVirtualWorld(playerid);
-	if (GZ_p_Worldid[playerid] != worldid)
+	if (GZ_iPlayerWorldid[playerid] != worldid)
 	{
-	    GZ_p_Worldid[playerid] = worldid;
+	    GZ_iPlayerWorldid[playerid] = worldid;
 
 	    for (new i; i < MAX_GANGZONES; i++)
 		{
-	        if (GZ_g_Data[i][GZ_e_DATA_VALID])
+	        if (GZ_eData[i][GZ_e_DATA_VALID])
 		    {
-			    if (Streamer_GetIntData(STREAMER_TYPE_AREA, GZ_g_Data[i][GZ_e_DATA_AREAID], E_STREAMER_WORLD_ID) != -1)
+			    if (Streamer_GetIntData(STREAMER_TYPE_AREA, GZ_eData[i][GZ_e_DATA_AREAID], E_STREAMER_WORLD_ID) != -1)
 			    {
-			        if (GZ_p_Shown[playerid][i])
+			        if (GZ_bIsShown[playerid][i])
 			        {
-			            if (worldid != Streamer_GetIntData(STREAMER_TYPE_AREA, GZ_g_Data[i][GZ_e_DATA_AREAID], E_STREAMER_WORLD_ID))
+			            if (worldid != Streamer_GetIntData(STREAMER_TYPE_AREA, GZ_eData[i][GZ_e_DATA_AREAID], E_STREAMER_WORLD_ID))
 			            	GangZoneHideForPlayer(playerid, i);
 			        	else
 			        	{
 			        	    GangZoneShowForPlayer(playerid, i);
-			        	    if (GZ_p_Flashing[playerid][i])
-			        	    	GangZoneFlashForPlayer(playerid, i, GZ_p_FlashColor[playerid][i], GZ_p_FlashBorderColor[playerid][i]);
+			        	    if (GZ_bIsFlashing[playerid][i])
+			        	    	GangZoneFlashForPlayer(playerid, i, GZ_iFlashColor[playerid][i], GZ_iFlashBorderColor[playerid][i]);
 			        	}
 					}
 				}
@@ -604,9 +631,9 @@ public OnPlayerEnterDynamicArea(playerid, areaid)
 {
     for (new i; i < MAX_GANGZONES; i++)
 	{
-        if (GZ_g_Data[i][GZ_e_DATA_VALID])
+        if (GZ_eData[i][GZ_e_DATA_VALID])
 	    {
-			if (areaid == GZ_g_Data[i][GZ_e_DATA_AREAID])
+			if (areaid == GZ_eData[i][GZ_e_DATA_AREAID])
 	    	{
 	    	    #if defined OnPlayerEnterGangZone
 	    	    	OnPlayerEnterGangZone(playerid, i);
@@ -635,9 +662,9 @@ public OnPlayerLeaveDynamicArea(playerid, areaid)
 {
     for (new i; i < MAX_GANGZONES; i++)
 	{
-        if (GZ_g_Data[i][GZ_e_DATA_VALID])
+        if (GZ_eData[i][GZ_e_DATA_VALID])
 	    {
-			if (areaid == GZ_g_Data[i][GZ_e_DATA_AREAID])
+			if (areaid == GZ_eData[i][GZ_e_DATA_AREAID])
 	    	{
 	    	    #if defined OnPlayerLeaveGangZone
 	    	    	OnPlayerLeaveGangZone(playerid, i);
