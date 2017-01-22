@@ -1588,7 +1588,7 @@ stock SS_SetPlayerArmour(playerid, Float:armour)
 	CallRemoteFunction("__SetPlayerArmour", "if", playerid, armour);
 
 	if (armour >= 100.0)
-		return SetPlayerArmour(playerid, 200.0);
+		return SetPlayerArmour(playerid, FAKE_HEALTH);
 
 	return SetPlayerArmour(playerid, armour);
 }
