@@ -1,4 +1,4 @@
-// Ban.inc - v2.0.0 - By Gammix - Last updated on 22 Dec, 2016
+// Ban.inc - v2.0.1 - By Gammix - Last updated on 22 Jan, 2017
 #if defined ban_included
 	#endinput
 #endif
@@ -29,9 +29,9 @@ public	_ban_anti_crash()
 const BAN_IP_MASK = (-1 << (32 - (/*this is the CIDR ip detection range [def: 26]*/26)));
 
 #if defined SQL_SERVER
-	static MySQL:db;
+	static MySQL:BAN_db;
 #else
-	static DB:db;
+	static DB:BAN_db;
 #endif
 
 static BAN_IpToLong(const ip[])
@@ -87,21 +87,21 @@ static BAN_IpToLong(const ip[])
 		mysql_set_option(options, AUTO_RECONNECT, false);
 		mysql_set_option(options, POOL_SIZE, 0);
 
-		db = mysql_connect(SQL_SERVER, SQL_USERNAME, SQL_PASSWORD, SQL_DATABASE, options);
+		BAN_db = mysql_connect(SQL_SERVER, SQL_USERNAME, SQL_PASSWORD, SQL_DATABASE, options);
 		if (mysql_errno() == 0)
 		{
-			mysql_tquery(db, "CREATE TABLE IF NOT EXISTS `bans` (`id` INT NOT NULL AUTO_INCREMENT, `name` VARCHAR(24) NOT NULL DEFAULT '', `ip` VARCHAR(18) NOT NULL DEFAULT '', `longip` INT NOT NULL DEFAULT '0', `expire` INT NOT NULL DEFAULT '0', PRIMARY KEY (`id`))");
-	    	mysql_tquery(db, "CREATE TABLE IF NOT EXISTS `bans_data` (`bans_id` INT NOT NULL DEFAULT '0', `field` VARCHAR(128) NOT NULL DEFAULT '', `value` VARCHAR(512) NOT NULL DEFAULT '')");
+			mysql_tquery(BAN_db, "CREATE TABLE IF NOT EXISTS `bans` (`id` INT NOT NULL AUTO_INCREMENT, `name` VARCHAR(24) NOT NULL DEFAULT '', `ip` VARCHAR(18) NOT NULL DEFAULT '', `longip` INT NOT NULL DEFAULT '0', `expire` INT NOT NULL DEFAULT '0', PRIMARY KEY (`id`))");
+	    	mysql_tquery(BAN_db, "CREATE TABLE IF NOT EXISTS `bans_data` (`bans_id` INT NOT NULL DEFAULT '0', `field` VARCHAR(128) NOT NULL DEFAULT '', `value` VARCHAR(512) NOT NULL DEFAULT '')");
 		}
 	#else
-	    db = db_open(SQL_DATABASE ".db");
-	    if (db)
+	    BAN_db = db_open(SQL_DATABASE ".db");
+	    if (BAN_db)
 	    {
-		    db_query(db, "PRAGMA synchronous = NORMAL");
-	       	db_query(db, "PRAGMA journal_mode = WAL");
+		    db_query(BAN_db, "PRAGMA synchronous = NORMAL");
+	       	db_query(BAN_db, "PRAGMA journal_mode = WAL");
 
-			db_query(db, "CREATE TABLE IF NOT EXISTS `bans` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(24) NOT NULL DEFAULT '', `ip` VARCHAR(18) NOT NULL DEFAULT '', `longip` INT NOT NULL DEFAULT '0', `expire` INT NOT NULL DEFAULT '0')");
-			db_query(db, "CREATE TABLE IF NOT EXISTS `bans_data` (`bans_id` INT NOT NULL DEFAULT '0', `field` VARCHAR(128) NOT NULL DEFAULT '', `value` VARCHAR(512) NOT NULL DEFAULT '')");
+			db_query(BAN_db, "CREATE TABLE IF NOT EXISTS `bans` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(24) NOT NULL DEFAULT '', `ip` VARCHAR(18) NOT NULL DEFAULT '', `longip` INT NOT NULL DEFAULT '0', `expire` INT NOT NULL DEFAULT '0')");
+			db_query(BAN_db, "CREATE TABLE IF NOT EXISTS `bans_data` (`bans_id` INT NOT NULL DEFAULT '0', `field` VARCHAR(128) NOT NULL DEFAULT '', `value` VARCHAR(512) NOT NULL DEFAULT '')");
 		}
 	#endif
 
@@ -148,9 +148,9 @@ static BAN_IpToLong(const ip[])
 #endif
 {
 	#if defined SQL_SERVER
-        mysql_close(db);
+        mysql_close(BAN_db);
 	#else
-	    db_close(db);
+	    db_close(BAN_db);
 	#endif
 
 	#if defined FILTERSCRIPT
@@ -249,8 +249,8 @@ stock BAN_Ban(playerid, name[MAX_PLAYER_NAME] = "", ip[18] = "", bool:range = fa
 
 	new string[256];
 	#if defined SQL_SERVER
-		mysql_format(db, string, sizeof(string), "SELECT 0 FROM `bans` WHERE `name` = '%s' OR `ip` = '%s' LIMIT 1", name, ip);
-		new Cache:result = mysql_query(db, string);
+		mysql_format(BAN_db, string, sizeof(string), "SELECT 0 FROM `bans` WHERE `name` = '%s' OR `ip` = '%s' LIMIT 1", name, ip);
+		new Cache:result = mysql_query(BAN_db, string);
 		if (cache_num_rows() > 0)
 		{
 		    cache_delete(result);
@@ -258,12 +258,12 @@ stock BAN_Ban(playerid, name[MAX_PLAYER_NAME] = "", ip[18] = "", bool:range = fa
 		}
 		else
 		{
-		    mysql_format(db, string, sizeof(string), "INSERT INTO `bans`(`name`, `ip`, `longip`, `expire`) VALUES('%s', '%s', %i, %i)", name, ip, ((range) ? (BAN_IpToLong(ip)) : (0)), expire);
-		    mysql_tquery(db, string);
+		    mysql_format(BAN_db, string, sizeof(string), "INSERT INTO `bans`(`name`, `ip`, `longip`, `expire`) VALUES('%s', '%s', %i, %i)", name, ip, ((range) ? (BAN_IpToLong(ip)) : (0)), expire);
+		    mysql_tquery(BAN_db, string);
 		}
 	#else
 		format(string, sizeof(string), "SELECT 0 FROM `bans` WHERE `name` = '%s' OR `ip` = '%s' LIMIT 1", name, ip);
-		new DBResult:result = db_query(db, string);
+		new DBResult:result = db_query(BAN_db, string);
 		if (db_num_rows(result) > 0)
 		{
 		    db_free_result(result);
@@ -272,7 +272,7 @@ stock BAN_Ban(playerid, name[MAX_PLAYER_NAME] = "", ip[18] = "", bool:range = fa
 		else
 		{
 		    format(string, sizeof(string), "INSERT INTO `bans`(`name`, `ip`, `longip`, `expire`) VALUES('%s', '%s', %i, %i)", name, ip, ((range) ? (BAN_IpToLong(ip)) : (0)), expire);
-		    db_query(db, string);
+		    db_query(BAN_db, string);
 		}
 	#endif
 
@@ -305,8 +305,8 @@ stock BAN_BanEx(playerid, const reason[], name[MAX_PLAYER_NAME] = "", ip[18] = "
 
 	new string[256];
 	#if defined SQL_SERVER
-		mysql_format(db, string, sizeof(string), "SELECT 0 FROM `bans` WHERE `name` = '%s' OR `ip` = '%s' LIMIT 1", name, ip);
-		new Cache:result = mysql_query(db, string);
+		mysql_format(BAN_db, string, sizeof(string), "SELECT 0 FROM `bans` WHERE `name` = '%s' OR `ip` = '%s' LIMIT 1", name, ip);
+		new Cache:result = mysql_query(BAN_db, string);
 		if (cache_num_rows() > 0)
 		{
 		    cache_delete(result);
@@ -315,21 +315,21 @@ stock BAN_BanEx(playerid, const reason[], name[MAX_PLAYER_NAME] = "", ip[18] = "
 		else
 		{
 		    cache_delete(result);
-		    mysql_format(db, string, sizeof(string), "INSERT INTO `bans`(`name`, `ip`, `longip`, `expire`) VALUES('%s', '%s', %i, %i)", name, ip, ((range) ? (BAN_IpToLong(ip)) : (0)), expire);
-		    mysql_tquery(db, string);
+		    mysql_format(BAN_db, string, sizeof(string), "INSERT INTO `bans`(`name`, `ip`, `longip`, `expire`) VALUES('%s', '%s', %i, %i)", name, ip, ((range) ? (BAN_IpToLong(ip)) : (0)), expire);
+		    mysql_tquery(BAN_db, string);
 
-		    mysql_format(db, string, sizeof(string), "SELECT `id` FROM `bans` WHERE `name` = '%s' AND `ip` = '%s' LIMIT 1", name, ip);
-		    result = mysql_query(db, string);
+		    mysql_format(BAN_db, string, sizeof(string), "SELECT `id` FROM `bans` WHERE `name` = '%s' AND `ip` = '%s' LIMIT 1", name, ip);
+		    result = mysql_query(BAN_db, string);
 		    new banid;
 		    cache_get_value_index_int(0, 0, banid);
 		    cache_delete(result);
 
-		    mysql_format(db, string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, 'reason', '%e')", banid, reason, reason);
-		    mysql_tquery(db, string);
+		    mysql_format(BAN_db, string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, 'reason', '%e')", banid, reason, reason);
+		    mysql_tquery(BAN_db, string);
 		}
 	#else
 		format(string, sizeof(string), "SELECT 0 FROM `bans` WHERE `name` = '%s' OR `ip` = '%s' LIMIT 1", name, ip);
-		new DBResult:result = db_query(db, string);
+		new DBResult:result = db_query(BAN_db, string);
 		if (db_num_rows(result) > 0)
 		{
 		    db_free_result(result);
@@ -339,13 +339,13 @@ stock BAN_BanEx(playerid, const reason[], name[MAX_PLAYER_NAME] = "", ip[18] = "
 		{
 		    db_free_result(result);
 		    format(string, sizeof(string), "INSERT INTO `bans`(`name`, `ip`, `longip`, `expire`) VALUES('%s', '%s', %i, %i)", name, ip, ((range) ? (BAN_IpToLong(ip)) : (0)), expire);
-		    db_query(db, string);
+		    db_query(BAN_db, string);
 
 		    format(string, sizeof(string), "SELECT `id` FROM `bans` WHERE `name` = '%s' AND `ip` = '%s' LIMIT 1", name, ip);
-		    result = db_query(db, string);
+		    result = db_query(BAN_db, string);
 
 		    format(string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, 'reason', '%q')", db_get_field_int(result, 0), reason);
-		    db_query(db, string);
+		    db_query(BAN_db, string);
 
 		    db_free_result(result);
 		}
@@ -372,8 +372,8 @@ stock GetBanId(const name[], const ip[])
 
     new string[256];
 	#if defined SQL_SERVER
-		mysql_format(db, string, sizeof(string), "SELECT `id`, `expire` FROM `bans` WHERE `name` = '%s' OR `ip` = '%s' LIMIT 1", name, ip);
-		new Cache:result = mysql_query(db, string);
+		mysql_format(BAN_db, string, sizeof(string), "SELECT `id`, `expire` FROM `bans` WHERE `name` = '%s' OR `ip` = '%s' LIMIT 1", name, ip);
+		new Cache:result = mysql_query(BAN_db, string);
 		if (cache_num_rows() > 0)
 		{
 		    new banid;
@@ -384,10 +384,10 @@ stock GetBanId(const name[], const ip[])
 
 			if (expire != 0 && (gettime() - expire) >= 0)
 			{
-			   	mysql_format(db, string, sizeof(string), "DELETE FROM `bans` WHERE `id` = %i", banid);
-				mysql_tquery(db, string);
-			   	mysql_format(db, string, sizeof(string), "DELETE FROM `bans_data` WHERE `bans_id` = %i", banid);
-				mysql_tquery(db, string);
+			   	mysql_format(BAN_db, string, sizeof(string), "DELETE FROM `bans` WHERE `id` = %i", banid);
+				mysql_tquery(BAN_db, string);
+			   	mysql_format(BAN_db, string, sizeof(string), "DELETE FROM `bans_data` WHERE `bans_id` = %i", banid);
+				mysql_tquery(BAN_db, string);
 				return -1;
 			}
 			return banid;
@@ -395,7 +395,7 @@ stock GetBanId(const name[], const ip[])
 		cache_delete(result);
 	#else
 		format(string, sizeof(string), "SELECT `id`, `expire` FROM `bans` WHERE `name` = '%s' OR `ip` = '%s' LIMIT 1", name, ip);
-		new DBResult:result = db_query(db, string);
+		new DBResult:result = db_query(BAN_db, string);
 		if (db_num_rows(result) > 0)
 		{
 		    new banid = db_get_field_int(result, 0);
@@ -405,9 +405,9 @@ stock GetBanId(const name[], const ip[])
 			if (expire != 0 && (gettime() - expire) >= 0)
 			{
 			   	format(string, sizeof(string), "DELETE FROM `bans` WHERE `id` = %i", banid);
-				db_query(db, string);
+				db_query(BAN_db, string);
 			   	format(string, sizeof(string), "DELETE FROM `bans_data` WHERE `bans_id` = %i", banid);
-				db_query(db, string);
+				db_query(BAN_db, string);
 				return -1;
 			}
 			return banid;
@@ -421,8 +421,8 @@ stock GetBanId(const name[], const ip[])
 	}
 
 	#if defined SQL_SERVER
-	    mysql_format(db, string, sizeof(string), "SELECT `id`, `expire` FROM `bans` WHERE (`longip` != 0) AND ((`longip` & %i) = %i) LIMIT 1", BAN_IP_MASK, (BAN_IpToLong(ip) & BAN_IP_MASK));
-		result = mysql_query(db, string);
+	    mysql_format(BAN_db, string, sizeof(string), "SELECT `id`, `expire` FROM `bans` WHERE (`longip` != 0) AND ((`longip` & %i) = %i) LIMIT 1", BAN_IP_MASK, (BAN_IpToLong(ip) & BAN_IP_MASK));
+		result = mysql_query(BAN_db, string);
 		if (cache_num_rows() > 0)
 		{
   			new banid;
@@ -433,10 +433,10 @@ stock GetBanId(const name[], const ip[])
 
 		    if (expire != 0 && (gettime() - expire) >= 0)
 			{
-				mysql_format(db, string, sizeof(string), "DELETE FROM `bans` WHERE `id` = %i", banid);
-				mysql_tquery(db, string);
-   				mysql_format(db, string, sizeof(string), "DELETE FROM `bans_data` WHERE `bans_id` = %i", banid);
-				mysql_tquery(db, string);
+				mysql_format(BAN_db, string, sizeof(string), "DELETE FROM `bans` WHERE `id` = %i", banid);
+				mysql_tquery(BAN_db, string);
+   				mysql_format(BAN_db, string, sizeof(string), "DELETE FROM `bans_data` WHERE `bans_id` = %i", banid);
+				mysql_tquery(BAN_db, string);
 				return -1;
 			}
             return banid;
@@ -444,7 +444,7 @@ stock GetBanId(const name[], const ip[])
 		cache_delete(result);
 	#else
 	    format(string, sizeof(string), "SELECT `id`, `expire` FROM `bans` WHERE (`longip` != 0) AND ((`longip` & %i) = %i) LIMIT 1", BAN_IP_MASK, (BAN_IpToLong(ip) & BAN_IP_MASK));
-	    result = db_query(db, string);
+	    result = db_query(BAN_db, string);
 		if (db_num_rows(result) > 0)
 		{
 			new banid = db_get_field_int(result, 0);
@@ -454,9 +454,9 @@ stock GetBanId(const name[], const ip[])
 		    if (expire != 0 && (gettime() - expire) >= 0)
 			{
 				format(string, sizeof(string), "DELETE FROM `bans` WHERE `id` = %i", banid);
-				db_query(db, string);
+				db_query(BAN_db, string);
    				format(string, sizeof(string), "DELETE FROM `bans_data` WHERE `bans_id` = %i", banid);
-				db_query(db, string);
+				db_query(BAN_db, string);
 				return -1;
 			}
       		return banid;
@@ -473,15 +473,15 @@ stock UnBan(banid)
 {
     new string[128];
 	#if defined SQL_SERVER
-	    mysql_format(db, string, sizeof(string), "DELETE FROM `bans` WHERE `id` = %i", banid);
-		mysql_tquery(db, string);
-		mysql_format(db, string, sizeof(string), "DELETE FROM `bans_data` WHERE `bans_id` = %i", banid);
-		mysql_tquery(db, string);
+	    mysql_format(BAN_db, string, sizeof(string), "DELETE FROM `bans` WHERE `id` = %i", banid);
+		mysql_tquery(BAN_db, string);
+		mysql_format(BAN_db, string, sizeof(string), "DELETE FROM `bans_data` WHERE `bans_id` = %i", banid);
+		mysql_tquery(BAN_db, string);
 	#else
 	    format(string, sizeof(string), "DELETE FROM `bans` WHERE `id` = %i", banid);
-		db_query(db, string);
+		db_query(BAN_db, string);
  		format(string, sizeof(string), "DELETE FROM `bans_data` WHERE `bans_id` = %i", banid);
-		db_query(db, string);
+		db_query(BAN_db, string);
 	#endif
 	return 1;
 }
@@ -493,31 +493,31 @@ stock SetBanString(banid, const field[], const value[])
 {
 	new string[256];
 	#if defined SQL_SERVER
-		mysql_format(db, string, sizeof(string), "SELECT 0 FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
-		new Cache:result = mysql_query(db, string);
+		mysql_format(BAN_db, string, sizeof(string), "SELECT 0 FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
+		new Cache:result = mysql_query(BAN_db, string);
 		if (cache_num_rows() > 0)
 		{
-		    mysql_format(db, string, sizeof(string), "UPDATE `bans_data` SET `%e` = '%e' WHERE `bans_id` = %i", field, value, banid);
-			mysql_tquery(db, string);
+		    mysql_format(BAN_db, string, sizeof(string), "UPDATE `bans_data` SET `%e` = '%e' WHERE `bans_id` = %i", field, value, banid);
+			mysql_tquery(BAN_db, string);
 		}
 		else
 		{
-		    mysql_format(db, string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, '%e', '%e')", banid, field, value);
-			mysql_tquery(db, string);
+		    mysql_format(BAN_db, string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, '%e', '%e')", banid, field, value);
+			mysql_tquery(BAN_db, string);
 		}
 		cache_delete(result);
 	#else
     	format(string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
-		new DBResult:result = db_query(db, string);
+		new DBResult:result = db_query(BAN_db, string);
 		if (db_num_rows(result) > 0)
 		{
 		    format(string, sizeof(string), "UPDATE `bans_data` SET `%q` = '%q' WHERE `bans_id` = %i", field, value, banid);
-			db_query(db, string);
+			db_query(BAN_db, string);
 		}
 		else
 		{
 		    format(string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, '%q', '%q')", banid, field, value);
-			db_query(db, string);
+			db_query(BAN_db, string);
 		}
 		db_free_result(result);
 	#endif
@@ -531,31 +531,31 @@ stock SetBanInt(banid, const field[], value)
 {
 	new string[256];
 	#if defined SQL_SERVER
-		mysql_format(db, string, sizeof(string), "SELECT 0 FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
-		new Cache:result = mysql_query(db, string);
+		mysql_format(BAN_db, string, sizeof(string), "SELECT 0 FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
+		new Cache:result = mysql_query(BAN_db, string);
 		if (cache_num_rows() > 0)
 		{
-		    mysql_format(db, string, sizeof(string), "UPDATE `bans_data` SET `%e` = %i WHERE `bans_id` = %i", field, value, banid);
-			mysql_tquery(db, string);
+		    mysql_format(BAN_db, string, sizeof(string), "UPDATE `bans_data` SET `%e` = %i WHERE `bans_id` = %i", field, value, banid);
+			mysql_tquery(BAN_db, string);
 		}
 		else
 		{
-		    mysql_format(db, string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, '%e', %i)", banid, field, value);
-			mysql_tquery(db, string);
+		    mysql_format(BAN_db, string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, '%e', %i)", banid, field, value);
+			mysql_tquery(BAN_db, string);
 		}
 		cache_delete(result);
 	#else
     	format(string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
-		new DBResult:result = db_query(db, string);
+		new DBResult:result = db_query(BAN_db, string);
 		if (db_num_rows(result) > 0)
 		{
 		    format(string, sizeof(string), "UPDATE `bans_data` SET `%q` = %i WHERE `bans_id` = %i", field, value, banid);
-			db_query(db, string);
+			db_query(BAN_db, string);
 		}
 		else
 		{
 		    format(string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, '%q', %i)", banid, field, value);
-			db_query(db, string);
+			db_query(BAN_db, string);
 		}
 	 	db_free_result(result);
 	#endif
@@ -569,31 +569,31 @@ stock SetBanFloat(banid, const field[], Float:value)
 {
 	new string[256];
 	#if defined SQL_SERVER
-		mysql_format(db, string, sizeof(string), "SELECT 0 FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
-		new Cache:result = mysql_query(db, string);
+		mysql_format(BAN_db, string, sizeof(string), "SELECT 0 FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
+		new Cache:result = mysql_query(BAN_db, string);
 		if (cache_num_rows() > 0)
 		{
-		    mysql_format(db, string, sizeof(string), "UPDATE `bans_data` SET `%e` = %f WHERE `bans_id` = %i", field, value, banid);
-			mysql_tquery(db, string);
+		    mysql_format(BAN_db, string, sizeof(string), "UPDATE `bans_data` SET `%e` = %f WHERE `bans_id` = %i", field, value, banid);
+			mysql_tquery(BAN_db, string);
 		}
 		else
 		{
-		    mysql_format(db, string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, '%e', %f)", banid, field, value);
-			mysql_tquery(db, string);
+		    mysql_format(BAN_db, string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, '%e', %f)", banid, field, value);
+			mysql_tquery(BAN_db, string);
 		}
 		cache_delete(result);
 	#else
     	format(string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
-		new DBResult:result = db_query(db, string);
+		new DBResult:result = db_query(BAN_db, string);
 		if (db_num_rows(result) > 0)
 		{
 		    format(string, sizeof(string), "UPDATE `bans_data` SET `%q` = %f WHERE `bans_id` = %i", field, value, banid);
-			db_query(db, string);
+			db_query(BAN_db, string);
 		}
 		else
 		{
 		    format(string, sizeof(string), "INSERT INTO `bans_data` VALUES(%i, '%q', %f)", banid, field, value);
-			db_query(db, string);
+			db_query(BAN_db, string);
 		}
 	 	db_free_result(result);
 	#endif
@@ -607,8 +607,8 @@ stock GetBanString(banid, const field[], dest[], maxlength = sizeof(dest))
 {
 	new string[256];
 	#if defined SQL_SERVER
-		mysql_format(db, string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
-		new Cache:result = mysql_query(db, string);
+		mysql_format(BAN_db, string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
+		new Cache:result = mysql_query(BAN_db, string);
 		if (cache_num_rows() > 0)
 		{
 		    cache_get_value_index(0, 0, dest, maxlength);
@@ -618,7 +618,7 @@ stock GetBanString(banid, const field[], dest[], maxlength = sizeof(dest))
 		cache_delete(result);
 	#else
     	format(string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
-		new DBResult:result = db_query(db, string);
+		new DBResult:result = db_query(BAN_db, string);
 		if (db_num_rows(result) > 0)
 		{
 		    db_get_field(result, 0, dest, maxlength);
@@ -637,8 +637,8 @@ stock GetBanInt(banid, const field[])
 {
 	new string[256];
 	#if defined SQL_SERVER
-		mysql_format(db, string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
-		new Cache:result = mysql_query(db, string);
+		mysql_format(BAN_db, string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
+		new Cache:result = mysql_query(BAN_db, string);
 		if (cache_num_rows() > 0)
 		{
 		    new ret = cache_get_value_index_int(0, 0, ret);
@@ -648,7 +648,7 @@ stock GetBanInt(banid, const field[])
 		cache_delete(result);
 	#else
     	format(string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
-		new DBResult:result = db_query(db, string);
+		new DBResult:result = db_query(BAN_db, string);
 		if (db_num_rows(result) > 0)
 		{
 		    new ret = db_get_field_int(result, 0);
@@ -667,8 +667,8 @@ stock Float:GetBanFloat(banid, const field[])
 {
 	new string[256];
 	#if defined SQL_SERVER
-		mysql_format(db, string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
-		new Cache:result = mysql_query(db, string);
+		mysql_format(BAN_db, string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
+		new Cache:result = mysql_query(BAN_db, string);
 		if (cache_num_rows() > 0)
 		{
 		    new ret = cache_get_value_index_float(0, 0, ret);
@@ -678,7 +678,7 @@ stock Float:GetBanFloat(banid, const field[])
 		cache_delete(result);
 	#else
     	format(string, sizeof(string), "SELECT `value` FROM `bans_data` WHERE `field` = '%s' AND `bans_id` = %i LIMIT 1", field, banid);
-		new DBResult:result = db_query(db, string);
+		new DBResult:result = db_query(BAN_db, string);
 		if (db_num_rows(result) > 0)
 		{
 		    new ret = db_get_field_float(result, 0);
