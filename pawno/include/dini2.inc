@@ -1,11 +1,11 @@
-// Dini2.inc - v2.4.2 - By Gammix - Last updated on 18 Dec,2016
+// Dini2.inc - v2.4.3 - By Gammix - Last updated on "22 Jan, 2017"
 #if defined dini2_included
 	#endinput
 #endif
 #define dini2_included
 
 #if !defined INI_MAX_INSTANCES
-	#define INI_MAX_INSTANCES (5)
+	#define INI_MAX_INSTANCES (16)
 #endif
 
 #if !defined INI_MAX_FILE_NAME
@@ -122,17 +122,18 @@ public OnFileTimeout(instance)
 		}
 		fclose(h);
 	}
-
-	for (new i = instance; i < (INI_iFilesCount - 1); i++)
+	
+	if (instance != (INI_iFilesCount - 1))
 	{
-	    format(INI_sFiles[i], INI_MAX_FILE_NAME, INI_sFiles[i + 1]);
-	    INI_iFilesTimer[i] = INI_iFilesTimer[i + 1];
-	    INI_bFilesChanged[i] = INI_bFilesChanged[i + 1];
-	    INI_iFilesFieldsCount[i] = INI_iFilesFieldsCount[i + 1];
-	    for (new x; x < INI_iFilesFieldsCount[i + 1]; x++)
-	    {
-	        format(INI_sFilesFields[i][x], INI_MAX_FIELD_NAME, INI_sFilesFields[i + 1][x]);
-			format(INI_sFilesValues[i][x], INI_MAX_FIELD_VALUE, INI_sFilesValues[i + 1][x]);
+		format(INI_sFiles[instance], INI_MAX_FILE_NAME, INI_sFiles[INI_iFilesCount - 1]);
+		KillTimer(INI_iFilesTimer[INI_iFilesCount - 1]);
+	 	INI_iFilesTimer[instance] = SetTimerEx("OnFileTimeout", INI_TIMER_INTERVAL, false, "i", instance);
+	  	INI_bFilesChanged[instance] = INI_bFilesChanged[INI_iFilesCount - 1];
+	   	INI_iFilesFieldsCount[instance] = INI_iFilesFieldsCount[INI_iFilesCount - 1];
+	    for (new x; x < INI_iFilesFieldsCount[INI_iFilesCount - 1]; x++)
+		{
+		 	format(INI_sFilesFields[instance][x], INI_MAX_FIELD_NAME, INI_sFilesFields[INI_iFilesCount - 1][x]);
+			format(INI_sFilesValues[instance][x], INI_MAX_FIELD_VALUE, INI_sFilesValues[INI_iFilesCount - 1][x]);
 		}
 	}
 	INI_iFilesCount--;
@@ -360,7 +361,7 @@ stock dini_UnSet(const file[], const field[])
 	{
  		if (!strcmp(field, INI_sFilesFields[instance][i]))
  		{
- 		    for (; i < (INI_iFilesFieldsCount[instance] - 1);   i++)
+ 		    for (; i < (INI_iFilesFieldsCount[instance] - 1); i++)
  		    {
  		        format(INI_sFilesFields[instance][i], INI_MAX_FIELD_NAME, INI_sFilesFields[instance][i + 1]);
 				format(INI_sFilesValues[instance][i], INI_MAX_FIELD_VALUE, INI_sFilesValues[instance][i + 1]);
