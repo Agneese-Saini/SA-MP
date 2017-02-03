@@ -246,6 +246,7 @@ static SS_eClassSpawnData[MAX_CLASSES][SS_e_SPAWN_DATA];
 static bool:SS_ToggleSetSpawnInfo[MAX_PLAYERS];
 
 static SS_iPlayerLastWeaponShot[MAX_PLAYERS][2];
+static SS_iPlayerLastKnifeStabTimer[MAX_PLAYERS];
 
 static SS_iStaticPickup[MAX_PICKUPS];
 
@@ -565,6 +566,11 @@ public OnGameModeInit()
 	DisableInteriorEnterExits();
 	EnableStuntBonusForAll(0);
 	EnableVehicleFriendlyFire();
+	
+	for (new i; i < 312; i++)
+	{
+	    SS_eClassSpawnData[i][SS_e_SPAWN_DATA_TEAM] = NO_TEAM;
+	}
 
 	for (new i; i < MAX_PLAYERS; i++)
 	{
@@ -622,7 +628,7 @@ public OnPlayerConnect(playerid)
 		SS_iPlayerWeaponData[playerid][i][1] = 0;
 	}
 
-	SS_ePlayerSpawnData[playerid][SS_e_SPAWN_DATA_TEAM] = NO_TEAM + 1;
+	SS_ePlayerSpawnData[playerid][SS_e_SPAWN_DATA_TEAM] = NO_TEAM;
 	SS_ePlayerSpawnData[playerid][SS_e_SPAWN_DATA_WEAPON1][0] = 0;
 	SS_ePlayerSpawnData[playerid][SS_e_SPAWN_DATA_WEAPON1][1] = 0;
 	SS_ePlayerSpawnData[playerid][SS_e_SPAWN_DATA_WEAPON2][0] = 0;
@@ -806,6 +812,8 @@ public OnPlayerSpawn(playerid)
 	
 	SetPlayerTeam(playerid, 0);
 
+	SS_iPlayerLastKnifeStabTimer[playerid] = -1;
+
 	#if defined SS_OnPlayerSpawn
 		return SS_OnPlayerSpawn(playerid);
 	#else
@@ -932,16 +940,18 @@ public  __OnPlayerUseVendingMachine(playerid, id)
 	#if defined OnPlayerUseVendingMachine
 		new Float:oldhealth = SS_fPlayerHealth[playerid];
 	#endif
-	new Float:newhealth = SS_fPlayerHealth[playerid];
 
 	if (SS_fPlayerHealth[playerid] < 100.0)
 	{
-		newhealth = (100.0 - SS_fPlayerHealth[playerid] >= SS_fPlayerVendingMachineAmount[playerid][id]) ? (SS_fPlayerHealth[playerid] + SS_fPlayerVendingMachineAmount[playerid][id]) : (SS_fPlayerHealth[playerid] + (100.0 - SS_fPlayerHealth[playerid]));
-		SetPlayerHealth(playerid, newhealth);
+		SS_fPlayerHealth[playerid] = (100.0 - SS_fPlayerHealth[playerid] >= SS_fPlayerVendingMachineAmount[playerid][id]) ? (SS_fPlayerHealth[playerid] + SS_fPlayerVendingMachineAmount[playerid][id]) : (SS_fPlayerHealth[playerid] + (100.0 - SS_fPlayerHealth[playerid]));
+		if (SS_fPlayerHealth[playerid] > 100.0)
+		    SetPlayerHealth(playerid, FAKE_HEALTH);
+		else
+		  	SetPlayerHealth(playerid, SS_fPlayerHealth[playerid]);
 	}
 
 	#if defined OnPlayerUseVendingMachine
-		if (!bool:OnPlayerUseVendingMachine(playerid, oldhealth, newhealth))
+		if (!bool:OnPlayerUseVendingMachine(playerid, oldhealth, SS_fPlayerHealth[playerid]))
 		{
  			PlayerPlaySound(playerid, 1055, 0.0, 0.0, 0.0);
 			break;
@@ -1002,39 +1012,64 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
 	GetPlayerLastShotVectors(playerid, origin[0], origin[1], origin[2], hit[0], hit[1], hit[2]);
 	length = VectorSize(origin[0] - hit[0], origin[1] - hit[1], origin[2] - hit[2]);
 	if (SS_eWeapon[weaponid][SS_e_WEAPON_RANGE] != 0.0 && length > SS_eWeapon[weaponid][SS_e_WEAPON_RANGE])
-	{
 		return 1;
-	}
+
+	if (SS_iPlayerLastKnifeStabTimer[playerid] != -1 || SS_iPlayerLastKnifeStabTimer[damagedid] != -1)
+	    return 1;
 
 	if (SS_HasSameTeam(playerid, damagedid))
 		return 1;
-			
-	if ((WEAPON_UNARMED <= weaponid <= WEAPON_KATANA) || (WEAPON_DILDO <= weaponid <= WEAPON_CANE) || weaponid == WEAPON_PISTOLWHIP) // melee weapon
+
+	switch (weaponid)
 	{
-		if (weaponid == WEAPON_KNIFE && _:amount > _:1.0)
+	    case WEAPON_UNARMED..WEAPON_CANE,
+			 WEAPON_PISTOLWHIP:
 		{
-			SS_fPlayerHealth[playerid] = 0.0;
-			if (IS_GAMEMODE)
-				SetPlayerHealth(playerid, 0.0);
+			if (weaponid == WEAPON_KNIFE && _:amount == _:0.0)
+			{
+				SS_iPlayerLastKnifeStabTimer[damagedid] = SetTimerEx("SS_OnPlayerKnifed", 2200, false, "ii", damagedid, playerid);
+			}
+			else
+			{
+				SS_ProcessDamage(damagedid, playerid, amount, weaponid, bodypart);
+				if (IS_GAMEMODE)
+					SS_InflictDamage(damagedid, amount, false);
+			}
 		}
-		else
+		
+		case WEAPON_COLT45..WEAPON_SNIPER,
+			 WEAPON_MINIGUN:
 		{
+		    if (!(SS_iPlayerLastWeaponShot[playerid][0] == damagedid && bool:SS_iPlayerLastWeaponShot[playerid][1] == true))
+		        return 1;
+
 			SS_ProcessDamage(damagedid, playerid, amount, weaponid, bodypart);
 			if (IS_GAMEMODE)
 				SS_InflictDamage(damagedid, amount, false);
 		}
-	}
-	else if ((WEAPON_COLT45 <= weaponid <= WEAPON_SNIPER) || weaponid == WEAPON_MINIGUN) // bullet weapon
-	{
-	    if (SS_iPlayerLastWeaponShot[playerid][0] == damagedid && bool:SS_iPlayerLastWeaponShot[playerid][1] == true)
-	    {
-			SS_ProcessDamage(damagedid, playerid, amount, weaponid, bodypart);
+		
+		case WEAPON_GRENADE,
+			 WEAPON_MOLTOV,
+			 WEAPON_ROCKETLAUNCHER,
+			 WEAPON_HEATSEEKER,
+			 WEAPON_SATCHEL,
+			 WEAPON_FLAMETHROWER,
+			 WEAPON_SPRAYCAN,
+			 WEAPON_FIREEXTINGUISHER,
+			 WEAPON_VEHICLE,
+			 WEAPON_HELIBLADES,
+			 WEAPON_EXPLOSION:
+		{
+		    SS_ProcessDamage(damagedid, playerid, amount, weaponid, bodypart);
 			if (IS_GAMEMODE)
 				SS_InflictDamage(damagedid, amount, false);
 		}
-	    else return 1;
+		
+		default:
+		{
+		    return 1;
+		}
 	}
-	else return 1;
 	
 	#if defined SS_OnPlayerTakeDamage
 		SS_OnPlayerTakeDamage(damagedid, playerid, amount, weaponid, bodypart);
@@ -1045,6 +1080,8 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
   		#if defined OnPlayerDie
   		    OnPlayerDie(damagedid, playerid, weaponid);
 		#endif
+		if (IS_GAMEMODE)
+			SetTimerEx("SS_OnPlayerDied", 250, false, "i", damagedid);
 	}
 	return 0;
 }
@@ -1058,8 +1095,49 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
 	forward SS_OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart);
 #endif
 
+forward SS_OnPlayerDied(playerid);
+public SS_OnPlayerDied(playerid)
+{
+	new Float:health;
+	GetPlayerHealth(playerid, health);
+
+	new tick;
+	for (;;)
+	{
+	    if (health == 0.0 || GetPlayerState(playerid) == PLAYER_STATE_WASTED)
+			break;
+
+		if ((tick - GetTickCount()) > 0)
+		{
+  			tick = GetTickCount() + 1500;
+  			continue;
+		}
+
+		SendClientMessage(playerid, -1, "Warning: Cheats/hacks detected in your game, please remove them.");
+	}
+}
+
+forward SS_OnPlayerKnifed(playerid, killerid);
+public SS_OnPlayerKnifed(playerid, killerid)
+{
+    SS_fPlayerHealth[playerid] = 0.0;
+    SetPlayerHealth(playerid, 0.0);
+    
+    #if defined OnPlayerDie
+  		OnPlayerDie(playerid, killerid, WEAPON_KNIFE);
+	#endif
+	if (IS_GAMEMODE)
+		SetTimerEx("SS_OnPlayerDied", 250, false, "i", playerid);
+}
+
 public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart)
 {
+	if (issuerid != INVALID_PLAYER_ID)
+		return 1;
+
+	if (SS_iPlayerLastKnifeStabTimer[playerid] != -1)
+	    return 1;
+	    
 	if (weaponid == WEAPON_COLLISION && 1061 <= GetPlayerAnimationIndex(playerid) <= 1067)
 	{
 	    TogglePlayerControllable(playerid, false);
@@ -1068,9 +1146,9 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart)
 		return 1;
 	}
 
-	switch (GetPlayerWeapon(playerid))
+	switch (weaponid)
  	{
- 		case WEAPON_GRENADE, // explosives and other self damages
+ 		case WEAPON_GRENADE,
 			 WEAPON_MOLTOV,
 			 WEAPON_ROCKETLAUNCHER,
 			 WEAPON_HEATSEEKER,
@@ -1087,16 +1165,18 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart)
 			SS_ProcessDamage(playerid, issuerid, amount, weaponid, bodypart);
 			if (IS_GAMEMODE)
 				SS_InflictDamage(playerid, amount, ((weaponid == WEAPON_COLLISION) ? (true) : (false)));
-			
+
 			#if defined SS_OnPlayerTakeDamage
 				SS_OnPlayerTakeDamage(playerid, issuerid, amount, weaponid, bodypart);
 			#endif
-			
+
 			if (SS_fPlayerHealth[playerid] <= 0.0)
 			{
        			#if defined OnPlayerDie
- 		  			OnPlayerDie(playerid, INVALID_PLAYER_ID, WEAPON_COLLISION);
+ 		  			OnPlayerDie(playerid, INVALID_PLAYER_ID, weaponid);
 				#endif
+				if (IS_GAMEMODE)
+					SetTimerEx("SS_OnPlayerDied", 250, false, "i", playerid);
 			}
 			return 0;
     	}
