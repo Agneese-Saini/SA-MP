@@ -5,7 +5,7 @@
 
 /*
  * dialogs.inc
- * Version: v2.7.3 (last updated: 13 August, 2016)
+ * Version: v2.7.4 (last updated: 20 Feb, 2017)
  * By Gammix
  *
  * Functions:
@@ -401,7 +401,7 @@ stock Dialog_ShowToPlayer(playerid, dialogid, style, caption[], info[], button1[
 
 			new pos;
 			static str[5 + DIALOG_MAX_LISTITEM_SIZE];
-			static str_model[5];
+			static str_model[6];
 			static str_label[DIALOG_MAX_LISTITEM_SIZE / 2];
 
             for (new i, j = strlen(info); i < j; i++)
