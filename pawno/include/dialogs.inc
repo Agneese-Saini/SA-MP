@@ -5,7 +5,7 @@
 
 /*
  * dialogs.inc
- * Version: v2.7.4 (last updated: 20 Feb, 2017)
+ * Version: v2.7.6 (last updated: 25 Feb, 2017
  * By Gammix
  *
  * Functions:
@@ -22,7 +22,7 @@ enum
 
 #define DIALOG_MAX_TEXT_DRAWS (100)
 
-#define DIALOG_MAX_LISTITEM_SIZE (150)
+#define DIALOG_MAX_LISTITEM_SIZE (350)
 
 #define Dialog_CountPages(%0,%1) \
 	(((%0) - 1) / (%1) + 1)
@@ -156,7 +156,7 @@ static Dialog_Init(playerid, style, caption[], button1[], button2[])
 		for (new i; i < 24; i++)
 		{
 			p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][i] = Dialog_Create(playerid, base[0], base[1], "_", Dialog_SetOpacity(0x3B3B3BFF, 200), 5, 0.129998, 0.799998, -1, 0, 0, 1, 1, 1, 0, 44.000000, 41.000000, .selectable = 1);
-	        p_DialogCompnent[playerid][E_DIALOG_COMPONENT_LABEL][i] = Dialog_Create(playerid, base[0] + 2.000000, base[1] + 1.000000, "", 255, 1, 0.140000, 0.899999, -36, 0, 0, 1, 2, 0);
+	        p_DialogCompnent[playerid][E_DIALOG_COMPONENT_LABEL][i] = Dialog_Create(playerid, base[0] + 2.000000, base[1] + 1.000000, "", 255, 1, 0.140000, 0.899999, -36, 0, 1, 1, 2, 0);
 
 	        base[0] += 45.000000;
 
@@ -176,7 +176,7 @@ static Dialog_Init(playerid, style, caption[], button1[], button2[])
 		{
 			p_DialogCompnent[playerid][E_DIALOG_COMPONENT_BAR][i] = Dialog_Create(playerid, 177.000000, (134.000000 + (33.0 * i)), "ld_plan:tvbase", 50, 4, 0.129997, 0.799997, Dialog_SetOpacity(0x788FB0FF, 200), 0, 0, 1, 1, 1, 0, 274.000000, 32.000000, .selectable = 1);
 			p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][i] = Dialog_Create(playerid, 178.000000, (134.000000 + (33.0 * i)), "_", Dialog_SetOpacity(0x3B3B3BFF, 200), 5, 0.129997, 0.799997, -1, 0, 0, 1, 1, 1, 0, 34.000000, 30.000000);
-			p_DialogCompnent[playerid][E_DIALOG_COMPONENT_LABEL][i] = Dialog_Create(playerid, 215.000000, (135.000000 + (33.0 * i)), "", 255, 1, 0.099999, 0.599997, -36, 0, 0, 1, 2, 0);
+			p_DialogCompnent[playerid][E_DIALOG_COMPONENT_LABEL][i] = Dialog_Create(playerid, 215.000000, (135.000000 + (33.0 * i)), "", 255, 1, 0.099999, 0.599997, -36, 0, 1, 1, 2, 0);
 		}
 	}
 
@@ -388,7 +388,7 @@ stock Dialog_ShowToPlayer(playerid, dialogid, style, caption[], info[], button1[
 		p_Dialog[playerid][E_PLAYER_DIALOG_STYLE] = -1;
 	    return 1;
 	}
-	
+
 	p_Dialog[playerid][E_PLAYER_DIALOG_ID] = dialogid;
 	p_Dialog[playerid][E_PLAYER_DIALOG_STYLE] = style;
 
@@ -446,7 +446,7 @@ stock Dialog_ShowToPlayer(playerid, dialogid, style, caption[], info[], button1[
 		default:
 			ShowPlayerDialog(playerid, dialogid, style, caption, info, button1, button2);
 	}
-	
+
 	return 1;
 }
 #if defined _ALS_ShowPlayerDialog
@@ -510,7 +510,7 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid)
 
 					new dialogid = p_Dialog[playerid][E_PLAYER_DIALOG_ID];
 					new listitem = p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEM_ID];
-					
+
 					p_Dialog[playerid][E_PLAYER_DIALOG_ID] = -1;
 					p_Dialog[playerid][E_PLAYER_DIALOG_STYLE] = -1;
 					p_Dialog[playerid][E_PLAYER_DIALOG_DUAL_BTN] = false;
@@ -518,7 +518,7 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid)
 					p_Dialog[playerid][E_PLAYER_DIALOG_PAGE] = 0;
 					p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEM_ID] = 0;
 					p_Dialog[playerid][E_PLAYER_DIALOG_CLICK_TICKCOUNT] = 0;
-					
+
 	    			if (funcidx("OnDialogResponse") != -1)
 						CallRemoteFunction("OnDialogResponse", "iiiis", playerid, dialogid, 0, listitem, "\1");
 				}
@@ -589,7 +589,7 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 				p_Dialog[playerid][E_PLAYER_DIALOG_PAGE] = 0;
 				p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEM_ID] = 0;
 				p_Dialog[playerid][E_PLAYER_DIALOG_CLICK_TICKCOUNT] = 0;
-				
+
 				if (funcidx("OnDialogResponse") != -1)
 					CallRemoteFunction("OnDialogResponse", "iiiis", playerid, dialogid, 1, listitem, "\1");
 			}
