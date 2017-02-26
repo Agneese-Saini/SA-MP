@@ -1,4 +1,4 @@
-// easydialog.inc - v2.0.0 - By Emmet_ & Recoded by Gammix - Last updated on 7 Jan, 2017
+// easydialog.inc - v2.0.0 - By Emmet_ & Gammix - Last updated on 7 Jan, 2017
 #if defined easydialog_included
 	#endinput
 #endif
