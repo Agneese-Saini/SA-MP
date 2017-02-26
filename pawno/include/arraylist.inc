@@ -22,7 +22,7 @@
 #define ArrayList_float:%1<%2>(%3) \
 	%1ARRAY@Type = FLT, \
 	%1ARRAY@Count, \
-	Float:%1ARRAY@Content[%2][%3]
+	%1ARRAY@Content[%2][%3]
 
 #define ArrayList_string:%1<%2>(%3) \
 	%1ARRAY@Type = STR, \
@@ -86,27 +86,26 @@ stock __ArrayList_Add(type, &count, array[][], size1, size2, {Float, _}:...)
 	if (count == size1)
 	    return -1;
 
-	new n,
-	 	i;
-	n = numargs();
-	if (n == 7)
-		i = getarg(6);
-	else
-	    i = 0;
-
 	switch (type)
 	{
 	    case INT:
-	        array[count++][i] = getarg(5);
-	    case FLT:
-	        array[count++][i] = _:float(getarg(5));
-	    case STR:
 	    {
-	        if (n == 7)
-	        	array[count++][i] = getarg(5);
-			else
-	        	__GetStringArg(array[count++], 5, size2);
-		}
+	        new i = count++;
+	        for (new x; x < size2; x++)
+	        {
+	        	array[i][x] = getarg(5, x);
+			}
+	    }
+		case FLT:
+	    {
+	        new i = count++;
+	        for (new x; x < size2; x++)
+	        {
+	        	array[i][x] = _:(Float:getarg(5, x));
+			}
+	    }
+	    case STR:
+	    	__GetStringArg(array[count++], 5, size2);
 	}
 	return (count - 1);
 }
@@ -145,7 +144,11 @@ stock __ArrayList_Set(type, &count, array[][], size2, index, {Float, _}:...)
 	 	i;
 	n = numargs();
 	if (n == 7)
+	{
 		i = getarg(6);
+		if (i >= size2)
+			return 0;
+	}
 	else
 	    i = 0;
 
@@ -154,7 +157,7 @@ stock __ArrayList_Set(type, &count, array[][], size2, index, {Float, _}:...)
 	    case INT:
 	        array[index][i] = getarg(5);
 	    case FLT:
-	        array[index][i] = _:float(getarg(5));
+	        array[index][i] = _:(Float:getarg(5));
 	    case STR:
 	    {
 	        if (n == 7)
@@ -181,7 +184,11 @@ stock __ArrayList_Get(type, &count, array[][], size2, index, {Float, _}:...)
 	 	i;
 	n = numargs();
 	if (n == 7)
+	{
 		i = getarg(6);
+		if (i >= size2)
+			return 0;
+	}
 	else
 	    i = 0;
 
@@ -221,13 +228,21 @@ native ArrayList_PoolSize(ArrayList:<>);
     (%1ARRAY@Count - 1)
 
 /*
-native ArrayList_IndexOf(ArrayList:<>, internal_index, {Float, _}:...);
+native ArrayList_IndexOf(ArrayList:<>, {Float, _}:...);
 */
-#define ArrayList_IndexOf(%1,%2,%3) \
-	__ArrayList_IndexOf(%1ARRAY@Type, %1ARRAY@Count, %1ARRAY@Content, %2, %3)
+#define ArrayList_IndexOf(%1,%2) \
+	__ArrayList_IndexOf(%1ARRAY@Type, %1ARRAY@Count, %1ARRAY@Content, sizeof(%1ARRAY@Content[]), %2)
 
-stock __ArrayList_IndexOf(type, count, array[][], internal_index, {Float, _}:...)
+stock __ArrayList_IndexOf(type, count, array[][], size2, {Float, _}:...)
 {
+	new internal_index = 0;
+ 	if (numargs() == 6)
+ 	{
+  		internal_index = getarg(5);
+		if (internal_index >= size2)
+			return 0;
+	}
+	
 	switch (type)
 	{
 	    case INT:
@@ -241,10 +256,10 @@ stock __ArrayList_IndexOf(type, count, array[][], internal_index, {Float, _}:...
 	    }
 		case FLT:
 	    {
-	        new Float:val = getarg(4);
+	        new Float:val = Float:getarg(4);
 	        for (new i; i < count; i++)
 	        {
-				if (array[i][internal_index] == val)
+				if (array[i][internal_index] == _:val)
 					return i;
 	        }
 	    }
@@ -255,6 +270,51 @@ stock __ArrayList_IndexOf(type, count, array[][], internal_index, {Float, _}:...
 	        for (new i; i < count; i++)
 	        {
 				if (!strcmp(val, array[i][internal_index]))
+					return i;
+	        }
+		}
+	}
+	return -1;
+}
+
+/*
+native ArrayList_InternalIndexOf(ArrayList:<>, external_index, {Float, _}:...);
+*/
+#define ArrayList_InternalIndexOf(%1,%2,%3) \
+	__ArrayList_InternalIndexOf(%1ARRAY@Type, %1ARRAY@Count, %1ARRAY@Content, sizeof(%1ARRAY@Content[]), %2, %3)
+
+stock __ArrayList_InternalIndexOf(type, count, array[][], size2, index, {Float, _}:...)
+{
+	if (index < 0 || index >= count)
+	    return 0;
+	    
+	switch (type)
+	{
+	    case INT:
+	    {
+	        new val = getarg(5);
+	        for (new i; i < size2; i++)
+	        {
+				if (array[index][i] == val)
+					return i;
+	        }
+	    }
+		case FLT:
+	    {
+	        new Float:val = Float:getarg(5);
+	        for (new i; i < size2; i++)
+	        {
+				if (array[index][i] == _:val)
+					return i;
+	        }
+	    }
+	    case STR:
+	    {
+	       	new val[256];
+		   	__GetStringArg(val, 5, sizeof(val));
+	        for (new i; i < size2; i++)
+	        {
+				if (!strcmp(val, array[index][i]))
 					return i;
 	        }
 		}
