@@ -21,6 +21,7 @@ Click on the embedded links to directly goto the following's page.
       * <b>kickban.inc</b> - adds a delay in kick and ban function so messages and dialogs can be shown before executing (freeze player sync when function is used though to not allow packets to other players)
       * <b>string</b> - general string function fixes
       * <b>vehicle</b> - invalid mods protection (currently)
+      * <b>lagcomp</b> - fixes SAMP lagcomp response
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/tree/master/pawno/include/serversided">Serversided</a></b>
       * <b>main.inc</b> - main file to include server sided library (#include <serversided\main>)
       * <b>player_stats.inc</b> - internally used file
