@@ -32,6 +32,34 @@ enum PB_e_BAR
 	Float:PB_e_BAR_MAX_VALUE
 };
 
+static Float:PB_BarPercent(Float:x, Float:widthorheight, Float:max, Float:value, direction)
+{
+	new Float:ret;
+	switch(direction)
+	{
+		case BAR_DIRECTION_RIGHT:
+		{
+			ret = ((x - 3.0) + (((((x - 2.0) + widthorheight) - x) / max) * value));
+		}
+
+		case BAR_DIRECTION_LEFT:
+		{
+			ret = ((x - 1.0) - (((((x + 2.0) - widthorheight) - x) / max) * -value)) - 4.0;
+		}
+
+		case BAR_DIRECTION_UP:
+		{
+			ret = -((((((widthorheight / 10.0) - 0.45) * 1.02) / max) * value) + 0.55);
+		}
+
+		case BAR_DIRECTION_DOWN:
+		{
+			ret = ((((((widthorheight / 10.0) - 0.45) * 1.02) / max) * value) - 0.55);
+		}
+	}
+	return ret;
+}
+
 /******************************
 *
 *
@@ -77,34 +105,6 @@ static PB_ePlayerBar[MAX_PLAYERS][PlayerBar:MAX_PLAYER_BARS][PB_e_BAR];
 static PlayerText:PB_ptxtBar[MAX_PLAYERS][PlayerBar:MAX_PLAYER_BARS][3];
 static bool:PB_bPlayerBarShown[MAX_PLAYERS][PlayerBar:MAX_PLAYER_BARS];
 static PB_iPlayerBarCount[MAX_PLAYERS];
-
-static Float:PB_BarPercent(Float:x, Float:widthorheight, Float:max, Float:value, direction)
-{
-	new Float:ret;
-	switch(direction)
-	{
-		case BAR_DIRECTION_RIGHT:
-		{
-			ret = ((x - 3.0) + (((((x - 2.0) + widthorheight) - x) / max) * value));
-		}
-
-		case BAR_DIRECTION_LEFT:
-		{
-			ret = ((x - 1.0) - (((((x + 2.0) - widthorheight) - x) / max) * -value)) - 4.0;
-		}
-
-		case BAR_DIRECTION_UP:
-		{
-			ret = -((((((widthorheight / 10.0) - 0.45) * 1.02) / max) * value) + 0.55);
-		}
-
-		case BAR_DIRECTION_DOWN:
-		{
-			ret = ((((((widthorheight / 10.0) - 0.45) * 1.02) / max) * value) - 0.55);
-		}
-	}
-	return ret;
-}
 
 static stock PB_RenderPlayerBar(playerid, PlayerBar:barid)
 {
