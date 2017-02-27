@@ -36,6 +36,6 @@ Click on the embedded links to directly goto the following's page.
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/dini2.inc">dini2.inc</a></b> - Improved dini processor with multi file processing and fast! *you can use this really)
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/easydialog.inc">easydialog.inc</a></b> - Emmet_'s easydialog improved version
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/enterexit.inc">enterexit.inc</a></b> - GTA Enter Exit replica done (reached 70%) (video: https://www.youtube.com/watch?v=BezTR39JzWw)
-    * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/gangzones.inc">gangzones.inc</a></b> - GangZones with borders and interior & virtual world support
+    * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/gangzone.inc">gangzone.inc</a></b> - GangZones with borders and interior & virtual world support
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/gmenu.inc">gmenu.inc</a></b> - GTA 5 styled menus with response control, even switching to one item to next
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/progress2.inc">progress2.inc</a></b> - SouthClaw's progress2 with global textdraw support and some minor changes for productivity!
