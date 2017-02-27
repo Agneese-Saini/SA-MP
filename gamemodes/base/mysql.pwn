@@ -190,12 +190,17 @@ public OnPlayerConnect(playerid)
 
 public OnPlayerDisconnect(playerid, reason)
 {
-	new string[1024],
+	if(GetPVarInt(playerid, "LoggedIn") == 1)
+	{
+		new string[1024],
 		name[MAX_PLAYER_NAME];
-	GetPlayerName(playerid, name, MAX_PLAYER_NAME);
-    mysql_format(conn, string, sizeof(string), "UPDATE `users` SET `name` = '%s', `password` = '%e', `salt` = '%e', `sec_question` = '%e', `sec_answer` = '%e', `kills` = %i, `deaths` = %i, `score` = %i, `money` = %i, `adminlevel` = %i, `viplevel` = %i WHERE `id` = %i",
+		
+		GetPlayerName(playerid, name, MAX_PLAYER_NAME);
+		
+		mysql_format(conn, string, sizeof(string), "UPDATE `users` SET `name` = '%s', `password` = '%e', `salt` = '%e', `sec_question` = '%e', `sec_answer` = '%e', `kills` = %i, `deaths` = %i, `score` = %i, `money` = %i, `adminlevel` = %i, `viplevel` = %i WHERE `id` = %i",
 		name, eUser[playerid][e_USER_PASSWORD], eUser[playerid][e_USER_SALT], eUser[playerid][e_USER_SECURITY_QUESTION], eUser[playerid][e_USER_SECURITY_ANSWER],  eUser[playerid][e_USER_KILLS], eUser[playerid][e_USER_DEATHS], GetPlayerScore(playerid), GetPlayerMoney(playerid), eUser[playerid][e_USER_ADMIN_LEVEL], eUser[playerid][e_USER_VIP_LEVEL], eUser[playerid][e_USER_SQLID]);
-	mysql_tquery(conn, string);
+		mysql_tquery(conn, string);
+	}
 	return 1;
 }
 
