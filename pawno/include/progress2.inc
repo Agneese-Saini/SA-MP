@@ -108,6 +108,10 @@ static PB_iPlayerBarCount[MAX_PLAYERS];
 
 static stock PB_RenderPlayerBar(playerid, PlayerBar:barid)
 {
+	PlayerTextDrawDestroy(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND]);
+	PlayerTextDrawDestroy(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL]);
+	PlayerTextDrawDestroy(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN]);
+	
 	switch (PB_ePlayerBar[playerid][barid][PB_e_BAR_DIRECTION])
 	{
 		case BAR_DIRECTION_RIGHT:
@@ -125,7 +129,7 @@ static stock PB_RenderPlayerBar(playerid, PlayerBar:barid)
 			PlayerTextDrawBoxColor		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], (PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
 
 			PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN] = CreatePlayerTextDraw(playerid, PB_ePlayerBar[playerid][barid][PB_e_BAR_X] + 1.2, PB_ePlayerBar[playerid][barid][PB_e_BAR_Y] + 2.15, "_");
-			PlayerTextDrawUseBox		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], 1);
+			PlayerTextDrawUseBox		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], 1);
 			PlayerTextDrawTextSize		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], PB_BarPercent(PB_ePlayerBar[playerid][barid][PB_e_BAR_X], PB_ePlayerBar[playerid][barid][PB_e_BAR_WIDTH], PB_ePlayerBar[playerid][barid][PB_e_BAR_MAX_VALUE], PB_ePlayerBar[playerid][barid][PB_e_BAR_VALUE], PB_ePlayerBar[playerid][barid][PB_e_BAR_DIRECTION]), 0.0);
 			PlayerTextDrawLetterSize	(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], 1.0, PB_ePlayerBar[playerid][barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
 			PlayerTextDrawBoxColor		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR]);
@@ -146,7 +150,7 @@ static stock PB_RenderPlayerBar(playerid, PlayerBar:barid)
 			PlayerTextDrawBoxColor		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], (PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
 
 			PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN] = CreatePlayerTextDraw(playerid, PB_ePlayerBar[playerid][barid][PB_e_BAR_X] - 1.2, PB_ePlayerBar[playerid][barid][PB_e_BAR_Y] + 2.15, "_");
-			PlayerTextDrawUseBox		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], 1);
+			PlayerTextDrawUseBox		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], 1);
 			PlayerTextDrawTextSize		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], PB_BarPercent(PB_ePlayerBar[playerid][barid][PB_e_BAR_X], PB_ePlayerBar[playerid][barid][PB_e_BAR_WIDTH], PB_ePlayerBar[playerid][barid][PB_e_BAR_MAX_VALUE], PB_ePlayerBar[playerid][barid][PB_e_BAR_VALUE], PB_ePlayerBar[playerid][barid][PB_e_BAR_DIRECTION]), 0.0);
 			PlayerTextDrawLetterSize	(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], 1.0, PB_ePlayerBar[playerid][barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
 			PlayerTextDrawBoxColor		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR]);
@@ -655,6 +659,10 @@ static PB_iBarCount;
 
 static stock PB_RenderBar(Bar:barid)
 {
+	TextDrawDestroy(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND]);
+	TextDrawDestroy(PB_txtBar[barid][BAR_TEXTDRAW_FILL]);
+	TextDrawDestroy(PB_txtBar[barid][BAR_TEXTDRAW_MAIN]);
+	
 	switch (PB_eBar[barid][PB_e_BAR_DIRECTION])
 	{
 		case BAR_DIRECTION_RIGHT:
@@ -672,7 +680,7 @@ static stock PB_RenderBar(Bar:barid)
 			TextDrawBoxColor	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], (PB_eBar[barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_eBar[barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
 
 			PB_txtBar[barid][BAR_TEXTDRAW_MAIN] = TextDrawCreate(playerid, PB_eBar[barid][PB_e_BAR_X] + 1.2, PB_eBar[barid][PB_e_BAR_Y] + 2.15, "_");
-			TextDrawUseBox		(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1);
+			TextDrawUseBox		(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1);
 			TextDrawTextSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_BarPercent(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_WIDTH], PB_eBar[barid][PB_e_BAR_MAX_VALUE], PB_eBar[barid][PB_e_BAR_VALUE], PB_eBar[barid][PB_e_BAR_DIRECTION]), 0.0);
 			TextDrawLetterSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
 			TextDrawBoxColor	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_COLOR]);
@@ -693,7 +701,7 @@ static stock PB_RenderBar(Bar:barid)
 			TextDrawBoxColor	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], (PB_eBar[barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_eBar[barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
 
 			PB_txtBar[barid][BAR_TEXTDRAW_MAIN] = TextDrawCreate(playerid, PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] + 2.15, "_");
-			TextDrawUseBox		(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1);
+			TextDrawUseBox		(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1);
 			TextDrawTextSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_BarPercent(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_WIDTH], PB_eBar[barid][PB_e_BAR_MAX_VALUE], PB_eBar[barid][PB_e_BAR_VALUE], PB_eBar[barid][PB_e_BAR_DIRECTION]), 0.0);
 			TextDrawLetterSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
 			TextDrawBoxColor	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_COLOR]);
@@ -884,7 +892,7 @@ stock ShowProgressBarForAll(Bar:barid)
 	TextDrawShowForAll(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND]);
 	TextDrawShowForAll(PB_txtBar[barid][BAR_TEXTDRAW_FILL]);
 	TextDrawShowForAll(PB_txtBar[barid][BAR_TEXTDRAW_MAIN]);
-	
+
 	for (new i, j = GetPlayerPoolSize(); i <= j; i++)
 	{
 	    if (IsPlayerConnected(i))
