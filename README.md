@@ -30,7 +30,6 @@ Click on the embedded links to directly goto the following's page.
       * <b>vehicle_mods.inc</b> - internally used file
       * <b>vending_machine.inc</b> - internally used file
       * <b>weapon_config.inc</b> - internally used file
-    * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/arraylist.inc">arraylist.inc</a></b> - Foreach with all data-type supports (int, float, string)
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/ban.inc">ban.inc</a></b> - SQL based SA-MP ban system (hooks functions "Ban", "BanEx"). Supports both MYSQL and SQLite
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/dialogs.inc">dialogs.inc</a></b> - Adds in new dialog styles "DIALOG_STYLE_PREVMODEL" and "DIALOG_STYLE_PREVMODEL_LIST"
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/dini2.inc">dini2.inc</a></b> - Improved dini processor with multi file processing and fast! *you can use this really)
