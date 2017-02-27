@@ -180,12 +180,15 @@ public OnPlayerConnect(playerid)
 
 public OnPlayerDisconnect(playerid, reason)
 {
-	new string[1024],
-		name[MAX_PLAYER_NAME];
-	GetPlayerName(playerid, name, MAX_PLAYER_NAME);
-    format(string, sizeof(string), "UPDATE `users` SET `name` = '%s', `password` = '%q', `salt` = '%q', `sec_question` = '%q', `sec_answer` = '%q', `kills` = %i, `deaths` = %i, `score` = %i, `money` = %i, `adminlevel` = %i, `viplevel` = %i WHERE `id` = %i",
-		name, eUser[playerid][e_USER_PASSWORD], eUser[playerid][e_USER_SALT], eUser[playerid][e_USER_SECURITY_QUESTION], eUser[playerid][e_USER_SECURITY_ANSWER],  eUser[playerid][e_USER_KILLS], eUser[playerid][e_USER_DEATHS], GetPlayerScore(playerid), GetPlayerMoney(playerid), eUser[playerid][e_USER_ADMIN_LEVEL], eUser[playerid][e_USER_VIP_LEVEL], eUser[playerid][e_USER_SQLID]);
-	db_query(db, string);
+	if (GetPVarInt(playerid, "LoggedIn"))
+	{
+		new string[1024],
+			name[MAX_PLAYER_NAME];
+		GetPlayerName(playerid, name, MAX_PLAYER_NAME);
+		format(string, sizeof(string), "UPDATE `users` SET `name` = '%s', `password` = '%q', `salt` = '%q', `sec_question` = '%q', `sec_answer` = '%q', `kills` = %i, `deaths` = %i, `score` = %i, `money` = %i, `adminlevel` = %i, `viplevel` = %i WHERE `id` = %i",
+			name, eUser[playerid][e_USER_PASSWORD], eUser[playerid][e_USER_SALT], eUser[playerid][e_USER_SECURITY_QUESTION], eUser[playerid][e_USER_SECURITY_ANSWER],  eUser[playerid][e_USER_KILLS], eUser[playerid][e_USER_DEATHS], GetPlayerScore(playerid), GetPlayerMoney(playerid), eUser[playerid][e_USER_ADMIN_LEVEL], eUser[playerid][e_USER_VIP_LEVEL], eUser[playerid][e_USER_SQLID]);
+		db_query(db, string);
+	}
 	return 1;
 }
 
