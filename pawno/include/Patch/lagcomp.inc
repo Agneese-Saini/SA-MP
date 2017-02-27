@@ -4,8 +4,8 @@
 #define lagcomp_included
 
 /*
-native SetPlayerDamage(playerid, weaponid, Float:damage);
-native Float:GetPlayerDamage(playerid, weaponid);
+native SetPlayerWeaponDamage(playerid, weaponid, Float:damage);
+native Float:GetPlayerWeaponDamage(playerid, weaponid);
 */
 
 #define WEAPON_UNARMED \
@@ -101,7 +101,7 @@ enum LC_e_PLAYER_DEATHDATA
 };
 static LC_ePlayerDeathData[MAX_PLAYERS][LC_e_PLAYER_DEATHDATA];
 
-static LC_fPlayerWeaponDamage[MAX_PLAYERS][sizeof(LC_WEAPON_DAMAGE)];
+static Float:LC_fPlayerWeaponDamage[MAX_PLAYERS][sizeof(LC_WEAPON_DAMAGE)];
 static LC_iPlayerTeam[MAX_PLAYERS];
 
 static LC_HasSameTeam(playerid, otherid)
@@ -330,7 +330,7 @@ static LC_ProcessDamage(&playerid, &issuerid, &Float:amount, &weaponid, &bodypar
 			 WEAPON_SATCHEL,
 			 WEAPON_EXPLOSION:
 		{
-			amount = (amount / LC_WEAPON_DAMAGE[weaponid]) * LC_fPlayerWeaponDamage[((issuerid == INVALID_PLAYER_ID) ? (playerid) : (issuerid))][weaponid];
+			amount = (amount / LC_WEAPON_DAMAGE[weaponid]) * LC_fPlayerWeaponDamage[issuerid][weaponid];
 		}
 
 		case WEAPON_MOLTOV,
@@ -338,7 +338,7 @@ static LC_ProcessDamage(&playerid, &issuerid, &Float:amount, &weaponid, &bodypar
 			 WEAPON_CARPARK,
 			 WEAPON_VEHICLE:
 		{
-		    amount = LC_fPlayerWeaponDamage[((issuerid == INVALID_PLAYER_ID) ? (playerid) : (issuerid))][weaponid];
+		    amount = LC_fPlayerWeaponDamage[issuerid][weaponid];
 		}
 
 		case WEAPON_COLT45..WEAPON_DEAGLE,
@@ -381,68 +381,33 @@ static LC_ProcessDamage(&playerid, &issuerid, &Float:amount, &weaponid, &bodypar
 	return 1;
 }
 
-static LC_DamagePlayer(playerid, Float:amount, bool:ignore_armour)
+static LC_DamagePlayer(playerid, Float:amount)
 {
-	if (ignore_armour)
-	{
-		new Float:health;
-		GetPlayerHealth(playerid, health);
+	new Float:health,
+		Float:armour;
+	GetPlayerHealth(playerid, health);
+	GetPlayerArmour(playerid, armour);
 
-	    if (amount >= health)
-	    	health = 0.0;
-		else
-	    	health -= amount;
+	armour -= amount;
+ 	if (armour < 0.0)
+		health += armour;
 
-		SetPlayerHealth(playerid, health);
-	}
-	else
-	{
-		new Float:health,
-			Float:armour;
-		GetPlayerHealth(playerid, health);
-		GetPlayerArmour(playerid, armour);
+    if (armour <= 0.0)
+     	armour = 0.0;
+    if (health <= 0.0)
+     	health = 0.0;
 
-		armour -= amount;
-	    if (armour < 0.0)
-			health += armour;
-
-	    if (armour <= 0.0)
-	     	armour = 0.0;
-	    if (health <= 0.0)
-	     	health = 0.0;
-
-		SetPlayerHealth(playerid, health);
-		SetPlayerArmour(playerid, armour);
-	}
-}
-
-stock SetPlayerDamage(playerid, weaponid, Float:damage)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	    return 0;
-
-	if (weaponid < 0 || weaponid >= MAX_WEAPONS)
-	    return 0;
-
-    LC_fPlayerWeaponDamage[playerid][weaponid] = damage;
-	return 1;
-}
-
-stock Float:GetPlayerDamage(playerid, weaponid)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	    return 0;
-
-	if (weaponid < 0 || weaponid >= MAX_WEAPONS)
-	    return 0;
-
-    return LC_fPlayerWeaponDamage[playerid][weaponid];
+	SetPlayerHealth(playerid, health);
+	SetPlayerArmour(playerid, armour);
 }
 
 public OnPlayerConnect(playerid)
 {
 	LC_iPlayerTeam[playerid] = NO_TEAM;
-	SetPlayerTeam(playerid, 65565);
+	SetPlayerTeam(playerid, 655);
+	
+	for (new i; i < sizeof(LC_WEAPON_DAMAGE); i++)
+		SetPlayerWeaponDamage(playerid, i, LC_WEAPON_DAMAGE[i]);
 
 	#if defined LC_OnPlayerConnect
 		return LC_OnPlayerConnect(playerid);
@@ -460,30 +425,6 @@ public OnPlayerConnect(playerid)
 	forward LC_OnPlayerConnect(playerid);
 #endif
 
-public OnPlayerSpawn(playerid)
-{
-	if (GetPlayerTeam(playerid) != 65565)
-	{
-		LC_iPlayerTeam[playerid] = GetPlayerTeam(playerid);
-		SetPlayerTeam(playerid, 65565);
-	}
-	
-	#if defined LC_OnPlayerSpawn
-		return LC_OnPlayerSpawn(playerid);
-	#else
-		return 1;
-	#endif
-}
-#if defined _ALS_OnPlayerSpawn
-    #undef OnPlayerSpawn
-#else
-    #define _ALS_OnPlayerSpawn
-#endif
-#define OnPlayerSpawn LC_OnPlayerSpawn
-#if defined LC_OnPlayerSpawn
-	forward LC_OnPlayerSpawn(playerid);
-#endif
-
 public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY, Float:fZ)
 {
 	if (!((WEAPON_COLT45 <= weaponid <= WEAPON_SNIPER) || weaponid == WEAPON_MINIGUN))
@@ -496,7 +437,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 	#else
 	    LC_ePlayerLastShot[playerid][LC_e_LAST_SHOT_RETURN] = true;
 	#endif
-	
+
 	return LC_ePlayerLastShot[playerid][LC_e_LAST_SHOT_RETURN];
 }
 #if defined _ALS_OnPlayerWeaponShot
@@ -546,25 +487,6 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart)
     	}
 	}
 
-	if (!LC_ProcessDamage(playerid, issuerid, amount, weaponid, bodypart))
-		return 1;
-
-	switch (weaponid)
-	{
-	    case WEAPON_VEHICLE,
-             WEAPON_CARPARK,
-			 WEAPON_DROWN,
-			 WEAPON_COLLISION:
-		{
-			LC_DamagePlayer(playerid, amount, true);
-		}
-
-		default:
-		{
-			LC_DamagePlayer(playerid, amount, false);
-		}
-	}
-
 	new Float:health;
 	GetPlayerHealth(playerid, health);
 	if (health <= 0.0)
@@ -573,7 +495,7 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart)
 		LC_ePlayerDeathData[playerid][LC_e_PLAYER_DEATHDATA_KILLERID] = INVALID_PLAYER_ID;
 		LC_ePlayerDeathData[playerid][LC_e_PLAYER_DEATHDATA_WEAPONID] = weaponid;
 	}
-	
+
 	#if defined LC_OnPlayerTakeDamage
 		return LC_OnPlayerTakeDamage(playerid, issuerid, amount, weaponid, bodypart);
 	#else
@@ -617,7 +539,7 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
     	LC_ePlayerLastShot[playerid][LC_e_LAST_SHOT_RETURN] = false;
     }
 
-    LC_DamagePlayer(damagedid, amount, false);
+    LC_DamagePlayer(damagedid, amount);
 
 	new Float:health;
 	GetPlayerHealth(damagedid, health);
@@ -649,10 +571,10 @@ public OnPlayerDeath(playerid, killerid, reason)
 	{
 	    return 0;
 	}
-	
+
 	killerid = LC_ePlayerDeathData[playerid][LC_e_PLAYER_DEATHDATA_KILLERID];
 	reason = LC_ePlayerDeathData[playerid][LC_e_PLAYER_DEATHDATA_WEAPONID];
-	
+
 	#if defined LC_OnPlayerDeath
 		return LC_OnPlayerDeath(playerid, killerid, reason);
 	#else
@@ -668,3 +590,55 @@ public OnPlayerDeath(playerid, killerid, reason)
 #if defined LC_OnPlayerDeath
 	forward LC_OnPlayerDeath(playerid, killerid, reason);
 #endif
+
+stock LC_SetPlayerTeam(playerid, team)
+{
+	if (playerid < 0 || playerid >= MAX_PLAYERS)
+	    return 0;
+
+	LC_iPlayerTeam[playerid] = team;
+	return 1;
+}
+#if defined _ALS_SetPlayerTeam
+    #undef SetPlayerTeam
+#else
+    #define _ALS_SetPlayerTeam
+#endif
+#define SetPlayerTeam LC_SetPlayerTeam
+
+stock LC_GetPlayerTeam(playerid)
+{
+	if (playerid < 0 || playerid >= MAX_PLAYERS)
+	    return 0;
+
+	return LC_iPlayerTeam[playerid];
+}
+#if defined _ALS_GetPlayerTeam
+    #undef GetPlayerTeam
+#else
+    #define _ALS_GetPlayerTeam
+#endif
+#define GetPlayerTeam LC_GetPlayerTeam
+
+stock SetPlayerWeaponDamage(playerid, weaponid, Float:damage)
+{
+	if (playerid < 0 || playerid >= MAX_PLAYERS)
+	    return 0;
+
+	if (weaponid < 0 || weaponid >= sizeof(LC_WEAPON_DAMAGE))
+	    return 0;
+
+    LC_fPlayerWeaponDamage[playerid][weaponid] = damage;
+	return 1;
+}
+
+stock Float:GetPlayerWeaponDamage(playerid, weaponid)
+{
+	if (playerid < 0 || playerid >= MAX_PLAYERS)
+	    return 0;
+
+	if (weaponid < 0 || weaponid >= sizeof(LC_WEAPON_DAMAGE))
+	    return 0;
+
+    return LC_fPlayerWeaponDamage[playerid][weaponid];
+}
