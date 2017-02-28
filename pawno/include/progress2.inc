@@ -111,7 +111,7 @@ static stock PB_RenderPlayerBar(playerid, PlayerBar:barid)
 	PlayerTextDrawDestroy(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND]);
 	PlayerTextDrawDestroy(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL]);
 	PlayerTextDrawDestroy(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN]);
-	
+
 	switch (PB_ePlayerBar[playerid][barid][PB_e_BAR_DIRECTION])
 	{
 		case BAR_DIRECTION_RIGHT:
@@ -662,7 +662,7 @@ static stock PB_RenderBar(Bar:barid)
 	TextDrawDestroy(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND]);
 	TextDrawDestroy(PB_txtBar[barid][BAR_TEXTDRAW_FILL]);
 	TextDrawDestroy(PB_txtBar[barid][BAR_TEXTDRAW_MAIN]);
-	
+
 	switch (PB_eBar[barid][PB_e_BAR_DIRECTION])
 	{
 		case BAR_DIRECTION_RIGHT:
