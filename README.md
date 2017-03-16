@@ -7,6 +7,7 @@ Click on the embedded links to directly goto the following's page.
 
 * filterscripts
   * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/filterscripts/attachments.pwn">attachments.pwn</a></b> - player attachment editor with preview model dialogs.
+  * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/filterscripts/throw_deagle.pwn">throw_deagle.pwn</a></b> - projectile.inc example script (throwing a desert eagle on ground).
 * gamemodes
   * base
      * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/gamemodes/base/mysql.pwn">mysql.pwn</a></b> - an advance MYSQL R41+ base gamemode
@@ -38,3 +39,4 @@ Click on the embedded links to directly goto the following's page.
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/gangzone.inc">gangzone.inc</a></b> - GangZones with borders and interior & virtual world support
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/gmenu.inc">gmenu.inc</a></b> - GTA 5 styled menus with response control, even switching to one item to next
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/progress2.inc">progress2.inc</a></b> - SouthClaw's progress2 with global textdraw support and some minor changes for productivity!
+    * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/projectile.inc">projectile.inc</a></b> - Lets you create object physics simulation
