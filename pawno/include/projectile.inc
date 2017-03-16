@@ -1,4 +1,4 @@
-//projectile.inc - By Gammix (originally by PeppeAC) - v1.0 - updated: 16 Mar,2017
+//projectile.inc - By Gammix (originally by PeppeAC) - v1.1 - updated: 16 Mar,2017
 #if defined projectile_included
 	#endinput
 #endif
@@ -34,11 +34,16 @@
 #endif
 
 /*
-native Projectile(Float:x, Float:y, Float:z, Float:vx, Float:vy, Float:vz, Float:sphere_radius = 1.0, Float:acceleration = 0.0, Float:mass = 1.0, Float:friction = 10.0, Float:air_resistance = 0.5, Float:gravity = 4.1);
+native Projectile(Float:x, Float:y, Float:z, Float:vx, Float:vy, Float:vz, Float:sphere_radius = 1.0, Float:acceleration = 0.0, Float:mass = 1.0, Float:friction = 10.0, Float:air_resistance = 0.5, Float:gravity = 4.1, bool:playercol = true);
 native StopProjectile(projid);
 native GetProjectilePos(projid, &Float:x, &Float:y, &Float:z);
 native GetProjectileVelocity(projid, &Float:vx, &Float:vy, &Float:vz);
 */
+
+enum ProjectileCollision:(<<= 1)
+{
+	TEST
+};
 
 enum e_PROJECTILE
 {
@@ -54,13 +59,14 @@ enum e_PROJECTILE
 	Float:e_PROJECTILE_FRICTION,
 	Float:e_PROJECTILE_GRAVITY,
 	Float:e_PROJECTILE_AIR_RESISTANCE,
+	bool:e_PROJECTILE_PLAYER_COL,
 	e_PROJECTILE_TIMER
 };
 
 static eProjectile[MAX_PROJECTILES][e_PROJECTILE];
 static iProjectileCount;
 
-stock Projectile(Float:x, Float:y, Float:z, Float:vx, Float:vy, Float:vz, Float:sphere_radius = 1.0, Float:acceleration = 0.0, Float:mass = 1.0, Float:friction = 10.0, Float:air_resistance = 0.5, Float:gravity = 4.1)
+stock Projectile(Float:x, Float:y, Float:z, Float:vx, Float:vy, Float:vz, Float:sphere_radius = 1.0, Float:acceleration = 0.0, Float:mass = 1.0, Float:friction = 10.0, Float:air_resistance = 0.5, Float:gravity = 4.1, bool:playercol = true)
 {
 	if (iProjectileCount == MAX_PROJECTILES)
 	    return -1;
@@ -78,6 +84,7 @@ stock Projectile(Float:x, Float:y, Float:z, Float:vx, Float:vy, Float:vz, Float:
     eProjectile[i][e_PROJECTILE_FRICTION] = friction;
     eProjectile[i][e_PROJECTILE_AIR_RESISTANCE] = air_resistance;
     eProjectile[i][e_PROJECTILE_GRAVITY] = gravity;
+    eProjectile[i][e_PROJECTILE_PLAYER_COL] = playercol;
     eProjectile[i][e_PROJECTILE_TIMER] = SetTimerEx("Internal_OnProjectileUpdate", PROJECTILE_TIMER_INTERVAL, true, "i", i);
 	return i;
 }
@@ -103,6 +110,7 @@ stock StopProjectile(projid)
 	    eProjectile[i][e_PROJECTILE_FRICTION] = eProjectile[i + 1][e_PROJECTILE_FRICTION];
 	    eProjectile[i][e_PROJECTILE_AIR_RESISTANCE] = eProjectile[i + 1][e_PROJECTILE_AIR_RESISTANCE];
 	    eProjectile[i][e_PROJECTILE_GRAVITY] = eProjectile[i + 1][e_PROJECTILE_GRAVITY];
+	    eProjectile[i][e_PROJECTILE_PLAYER_COL] = eProjectile[i + 1][e_PROJECTILE_PLAYER_COL];
 	    eProjectile[i][e_PROJECTILE_TIMER] = eProjectile[i + 1][e_PROJECTILE_TIMER];
 	}
 	iProjectileCount--;
@@ -226,7 +234,49 @@ public Internal_OnProjectileUpdate(i)
 			OnProjectileCollide(i, 3); // COLLIDE_SA_WORLD
 		#endif
 	}
+	
+	// collision check with players
+	if (eProjectile[i][e_PROJECTILE_PLAYER_COL])
+	{
+	 	new Float:px,
+		    Float:py,
+		    Float:pz,
+		    Float:dx,
+		    Float:dy,
+			Float:new_vx,
+			Float:new_vy,
+			Float:angle;
+		for (new a, b = GetPlayerPoolSize(); a <= b; a++)
+		{
+		    if (IsPlayerConnected(a))
+		    {
+		        GetPlayerPos(a, px, py, pz);
+		        if ((pz - (min_height - eProjectile[i][e_PROJECTILE_RADIUS])) < new_z < (pz + (max_height + eProjectile[i][e_PROJECTILE_RADIUS])))
+				{
+					dx = new_x - px;
+					dy = new_y - py;
+					if (((dx * dx) + (dy * dy)) < ((eProjectile[i][e_PROJECTILE_RADIUS] + 0.8) * (eProjectile[i][e_PROJECTILE_RADIUS] + 0.8)))
+					{
+						if (((eProjectile[i][e_PROJECTILE_VX] * dx) + (eProjectile[i][e_PROJECTILE_VY] * dy)) < 0.0)
+						{
+							angle = -atan2(dy, dx);
+							new_vx = -1 * ((eProjectile[i][e_PROJECTILE_VX] * floatcos(angle, degrees)) - (eProjectile[i][e_PROJECTILE_VY] * floatsin(angle, degrees)));
+							new_vy = ((eProjectile[i][e_PROJECTILE_VX] * floatsin(angle, degrees)) + (eProjectile[i][e_PROJECTILE_VY] * floatcos(angle, degrees)));
 
+							angle *= -1;
+							eProjectile[i][e_PROJECTILE_VX] = ((new_vx * floatcos(angle, degrees)) - (new_vy * floatsin(angle, degrees)));
+							eProjectile[i][e_PROJECTILE_VY] = ((new_vx * floatsin(angle, degrees)) + (new_vy * floatcos(angle, degrees)));
+
+							#if defined OnProjectileCollide
+								OnProjectileCollide(i, 4); // COLLIDE_PLAYER
+							#endif
+						}
+					}
+				}
+		    }
+		}
+	}
+	
 	// apply friction
 	new Float:moveangle = (atan2(eProjectile[i][e_PROJECTILE_VY], eProjectile[i][e_PROJECTILE_VX]) - 90.0);
 	new Float:speed = floatsqroot((eProjectile[i][e_PROJECTILE_VX] * eProjectile[i][e_PROJECTILE_VX]) + (eProjectile[i][e_PROJECTILE_VY] * eProjectile[i][e_PROJECTILE_VY]));
