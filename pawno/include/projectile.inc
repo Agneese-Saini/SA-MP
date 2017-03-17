@@ -34,7 +34,7 @@
 #endif
 
 /*
-native Projectile(Float:x, Float:y, Float:z, Float:vx, Float:vy, Float:vz, Float:sphere_radius = 1.0, Float:acceleration = 0.0, Float:friction = 10.0, Float:air_resistance = 0.5, Float:gravity = 10.0, bool:playercol = true);
+native Projectile(Float:x, Float:y, Float:z, Float:vx, Float:vy, Float:vz, Float:rx = 0.0, Float:ry = 0.0, Float:rz = 0.0, Float:sphere_radius = 1.0, Float:acceleration = 0.0, Float:ground_friction = 10.0, Float:collision_friction = 1.0, Float:air_resistance = 0.5, Float:gravity = 10.0, bool:playercol = true);
 native StopProjectile(projid);
 native GetProjectilePos(projid, &Float:x, &Float:y, &Float:z);
 native GetProjectileRot(projid, &Float:rx, &Float:ry, &Float:rz);
