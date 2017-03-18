@@ -275,6 +275,8 @@ public Internal_OnProjectilesUpdate()
 
 			#if defined OnProjectileCollide
 				OnProjectileCollide(i, 3, cx, cy, cz, modelid); // COLLIDE_SA_WORLD
+			#else
+				#pragma unused modelid
 			#endif
 		}
 
