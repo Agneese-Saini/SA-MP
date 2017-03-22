@@ -34,7 +34,7 @@
 #endif
 
 /*
-native Projectile(Float:x, Float:y, Float:z, Float:vx, Float:vy, Float:vz, Float:rx = 0.0, Float:ry = 0.0, Float:rz = 0.0, Float:sphere_radius = 1.0, Float:ground_friction = 10.0, Float:collision_friction = 5.0, Float:air_resistance = 0.5, Float:gravity = 10.0, Float:playercol_radius = 0.8);
+native Projectile(Float:x, Float:y, Float:z, Float:vx, Float:vy, Float:vz, Float:rx = 0.0, Float:ry = 0.0, Float:rz = 0.0, Float:sphere_radius = 1.0, Float:ground_friction = 5.0, Float:collision_friction = 0.2, Float:air_resistance = 0.5, Float:gravity = 10.0, Float:playercol_radius = 0.8);
 native StopProjectile(projid);
 native PushProjectile(projid, Float:vx, Float:vy, Float:vz);
 native GetProjectilePos(projid, &Float:x, &Float:y, &Float:z);
@@ -206,7 +206,7 @@ public Internal_OnProjectilesUpdate()
 		new_y = eProjectile[i][e_PROJECTILE_Y] + eProjectile[i][e_PROJECTILE_VY] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
 		new_z = eProjectile[i][e_PROJECTILE_Z] + eProjectile[i][e_PROJECTILE_VZ] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
 
-		// calculate max & min height the sphere can reach
+ 		// calculate max & min height the sphere can reach
 		min_height = 0.0;
 		if (CA_RayCastLine(eProjectile[i][e_PROJECTILE_X], eProjectile[i][e_PROJECTILE_Y], eProjectile[i][e_PROJECTILE_Z], new_x, new_y, new_z - 1000.0, unused, unused, min_height) != 0)
 		{
@@ -233,8 +233,8 @@ public Internal_OnProjectilesUpdate()
 	    if (new_z > max_height)
 		{
 			if (eProjectile[i][e_PROJECTILE_VZ] > 0)
-				eProjectile[i][e_PROJECTILE_VZ] = -eProjectile[i][e_PROJECTILE_VZ] * 0.5;
-				
+				eProjectile[i][e_PROJECTILE_VZ] = -eProjectile[i][e_PROJECTILE_VZ] * 0.8;
+
 			#if defined OnProjectileCollide
 				OnProjectileCollide(i, 1, new_x, new_y, new_z, 0); // COLLIDE_HIGH_Z_BOUND
 			#endif
@@ -243,7 +243,7 @@ public Internal_OnProjectilesUpdate()
 		else if (new_z < min_height)
 		{
 			if (eProjectile[i][e_PROJECTILE_VZ] < 0)
-				eProjectile[i][e_PROJECTILE_VZ] = -eProjectile[i][e_PROJECTILE_VZ] * 0.5;
+				eProjectile[i][e_PROJECTILE_VZ] = -eProjectile[i][e_PROJECTILE_VZ] * 0.8;
 
 			#if defined OnProjectileCollide
 				OnProjectileCollide(i, 2, new_x, new_y, new_z, 0); // COLLIDE_LOW_Z_BOUND
@@ -298,7 +298,7 @@ public Internal_OnProjectilesUpdate()
 								moveangle *= -1;
 								eProjectile[i][e_PROJECTILE_VX] = ((new_vx * floatcos(moveangle, degrees)) - (new_vy * floatsin(moveangle, degrees)));
 								eProjectile[i][e_PROJECTILE_VY] = ((new_vx * floatsin(moveangle, degrees)) + (new_vy * floatcos(moveangle, degrees)));
-										
+
 								collision = true;
 
 								#if defined OnProjectileCollide
