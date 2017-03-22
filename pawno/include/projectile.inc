@@ -1,4 +1,4 @@
-//projectile.inc - By Gammix (originally by PeppeAC) - v1.3.2 - updated: 18 Mar,2017
+//projectile.inc - By Gammix (originally by PeppeAC) - v1.3.3 - updated: 22 Mar,2017
 #if defined projectile_included
 	#endinput
 #endif
@@ -67,7 +67,7 @@ enum e_PROJECTILE
 static eProjectile[MAX_PROJECTILES][e_PROJECTILE];
 static iProjectileCount;
 
-stock Projectile(Float:x, Float:y, Float:z, Float:vx, Float:vy, Float:vz, Float:rx = 0.0, Float:ry = 0.0, Float:rz = 0.0, Float:sphere_radius = 1.0, Float:ground_friction = 10.0, Float:collision_friction = 5.0, Float:air_resistance = 0.5, Float:gravity = 10.0, Float:playercol_radius = 0.8)
+stock Projectile(Float:x, Float:y, Float:z, Float:vx, Float:vy, Float:vz, Float:rx = 0.0, Float:ry = 0.0, Float:rz = 0.0, Float:sphere_radius = 1.0, Float:ground_friction = 5.0, Float:collision_friction = 0.2, Float:air_resistance = 0.5, Float:gravity = 10.0, Float:playercol_radius = 0.8)
 {
 	if (iProjectileCount == MAX_PROJECTILES)
 	{
@@ -121,7 +121,7 @@ stock StopProjectile(projid)
 	    for (new e_PROJECTILE:x; x < e_PROJECTILE; x++)
 	    	eProjectile[i][x] = eProjectile[i + 1][x];
 	}
-	
+
 	if (iProjectileCount == 0)
 	{
 	    KillTimer(iInitializetimer);
@@ -174,22 +174,6 @@ stock GetProjectileVelocity(projid, &Float:vx, &Float:vy, &Float:vz)
 	return 1;
 }
 
-static Internal_Collide(&Float:x, &Float:y, &Float:vx, &Float:vy, Float:sphere_radius, Float:cx, Float:cy, Float:crx, Float:cry)
-{
-	new Float:angle = atan2(-cry, crx);
-
-	new Float:new_vx = ((vx * floatcos(angle, degrees)) - (vy * floatsin(angle, degrees)));
-	new Float:new_vy = -((vx * floatsin(angle, degrees)) + (vy * floatcos(angle, degrees)));
-
-	angle *= -1;
-	vx = ((new_vx * floatcos(angle, degrees)) - (new_vy * floatsin(angle, degrees)));
-	vy = ((new_vx * floatsin(angle, degrees)) + (new_vy * floatcos(angle, degrees)));
-	
-	angle += ((new_vy > 0) ? (90.0) : (-90.0));
-	x = (cx + ((sphere_radius + 0.001) * floatcos(angle, degrees)));
-	y = (cy + ((sphere_radius + 0.001) * floatsin(angle, degrees)));
-}
-
 forward Internal_OnProjectilesUpdate();
 public Internal_OnProjectilesUpdate()
 {
@@ -208,9 +192,11 @@ public Internal_OnProjectilesUpdate()
 		Float:dx,
  		Float:dy,
 	 	Float:moveangle,
+	 	Float:new_vx,
+	 	Float:new_vy,
 		Float:speed,
 		bool:collision;
-    
+
 	for (new i; i < iProjectileCount; i++)
 	{
 		collision = false;
@@ -228,7 +214,7 @@ public Internal_OnProjectilesUpdate()
 		}
 		else
 		{
-			min_height = eProjectile[i][e_PROJECTILE_Z];
+			min_height = eProjectile[i][e_PROJECTILE_Z] - 1.0;
 		}
 
 		max_height = 0.0;
@@ -247,30 +233,39 @@ public Internal_OnProjectilesUpdate()
 	    if (new_z > max_height)
 		{
 			if (eProjectile[i][e_PROJECTILE_VZ] > 0)
-			{
-				eProjectile[i][e_PROJECTILE_VZ] = 0.0;
-				#if defined OnProjectileCollide
-					OnProjectileCollide(i, 1, new_x, new_y, new_z, 0); // COLLIDE_HIGH_Z_BOUND
-				#endif
-			}
+				eProjectile[i][e_PROJECTILE_VZ] = -eProjectile[i][e_PROJECTILE_VZ] * 0.5;
+				
+			#if defined OnProjectileCollide
+				OnProjectileCollide(i, 1, new_x, new_y, new_z, 0); // COLLIDE_HIGH_Z_BOUND
+			#endif
 			new_z = max_height;
 		}
 		else if (new_z < min_height)
 		{
 			if (eProjectile[i][e_PROJECTILE_VZ] < 0)
-			{
-	            eProjectile[i][e_PROJECTILE_VZ] = 0.0;
-				#if defined OnProjectileCollide
-					OnProjectileCollide(i, 2, new_x, new_y, new_z, 0); // COLLIDE_LOW_Z_BOUND
-				#endif
-			}
+				eProjectile[i][e_PROJECTILE_VZ] = -eProjectile[i][e_PROJECTILE_VZ] * 0.5;
+
+			#if defined OnProjectileCollide
+				OnProjectileCollide(i, 2, new_x, new_y, new_z, 0); // COLLIDE_LOW_Z_BOUND
+			#endif
 			new_z = min_height;
 		}
 
 		// collision check with SA-World
 		if ((modelid = CA_RayCastLineAngle(eProjectile[i][e_PROJECTILE_X], eProjectile[i][e_PROJECTILE_Y], eProjectile[i][e_PROJECTILE_Z], new_x, new_y, new_z, cx, cy, cz, crx, cry, unused)) != 0)
 		{
-		    Internal_Collide(new_x, new_y, eProjectile[i][e_PROJECTILE_VX], eProjectile[i][e_PROJECTILE_VY], eProjectile[i][e_PROJECTILE_RADIUS], cx, cy, crx, cry);
+			moveangle = atan2(-cry, crx);
+			new_vx = ((eProjectile[i][e_PROJECTILE_VX] * floatcos(moveangle, degrees)) - (eProjectile[i][e_PROJECTILE_VY] * floatsin(moveangle, degrees)));
+			new_vy = -((eProjectile[i][e_PROJECTILE_VX] * floatsin(moveangle, degrees)) + (eProjectile[i][e_PROJECTILE_VY] * floatcos(moveangle, degrees)));
+
+			moveangle *= -1;
+			eProjectile[i][e_PROJECTILE_VX] = ((new_vx * floatcos(moveangle, degrees)) - (new_vy * floatsin(moveangle, degrees)));
+			eProjectile[i][e_PROJECTILE_VY] = ((new_vx * floatsin(moveangle, degrees)) + (new_vy * floatcos(moveangle, degrees)));
+
+			moveangle += ((new_vy > 0) ? (90.0) : (-90.0));
+			new_x = (cx + ((eProjectile[i][e_PROJECTILE_RADIUS] + 0.001) * floatcos(moveangle, degrees)));
+			new_y = (cy + ((eProjectile[i][e_PROJECTILE_RADIUS] + 0.001) * floatsin(moveangle, degrees)));
+
 	        collision = true;
 
 			#if defined OnProjectileCollide
@@ -296,7 +291,14 @@ public Internal_OnProjectilesUpdate()
 						{
 							if (((eProjectile[i][e_PROJECTILE_VX] * dx) + (eProjectile[i][e_PROJECTILE_VY] * dy)) < 0.0)
 							{
-							    Internal_Collide(new_x, new_y, eProjectile[i][e_PROJECTILE_VX], eProjectile[i][e_PROJECTILE_VY], eProjectile[i][e_PROJECTILE_RADIUS], cx, cy, dx, dy);
+                                moveangle = -atan2(dy, dx);
+								new_vx = ((eProjectile[i][e_PROJECTILE_VX] * floatcos(moveangle, degrees)) - (eProjectile[i][e_PROJECTILE_VY] * floatsin(moveangle, degrees)));
+								new_vy = ((eProjectile[i][e_PROJECTILE_VX] * floatsin(moveangle, degrees)) + (eProjectile[i][e_PROJECTILE_VY] * floatcos(moveangle, degrees)));
+
+								moveangle *= -1;
+								eProjectile[i][e_PROJECTILE_VX] = ((new_vx * floatcos(moveangle, degrees)) - (new_vy * floatsin(moveangle, degrees)));
+								eProjectile[i][e_PROJECTILE_VY] = ((new_vx * floatsin(moveangle, degrees)) + (new_vy * floatcos(moveangle, degrees)));
+										
 								collision = true;
 
 								#if defined OnProjectileCollide
@@ -336,7 +338,14 @@ public Internal_OnProjectilesUpdate()
 		// apply gravitation force
 		if (eProjectile[i][e_PROJECTILE_GRAVITY] != 0.0)
 		{
-		    eProjectile[i][e_PROJECTILE_VZ] -= eProjectile[i][e_PROJECTILE_GRAVITY] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
+			if (eProjectile[i][e_PROJECTILE_VZ] > 0)
+			{
+		    	eProjectile[i][e_PROJECTILE_VZ] -= eProjectile[i][e_PROJECTILE_GRAVITY] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
+		    	if (eProjectile[i][e_PROJECTILE_VZ] < 0)
+		    	    eProjectile[i][e_PROJECTILE_VZ] = 0;
+			}
+			else
+		    	eProjectile[i][e_PROJECTILE_VZ] -= eProjectile[i][e_PROJECTILE_GRAVITY] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
 		}
 
 		// apply air resistance
@@ -350,6 +359,7 @@ public Internal_OnProjectilesUpdate()
 	    }
 
 		// update rotation
+		speed = floatsqroot((eProjectile[i][e_PROJECTILE_VX] * eProjectile[i][e_PROJECTILE_VX]) + (eProjectile[i][e_PROJECTILE_VY] * eProjectile[i][e_PROJECTILE_VY]));
 		if (speed > 0.0)
 		{
 		    eProjectile[i][e_PROJECTILE_RX] -= ((speed * (PROJECTILE_TIMER_INTERVAL / 1000.0)) * ((180.0 / 3.14159) / eProjectile[i][e_PROJECTILE_RADIUS]));
@@ -366,7 +376,7 @@ public Internal_OnProjectilesUpdate()
 		eProjectile[i][e_PROJECTILE_Z] = new_z;
 
 		// if velocity is 0, stop simulation (KillTimer)
-		if (eProjectile[i][e_PROJECTILE_VX] == 0.0 && eProjectile[i][e_PROJECTILE_VY] == 0.0 && new_z == min_height)
+		if (eProjectile[i][e_PROJECTILE_VX] == 0.0 && eProjectile[i][e_PROJECTILE_VY] == 0.0 && eProjectile[i][e_PROJECTILE_VZ] == 0.0)
 		{
 		    #if defined OnProjectileStop
 				OnProjectileStop(i);
