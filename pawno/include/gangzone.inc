@@ -1,4 +1,4 @@
-// gangzone.inc - v2.0 - updated on 27 Feb, 2017 - by Gammix
+// gangzone.inc - v2.2 - updated on 23 March, 2017 - by Gammix
 #if defined gangzones_included
 	#endinput
 #endif
@@ -38,6 +38,14 @@ static GZ_iCount;
 #if defined OnPlayerEnterGangZone || defined OnPlayerLeaveGangZone
 	static Float:GZ_fLastPos[MAX_PLAYERS][2];
 	static GZ_iPlayerZoneid[MAX_PLAYERS];
+#endif
+
+#if defined OnPlayerEnterGangZone
+	forward OnPlayerEnterGangZone(playerid, zoneid);
+#endif
+
+#if defined OnPlayerLeaveGangZone
+	forward OnPlayerLeaveGangZone(playerid, zoneid);
 #endif
 
 stock GZ_GangZoneCreate(Float:minx, Float:miny, Float:maxx, Float:maxy, Float:bordersize = 1.0)
