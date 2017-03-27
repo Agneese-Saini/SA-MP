@@ -15,15 +15,9 @@ Click on the embedded links to directly goto the following's page.
      * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/gamemodes/base/sqlite.pwn">sqlite.pwn</a></b> - an advance SQLite base gamemode
 * includes
   * include
-    * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/tree/master/pawno/include/Patch">Patch</a></b>
-      * <b>anims.inc</b> - animation library fix (preload and crash free)
-      * <b>attachments.inc</b> - player attachments auto remove while aiming with scope weapons (e.g. snipers)
-      * <b>gametext.inc</b> - prevent crash from invalid tildes in gametexts
-      * <b>gangzone.inc</b> - auto fixes gangzones flickering at corners
-      * <b>kickban.inc</b> - adds a delay in kick and ban function so messages and dialogs can be shown before executing (freeze player sync when function is used though to not allow packets to other players)
-      * <b>string.inc</b> - general string function fixes
-      * <b>vehicle.inc</b> - invalid mods protection (currently)
-      * <b>lagcomp.inc</b> - fixes SAMP lagcomp response
+    * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/attachments.inc">attachments.inc</a></b> - player attachments auto remove while aiming with scope weapons (e.g. snipers)
+    * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/kickban.inc">kickban.inc</a></b> - adds a delay in kick and ban function so messages and dialogs can be shown before executing (freeze player sync when function is used though to not allow packets to other players)
+    * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/lagcomp.inc">lagcomp.inc</a></b> - fixes SAMP lagcomp response
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/tree/master/pawno/include/serversided">Serversided</a></b>
       * <b>main.inc</b> - main file to include server sided library (#include <serversided\main>)
       * <b>player_stats.inc</b> - internally used file
