@@ -1,4 +1,4 @@
-// gangzone.inc - v2.2 - updated on 23 March, 2017 - by Gammix
+// gangzone.inc - v2.3 - updated on 31 March, 2017 - by Gammix
 #if defined gangzones_included
 	#endinput
 #endif
@@ -16,6 +16,7 @@ native GangZoneStopFlashForPlayer(playerid, zoneid, bool:mainzone = true, bool:b
 native GangZoneFlashForAll(zoneid, flashcolor = 0, flashbordercolor = 0);
 native GangZoneStopFlashForAll(zoneid, bool:mainzone = true, bool:border = true);
 native IsValidGangZone(zoneid);
+native IsPlayerInGangZone(playerid, zoneid);
 */
 
 #if defined MAX_GANG_ZONES
@@ -366,6 +367,25 @@ stock IsValidGangZone(zoneid)
 	}
 
   	return GZ_eZone[zoneid][GZ_e_ZONE_VALID];
+}
+
+stock IsPlayerInGangZone(playerid, zoneid)
+{
+	if (playerid < 0 || playerid >= MAX_PLAYERS)
+	{
+		return 0;
+	}
+	
+	if (zomeid == GZ_iPlayerZoneid[playerid])
+	{
+		return 1;
+	}
+	
+	new Float:x,
+		Float:y,
+		Float:z;
+	GetPlayerPos(playerid, x, y, z);
+	return (x >= GZ_eZone[zoneid][GZ_e_ZONE_MINX] && x <= GZ_eZone[zoneid][GZ_e_ZONE_MAXX] && y >= GZ_eZone[zoneid][GZ_e_ZONE_MINY] && y <= GZ_eZone[zoneid][GZ_e_ZONE_MAXY]);
 }
 
 #if defined OnPlayerEnterGangZone || defined OnPlayerLeaveGangZone
