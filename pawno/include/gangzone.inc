@@ -376,7 +376,7 @@ stock IsPlayerInGangZone(playerid, zoneid)
 		return 0;
 	}
 	
-	if (zomeid == GZ_iPlayerZoneid[playerid])
+	if (zoneid == GZ_iPlayerZoneid[playerid])
 	{
 		return 1;
 	}
