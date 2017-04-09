@@ -95,6 +95,7 @@ stock Projectile(Float:x, Float:y, Float:z, Float:vx, Float:vy, Float:vz, Float:
 	    if (!eProjectile[i][e_PROJECTILE_VALID])
 	    {
 	        id = i;
+			break;
 	    }
 	}
 	
