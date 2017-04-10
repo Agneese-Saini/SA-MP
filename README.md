@@ -8,7 +8,7 @@ Click on the embedded links to directly goto the following's page.
 * filterscripts
   * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/filterscripts/attachments.pwn">attachments.pwn</a></b> - player attachment editor with preview model dialogs.
   * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/filterscripts/throw_deagle.pwn">throw_deagle.pwn</a></b> - projectile.inc example script (throwing a desert eagle on ground).
-  * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/filterscripts/grenade_launcher.pwn">grenade_launcher.pwn</a></b> - projectile.inc example script (throwing a ball which explodes when it collides).
+  * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/filterscripts/grenade_launcher.pwn">grenade_launcher.pwn</a></b> - projectile.inc example script (Grenade launcher for M4).
 * gamemodes
   * base
      * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/gamemodes/base/mysql.pwn">mysql.pwn</a></b> - an advance MYSQL R41+ base gamemode
