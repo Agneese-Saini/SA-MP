@@ -380,7 +380,7 @@ static LC_ProcessDamage(&playerid, &issuerid, &Float:amount, &weaponid, &bodypar
 
 	 	    amount = LC_fPlayerWeaponDamage[issuerid][weaponid] * bullets;
 		}
-		
+
 		default:
 			return 0;
 	}
@@ -391,12 +391,12 @@ public OnPlayerConnect(playerid)
 {
 	LC_iPlayerTeam[playerid] = NO_TEAM;
 	SetPlayerTeam(playerid, 655);
-	
+
 	for (new i; i < sizeof(LC_WEAPON_DAMAGE); i++)
 	{
 		LC_fPlayerWeaponDamage[playerid][i] = LC_WEAPON_DAMAGE[i];
 	}
-	
+
 	#if defined LC_OnPlayerConnect
 		return LC_OnPlayerConnect(playerid);
 	#else
@@ -443,14 +443,6 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart)
 	if (issuerid != INVALID_PLAYER_ID)
 		return 1;
 
-	if (weaponid == WEAPON_COLLISION && (1061 <= GetPlayerAnimationIndex(playerid) <= 1067))
-	{
-	    TogglePlayerControllable(playerid, false);
-		ClearAnimations(playerid);
-	    TogglePlayerControllable(playerid, true);
-		return 1;
-	}
-
 	switch (weaponid)
  	{
  		case WEAPON_GRENADE,
@@ -465,9 +457,19 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart)
 			 WEAPON_CARPARK,
 			 WEAPON_HELIBLADES,
 			 WEAPON_EXPLOSION,
-			 WEAPON_DROWN,
-			 WEAPON_COLLISION:
+			 WEAPON_DROWN:
     	{}
+    	
+    	case WEAPON_COLLISION:
+    	{
+    	    if (1061 <= GetPlayerAnimationIndex(playerid) <= 1067)
+			{
+			    TogglePlayerControllable(playerid, false);
+				ClearAnimations(playerid);
+			    TogglePlayerControllable(playerid, true);
+				return 1;
+			}
+	 	}
 
     	default:
     	{
@@ -475,9 +477,12 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart)
     	}
 	}
 
+	if (!LC_ProcessDamage(playerid, issuerid, amount, weaponid, bodypart))
+		return 1;
+
 	new Float:health;
 	GetPlayerHealth(playerid, health);
-	if ((health - LC_WEAPON_DAMAGE[weaponid]) <= 0.0)
+	if ((health - amount) <= 0.0)
 	{
 	    LC_ePlayerDeathData[playerid][LC_e_PLAYER_DEATHDATA_VALID] = true;
 		LC_ePlayerDeathData[playerid][LC_e_PLAYER_DEATHDATA_KILLERID] = INVALID_PLAYER_ID;
@@ -514,7 +519,7 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
 
 	if ((WEAPON_COLT45 <= weaponid <= WEAPON_SNIPER) || weaponid == WEAPON_MINIGUN)
     {
-        if (LC_ePlayerLastShot[playerid][LC_e_LAST_SHOT_TYPE] != BULLET_HIT_TYPE_PLAYER || LC_ePlayerLastShot[playerid][LC_e_LAST_SHOT_HITID] != damagedid || !LC_ePlayerLastShot[playerid][LC_e_LAST_SHOT_RETURN])
+        if (LC_ePlayerLastShot[playerid][LC_e_LAST_SHOT_TYPE] == BULLET_HIT_TYPE_PLAYER && LC_ePlayerLastShot[playerid][LC_e_LAST_SHOT_HITID] == damagedid && !LC_ePlayerLastShot[playerid][LC_e_LAST_SHOT_RETURN])
       	{
       	    LC_ePlayerLastShot[playerid][LC_e_LAST_SHOT_TYPE] = BULLET_HIT_TYPE_NONE;
       	    LC_ePlayerLastShot[playerid][LC_e_LAST_SHOT_HITID] = INVALID_PLAYER_ID;
@@ -528,16 +533,27 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
     }
 
     new Float:health,
-		Float:armour;
-	GetPlayerHealth(playerid, health);
-	GetPlayerArmour(playerid, armour);
-
-	armour -= amount;
- 	if (armour < 0.0)
-		health += armour;
-
-	SetPlayerHealth(playerid, health);
-	SetPlayerArmour(playerid, armour);
+        Float:armour;
+	GetPlayerHealth(damagedid, health);
+	GetPlayerArmour(damagedid, armour);
+	
+	if (armour > 0.0)
+	{
+		armour -= amount;
+	  	if (armour < 0.0)
+	  	{
+			SetPlayerArmour(damagedid, 0.0);
+			SetPlayerHealth(damagedid, (health - armour));
+		}
+		else
+		{
+		    SetPlayerArmour(damagedid, armour);
+		}
+	}
+	else
+	{
+		SetPlayerHealth(damagedid, (health - amount));
+	}
 
     if (health <= 0.0)
 	{
@@ -567,6 +583,8 @@ public OnPlayerDeath(playerid, killerid, reason)
 	{
 	    return 0;
 	}
+
+	LC_ePlayerDeathData[playerid][LC_e_PLAYER_DEATHDATA_VALID] = false;
 
 	killerid = LC_ePlayerDeathData[playerid][LC_e_PLAYER_DEATHDATA_KILLERID];
 	reason = LC_ePlayerDeathData[playerid][LC_e_PLAYER_DEATHDATA_WEAPONID];
