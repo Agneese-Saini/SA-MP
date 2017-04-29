@@ -91,7 +91,7 @@ native SetPlayerProgressBarBGColor(playerid, PlayerBar:barid, bgcolor);
 native SetPlayerProgressBarColor(playerid, PlayerBar:barid, color);
 native SetPlayerProgressBarValue(playerid, PlayerBar:barid, Float:value);
 native SetPlayerProgressBarMaxValue(playerid, PlayerBar:barid, Float:maxvalue);
-native GetPlayerProgressBarPoolSize(playerid);
+native PlayerBar:GetPlayerProgressBarPoolSize(playerid);
 */
 
 #if !defined MAX_PLAYER_BARS
@@ -613,11 +613,11 @@ stock SetPlayerProgressBarMaxValue(playerid, PlayerBar:barid, Float:maxvalue)
 	return 1;
 }
 
-stock GetPlayerProgressBarPoolSize(playerid)
+stock PlayerBar:GetPlayerProgressBarPoolSize(playerid)
 {
 	if (playerid < 0 || playerid >= MAX_PLAYERS)
 	{
-	    return 0;
+	    return INVALID_PLAYER_BAR_ID;
 	}
 
 	return PB_iPlayerBarPoolSize[playerid];
@@ -655,7 +655,7 @@ native SetProgressBarBGColor(Bar:barid, bgcolor);
 native SetProgressBarColor(Bar:barid, color);
 native SetProgressBarValue(Bar:barid, Float:value);
 native SetProgressBarMaxValue(Bar:barid, Float:maxvalue);
-native CountProgressBars();
+native Bar:GetProgressBarPoolSize();
 */
 
 #if !defined MAX_BARS
@@ -1133,7 +1133,7 @@ stock SetProgressBarMaxValue(Bar:barid, Float:maxvalue)
 	return 1;
 }
 
-stock GetProgressBarPoolSize()
+stock Bar:GetProgressBarPoolSize()
 {
 	return PB_iBarPoolSize;
 }
