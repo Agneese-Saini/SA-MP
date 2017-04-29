@@ -1,13 +1,7 @@
-#if defined ss@script_init_included
+#if defined script_init_included
 	#endinput
 #endif
-#define ss@script_init_included
-
-/*
-CALLBACKS:
-forward OnScriptInit();
-forward OnScriptExit();
-*/
+#define script_init_included
 
 #if defined OnScriptInit
 	forward OnScriptInit();
