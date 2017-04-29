@@ -15,7 +15,6 @@ Click on the embedded links to directly goto the following's page.
      * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/gamemodes/base/sqlite.pwn">sqlite.pwn</a></b> - an advance SQLite base gamemode
 * includes
   * include
-    * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/GAC.inc">GAC.inc</a></b> - basic anti cheat with good acccuracy
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/attachments.inc">attachments.inc</a></b> - player attachments auto remove while aiming with scope weapons (e.g. snipers)
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/ban.inc">ban.inc</a></b> - SQL based SA-MP ban system (hooks functions "Ban", "BanEx"). Supports both MYSQL and SQLite
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/dialogs.inc">dialogs.inc</a></b> - Adds in new dialog styles "DIALOG_STYLE_PREVMODEL" and "DIALOG_STYLE_PREVMODEL_LIST"
@@ -25,6 +24,7 @@ Click on the embedded links to directly goto the following's page.
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/gangzone.inc">gangzone.inc</a></b> - GangZones with borders and interior & virtual world support
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/gmenu.inc">gmenu.inc</a></b> - GTA 5 styled menus with response control, even switching to one item to next
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/kickban.inc">kickban.inc</a></b> - adds a delay in kick and ban function so messages and dialogs can be shown before executing (freeze player sync when function is used though to not allow packets to other players)
+    * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/lagcomp.inc">lagcomp.inc</a></b> - improves samp lagcomp response and detection vastly
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/progress2.inc">progress2.inc</a></b> - SouthClaw's progress2 with global textdraw support and some minor changes for productivity!
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/projectile.inc">projectile.inc</a></b> - Lets you create object physics simulation
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/script_init.inc">script_init.inc</a></b> - callback called when script inits and exits with two macros for depicting if the script is a GAMEMODE or FILTERSCRIPT
