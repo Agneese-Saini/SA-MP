@@ -1,95 +1,68 @@
-// Dini2.inc - v2.4.3 - By Gammix - Last updated on "22 Jan, 2017"
+// Dini2.inc - v2.5 - By Gammix - Last updated on "16 May, 2017"
 #if defined dini2_included
 	#endinput
 #endif
 #define dini2_included
 
-#if !defined INI_MAX_INSTANCES
-	#define INI_MAX_INSTANCES (16)
-#endif
+#define DINI_MAX_INSTANCES  	32
+#define DINI_MAX_FILE_NAME  	64
+#define DINI_MAX_FIELDS 		64
+#define DINI_MAX_FIELD_NAME 	32
+#define DINI_MAX_FIELD_VALUE    512
 
-#if !defined INI_MAX_FILE_NAME
-	#define INI_MAX_FILE_NAME (32)
-#endif
-
-#if !defined INI_TIMER_INTERVAL
-	#define INI_TIMER_INTERVAL (150)
-#endif
-
-#if !defined INI_MAX_FIELDS
-	#define INI_MAX_FIELDS (64)
-#endif
-
-#if !defined INI_MAX_FIELD_NAME
-	#define INI_MAX_FIELD_NAME (32)
-#endif
-
-#if !defined INI_MAX_FIELD_VALUE
-	#define INI_MAX_FIELD_VALUE (512)
-#endif
-
-static INI_sFiles[INI_MAX_INSTANCES][INI_MAX_FILE_NAME];
-static INI_iFilesTimer[INI_MAX_INSTANCES];
-static bool:INI_bFilesChanged[INI_MAX_INSTANCES];
-static INI_iFilesCount;
-
-static INI_sFilesFields[INI_MAX_INSTANCES][INI_MAX_FIELDS][INI_MAX_FIELD_NAME];
-static INI_sFilesValues[INI_MAX_INSTANCES][INI_MAX_FIELDS][INI_MAX_FIELD_VALUE];
-static INI_iFilesFieldsCount[INI_MAX_INSTANCES];
-
-static INI_OpenFileInstance(const file[])
+enum E_DINI
 {
-	if (!file[0])
-	{
-	    print("[dini2] - Error: File name not specified while opening file.");
-	    return -1;
-	}
+	E_DINI_FILE_NAME[DINI_MAX_FILE_NAME],
+	E_DINI_FILE_TIMER,
+	bool:E_DINI_FILE_CHANGED,
+	E_DINI_NUM_FIELDS
+};
 
-	for (new i; i < INI_iFilesCount; i++)
-	{
-	    if (!strcmp(INI_sFiles[i], file))
-	    {
-	        return i;
-	    }
-	}
+static diniFiles[DINI_MAX_INSTANCES][E_DINI];
 
-	if (INI_iFilesCount == INI_MAX_INSTANCES)
-	{
-	    KillTimer(INI_iFilesTimer[0]);
-	    OnFileTimeout(0);
-	}
+static diniFields[DINI_MAX_INSTANCES][DINI_MAX_FIELDS][DINI_MAX_FIELD_NAME];
+static diniValues[DINI_MAX_INSTANCES][DINI_MAX_FIELDS][DINI_MAX_FIELD_VALUE];
 
-	new File:h = fopen(file, ((fexist(file)) ? (io_read) : (io_readwrite)));
-	if (!h)
-	{
-	    return -1;
-	}
+static diniFieldsList[DINI_MAX_INSTANCES][DINI_MAX_FIELDS];
 
-	new i,
-		x,
-		pos,
-		len,
-		string[INI_MAX_FIELD_NAME + INI_MAX_FIELD_VALUE];
+static sdbm(const string[])
+{
+    new hash;
+    new i;
+    new c;
 
-	i = INI_iFilesCount++;
-	format(INI_sFiles[i], INI_MAX_FILE_NAME, file);
-    INI_iFilesTimer[i] = SetTimerEx("OnFileTimeout", INI_TIMER_INTERVAL, false, "i", i);
-    INI_bFilesChanged[i] = false;
-    INI_iFilesFieldsCount[i] = 0;
-    while (fread(h, string))
+    while ((c = string[i++]) != EOS)
     {
-        pos = strfind(string, "=");
-        if (pos == -1)
-        {
-            continue;
-        }
+        hash = c + (hash << 6) + (hash << 16) - hash;
+    }
+    
+    return hash;
+}
 
-        if (x == INI_MAX_FIELDS)
-        {
-            break;
-        }
+static bool:dini_Open(index, const file[])
+{
+    new File:handle = fopen(file, (!fexist(file)) ? (io_readwrite) : (io_read));
+    if (!handle)
+    {
+        return false;
+    }
+    
+    strcat(diniFiles[index][E_DINI_FILE_NAME], file, DINI_MAX_FILE_NAME);
+    diniFiles[index][E_DINI_FILE_TIMER] = SetTimerEx("dini_OnFileTimeout", 150, false, "i", index);
+    diniFiles[index][E_DINI_FILE_CHANGED] = false;
+    diniFiles[index][E_DINI_NUM_FIELDS] = 0;
+    
+    new string[DINI_MAX_FIELD_NAME + DINI_MAX_FIELD_VALUE + 1];
+	new pos;
+	new len;
+	new tempField[DINI_MAX_FIELD_NAME];
+	new fieldIndex;
 
-        len = strlen(string);
+	while (fread(handle, string))
+    {
+		pos = strfind(string, "=");
+		
+	 	len = strlen(string);
         if (string[len - 2] == '\r')
         {
             string[len - 2] = EOS;
@@ -98,53 +71,47 @@ static INI_OpenFileInstance(const file[])
         {
             string[len - 1] = EOS;
 		}
+		
+        strmid(tempField, string, 0, pos);
+        
+        fieldIndex = sdbm(tempField);
+        fieldIndex %= DINI_MAX_FIELDS;
+        
+        diniFields[index][fieldIndex] = tempField;
+		strcat(diniValues[index][fieldIndex], string[pos + 1], DINI_MAX_FIELD_VALUE);
 
-		x = INI_iFilesFieldsCount[i]++;
-		strmid(INI_sFilesFields[i][x], string, 0, pos, INI_MAX_FIELD_NAME);
-		format(INI_sFilesValues[i][x], INI_MAX_FIELD_VALUE, string[pos + 1]);
-    }
-
-    fclose(h);
-    return i;
-}
-
-forward OnFileTimeout(instance);
-public OnFileTimeout(instance)
-{
-	if (INI_bFilesChanged[instance])
-	{
-		new File:h = fopen(INI_sFiles[instance], io_write);
-		new string[INI_MAX_FIELD_NAME + INI_MAX_FIELD_VALUE + 5];
-	    for (new i; i < INI_iFilesFieldsCount[instance]; i++)
-		{
-		    format(string, sizeof (string), "%s=%s\r\n", INI_sFilesFields[instance][i], INI_sFilesValues[instance][i]);
-		    fwrite(h, string);
-		}
-		fclose(h);
+		diniFieldsList[index][diniFiles[index][E_DINI_NUM_FIELDS]++] = fieldIndex;
 	}
 	
-	if (instance != (INI_iFilesCount - 1))
-	{
-		format(INI_sFiles[instance], INI_MAX_FILE_NAME, INI_sFiles[INI_iFilesCount - 1]);
-		KillTimer(INI_iFilesTimer[INI_iFilesCount - 1]);
-	 	INI_iFilesTimer[instance] = SetTimerEx("OnFileTimeout", INI_TIMER_INTERVAL, false, "i", instance);
-	  	INI_bFilesChanged[instance] = INI_bFilesChanged[INI_iFilesCount - 1];
-	   	INI_iFilesFieldsCount[instance] = INI_iFilesFieldsCount[INI_iFilesCount - 1];
-	    for (new x; x < INI_iFilesFieldsCount[INI_iFilesCount - 1]; x++)
-		{
-		 	format(INI_sFilesFields[instance][x], INI_MAX_FIELD_NAME, INI_sFilesFields[INI_iFilesCount - 1][x]);
-			format(INI_sFilesValues[instance][x], INI_MAX_FIELD_VALUE, INI_sFilesValues[INI_iFilesCount - 1][x]);
-		}
-	}
-	INI_iFilesCount--;
+	return true;
 }
 
-/*
-native dini_Create(const file[]);
-*/
-stock dini_Create(const file[])
+forward dini_OnFileTimeout(index);
+public dini_OnFileTimeout(index)
 {
-	return INI_OpenFileInstance(file);
+    if (diniFiles[index][E_DINI_FILE_CHANGED])
+    {
+        new File:handle = fopen(diniFiles[index][E_DINI_FILE_NAME], io_write);
+	    if (!handle)
+	    {
+    		diniFiles[index][E_DINI_FILE_NAME][0] = EOS;
+	        return;
+	    }
+
+	    new string[DINI_MAX_FIELD_NAME + DINI_MAX_FIELD_VALUE + 1];
+	    for (new i; i < diniFiles[index][E_DINI_NUM_FIELDS]; i++)
+	    {
+	   	 	format(string, sizeof string, "%s=%s\r\n", diniFields[index][diniFieldsList[index][i]], diniValues[index][diniFieldsList[index][i]]);
+	   	 	diniFields[index][diniFieldsList[index][i]][0] = EOS;
+	   	 	diniValues[index][diniFieldsList[index][i]][0] = EOS;
+	   	 	
+	   	 	fwrite(handle, string);
+	    }
+	    
+	    fclose(handle);
+    }
+    
+    diniFiles[index][E_DINI_FILE_NAME][0] = EOS;
 }
 
 /*
@@ -162,28 +129,39 @@ native dini_Get(const file[], const field[]);
 */
 stock dini_Get(const file[], const field[])
 {
-	static dump[INI_MAX_FIELD_VALUE];
-
-	if (!fexist(file))
+	static empty[DINI_MAX_FIELD_VALUE];
+	
+	new fileIndex = sdbm(file);
+	fileIndex %= DINI_MAX_INSTANCES;
+	if (!diniFiles[fileIndex][E_DINI_FILE_NAME][0])
 	{
-	    return dump;
+	    if (diniFiles[fileIndex][E_DINI_NUM_FIELDS] == 0)
+	    {
+			return empty;
+	    }
+	
+	    if (!dini_Open(fileIndex, file))
+	    {
+	        return empty;
+	    }
+	}
+	else if (strcmp(diniFiles[fileIndex][E_DINI_FILE_NAME], file))
+	{
+	    return empty;
 	}
 
-	new instance = INI_OpenFileInstance(file);
-	if (instance == -1)
+	new fieldIndex = sdbm(field);
+	fieldIndex %= DINI_MAX_FIELDS;
+	if (!diniFields[fileIndex][fieldIndex][0])
 	{
-	    return dump;
+	    return empty;
 	}
-
-	for (new i; i < INI_iFilesFieldsCount[instance]; i++)
+	else if (strcmp(diniFields[fileIndex][fieldIndex], field))
 	{
- 		if (!strcmp(field, INI_sFilesFields[instance][i]))
- 		{
- 		    return INI_sFilesValues[instance][i];
- 		}
+	    return empty;
 	}
-
-	return dump;
+	
+	return diniValues[fileIndex][fieldIndex];
 }
 
 /*
@@ -215,33 +193,42 @@ native dini_Set(const file[], const field[], value[]);
 */
 stock dini_Set(const file[], const field[], value[])
 {
-	new instance = INI_OpenFileInstance(file);
-	if (instance == -1)
+	new fileIndex = sdbm(file);
+	fileIndex %= DINI_MAX_INSTANCES;
+	if (!diniFiles[fileIndex][E_DINI_FILE_NAME][0])
+	{
+	    if (!dini_Open(fileIndex, file))
+	    {
+	        return 0;
+	    }
+	}
+	else if (strcmp(diniFiles[fileIndex][E_DINI_FILE_NAME], file))
 	{
 	    return 0;
 	}
-
-	for (new i; i < INI_iFilesFieldsCount[instance]; i++)
+	
+	new fieldIndex = sdbm(field);
+	fieldIndex %= DINI_MAX_FIELDS;
+	if (!diniFields[fileIndex][fieldIndex][0])
 	{
- 		if (!strcmp(field, INI_sFilesFields[instance][i]))
- 		{
- 		    format(INI_sFilesValues[instance][i], INI_MAX_FIELD_VALUE, value);
-    		INI_bFilesChanged[instance] = true;
- 		    return 1;
- 		}
-	}
+	    strcat(diniFields[fileIndex][fieldIndex], field, DINI_MAX_FIELD_NAME);
+		strcat(diniValues[fileIndex][fieldIndex], value, DINI_MAX_FIELD_VALUE);
 
-	if (INI_iFilesFieldsCount[instance] == INI_MAX_FIELDS)
+		diniFieldsList[fileIndex][diniFiles[fileIndex][E_DINI_NUM_FIELDS]++] = fieldIndex;
+		
+		diniFiles[fileIndex][E_DINI_FILE_CHANGED] = true;
+	    return 2;
+	}
+	else if (strcmp(diniFields[fileIndex][fieldIndex], field))
 	{
-	    printf("[dini2] - Error: Field \"%s\" couldn't be created in file \"%s\", increase \"INI_MAX_FIELDS\" value to %i.", field, file, (INI_MAX_FIELDS + 1));
-		return 0;
+	    return 0;
 	}
+	
+	diniValues[fileIndex][fieldIndex][0] = EOS;
+	strcat(diniValues[fileIndex][fieldIndex], value, DINI_MAX_FIELD_VALUE);
 
-	new i = INI_iFilesFieldsCount[instance]++;
-	format(INI_sFilesFields[instance][i], INI_MAX_FIELD_NAME, field);
-	format(INI_sFilesValues[instance][i], INI_MAX_FIELD_VALUE, value);
-	INI_bFilesChanged[instance] = true;
-	return 0;
+	diniFiles[fileIndex][E_DINI_FILE_CHANGED] = true;
+	return 1;
 }
 
 /*
@@ -249,33 +236,9 @@ native dini_IntSet(const file[], const field[], value);
 */
 stock dini_IntSet(const file[], const field[], value)
 {
-	new instance = INI_OpenFileInstance(file);
-	if (instance == -1)
-	{
-	    return 0;
-	}
-
-	for (new i; i < INI_iFilesFieldsCount[instance]; i++)
-	{
- 		if (!strcmp(field, INI_sFilesFields[instance][i]))
- 		{
- 		    valstr(INI_sFilesValues[instance][i], value);
-    		INI_bFilesChanged[instance] = true;
- 		    return 1;
- 		}
-	}
-
-	if (INI_iFilesFieldsCount[instance] == INI_MAX_FIELDS)
-	{
-	    printf("[dini2] - Error: Field \"%s\" couldn't be created in file \"%s\", increase \"INI_MAX_FIELDS\" value to %i.", field, file, (INI_MAX_FIELDS + 1));
-		return 0;
-	}
-
-	new i = INI_iFilesFieldsCount[instance]++;
-	format(INI_sFilesFields[instance][i], INI_MAX_FIELD_NAME, field);
-	valstr(INI_sFilesValues[instance][i], value);
-    INI_bFilesChanged[instance] = true;
-	return 1;
+	new string[16];
+	valstr(string, value);
+	return dini_Set(file, field, string);
 }
 
 /*
@@ -283,33 +246,9 @@ native dini_FloatSet(const file[], const field[], Float:value);
 */
 stock dini_FloatSet(const file[], const field[], Float:value)
 {
-	new instance = INI_OpenFileInstance(file);
-	if (instance == -1)
-	{
-	    return 0;
-	}
-
-	for (new i; i < INI_iFilesFieldsCount[instance]; i++)
-	{
- 		if (!strcmp(field, INI_sFilesFields[instance][i]))
- 		{
- 		    format(INI_sFilesValues[instance][i], INI_MAX_FIELD_VALUE, "%f", value);
-    		INI_bFilesChanged[instance] = true;
- 		    return 1;
- 		}
-	}
-
-	if (INI_iFilesFieldsCount[instance] == INI_MAX_FIELDS)
-	{
-	    printf("[dini2] - Error: Field \"%s\" couldn't be created in file \"%s\", increase \"INI_MAX_FIELDS\" value to %i.", field, file, (INI_MAX_FIELDS + 1));
-		return 0;
-	}
-
-	new i = INI_iFilesFieldsCount[instance]++;
-	format(INI_sFilesFields[instance][i], INI_MAX_FIELD_NAME, field);
-	format(INI_sFilesValues[instance][i], INI_MAX_FIELD_VALUE, "%f", value);
-    INI_bFilesChanged[instance] = true;
-	return 1;
+	new string[16];
+	format(string, sizeof string, "%f", value);
+	return dini_Set(file, field, string);
 }
 
 /*
@@ -317,33 +256,9 @@ native dini_BoolSet(const file[], const field[], bool:value);
 */
 stock dini_BoolSet(const file[], const field[], bool:value)
 {
-	new instance = INI_OpenFileInstance(file);
-	if (instance == -1)
-	{
-	    return 0;
-	}
-
-	for (new i; i < INI_iFilesFieldsCount[instance]; i++)
-	{
- 		if (!strcmp(field, INI_sFilesFields[instance][i]))
- 		{
- 		    valstr(INI_sFilesValues[instance][i], _:value);
-    		INI_bFilesChanged[instance] = true;
- 		    return 1;
- 		}
-	}
-
-	if (INI_iFilesFieldsCount[instance] == INI_MAX_FIELDS)
-	{
-	    printf("[dini2] - Error: Field \"%s\" couldn't be created in file \"%s\", increase \"INI_MAX_FIELDS\" value to %i.", field, file, (INI_MAX_FIELDS + 1));
-		return 0;
-	}
-
-	new i = INI_iFilesFieldsCount[instance]++;
-	format(INI_sFilesFields[instance][i], INI_MAX_FIELD_NAME, field);
-	valstr(INI_sFilesValues[instance][i], _:value);
-    INI_bFilesChanged[instance] = true;
-	return 1;
+	new string[16];
+	valstr(string, _:value);
+	return dini_Set(file, field, string);
 }
 
 /*
@@ -351,28 +266,42 @@ native dini_UnSet(const file[], const field[]);
 */
 stock dini_UnSet(const file[], const field[])
 {
-	new instance = INI_OpenFileInstance(file);
-	if (instance == -1)
+	new fileIndex = sdbm(file);
+	fileIndex %= DINI_MAX_INSTANCES;
+	if (!diniFiles[fileIndex][E_DINI_FILE_NAME][0])
+	{
+	    if (!dini_Open(fileIndex, file))
+	    {
+	        return 0;
+	    }
+	}
+	else if (strcmp(diniFiles[fileIndex][E_DINI_FILE_NAME], file))
 	{
 	    return 0;
 	}
 
-	for (new i; i < INI_iFilesFieldsCount[instance]; i++)
+	new fieldIndex = sdbm(field);
+	fieldIndex %= DINI_MAX_FIELDS;
+	if (!diniFields[fileIndex][fieldIndex][0])
 	{
- 		if (!strcmp(field, INI_sFilesFields[instance][i]))
- 		{
- 		    for (; i < (INI_iFilesFieldsCount[instance] - 1); i++)
- 		    {
- 		        format(INI_sFilesFields[instance][i], INI_MAX_FIELD_NAME, INI_sFilesFields[instance][i + 1]);
-				format(INI_sFilesValues[instance][i], INI_MAX_FIELD_VALUE, INI_sFilesValues[instance][i + 1]);
- 		    }
- 		    INI_iFilesFieldsCount[instance]--;
-
-    		INI_bFilesChanged[instance] = true;
- 		    return 1;
- 		}
+	    return 1;
 	}
-	return 0;
+	else if (strcmp(diniFields[fileIndex][fieldIndex], field))
+	{
+	    return 0;
+	}
+
+	diniFields[fileIndex][fieldIndex][0] = EOS;
+	diniValues[fileIndex][fieldIndex][0] = EOS;
+	
+	for (new i = fieldIndex; i < (diniFiles[fileIndex][E_DINI_NUM_FIELDS] - 1); i++)
+	{
+	    diniFieldsList[i] = diniFieldsList[i + 1];
+	}
+	diniFiles[fileIndex][E_DINI_NUM_FIELDS]--;
+
+    diniFiles[fileIndex][E_DINI_FILE_CHANGED] = true;
+	return 1;
 }
 
 /*
@@ -380,20 +309,32 @@ native dini_IsSet(const file[], const field[]);
 */
 stock dini_IsSet(const file[], const field[])
 {
-	new instance = INI_OpenFileInstance(file);
-	if (instance == -1)
+	new fileIndex = sdbm(file);
+	fileIndex %= DINI_MAX_INSTANCES;
+	if (!diniFiles[fileIndex][E_DINI_FILE_NAME][0])
+	{
+	    if (!dini_Open(fileIndex, file))
+	    {
+	        return 0;
+	    }
+	}
+	else if (strcmp(diniFiles[fileIndex][E_DINI_FILE_NAME], file))
 	{
 	    return 0;
 	}
 
-	for (new i; i < INI_iFilesFieldsCount[instance]; i++)
+	new fieldIndex = sdbm(field);
+	fieldIndex %= DINI_MAX_FIELDS;
+	if (!diniFields[fileIndex][fieldIndex][0])
 	{
- 		if (!strcmp(field, INI_sFilesFields[instance][i]))
- 		{
- 		    return 1;
- 		}
+	    return 0;
 	}
-	return 0;
+	else if (strcmp(diniFields[fileIndex][fieldIndex], field))
+	{
+	    return 0;
+	}
+	
+	return 1;
 }
 
 /*
@@ -434,14 +375,14 @@ native dini_Timeout(const file[]);
 */
 stock dini_Timeout(const file[])
 {
-    for (new i; i < INI_iFilesCount; i++)
+	new fileIndex = sdbm(file);
+	fileIndex %= DINI_MAX_INSTANCES;
+	if (!diniFiles[fileIndex][E_DINI_FILE_NAME][0] || strcmp(diniFiles[fileIndex][E_DINI_FILE_NAME], file))
 	{
-	    if (!strcmp(INI_sFiles[i], file))
-	    {
-		    KillTimer(INI_iFilesTimer[i]);
-		    OnFileTimeout(i);
-		    return 1;
-	    }
+	    return 0;
 	}
+	
+	KillTimer(diniFiles[fileIndex][E_DINI_FILE_TIMER]);
+	dini_OnFileTimeout(fileIndex);
 	return 0;
 }
