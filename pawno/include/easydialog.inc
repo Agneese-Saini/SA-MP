@@ -49,6 +49,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 	if (dialogid == DIALOG_DEFAULT_ID && Dialog_playerDialogId[playerid][0])
 	{
 		CallLocalFunction(Dialog_playerDialogId[playerid], "ddds", playerid, response, listitem, (!inputtext[0]) ? ("\1") : (inputtext));
+		Dialog_playerDialogId[playerid][0] = EOS;
 	}
 	else return 0;
 
