@@ -1,4 +1,4 @@
-// easydialog.inc - v2.0.0 - By Emmet_ & Gammix - Last updated on 7 Jan, 2017
+// easydialog.inc - By Emmet_ & Gammix - Last updated on 16 May, 2017
 #if defined easydialog_included
 	#endinput
 #endif
@@ -6,22 +6,21 @@
 
 #define DIALOG:%0(%1) \
 	forward dialog_%0(%1); public dialog_%0(%1)
-	
+
 #define Dialog:%0(%1) \
 	forward dialog_%0(%1); public dialog_%0(%1)
 
-#if !defined DIALOG_DEFAULT_ID
-	#define DIALOG_DEFAULT_ID (32700)
-#endif
+#define DIALOG_DEFAULT_ID (32700)
 
-static DIALOG_sName[MAX_PLAYERS][32];
+static Dialog_playerDialogId[MAX_PLAYERS][31];
 
 stock Dialog_Open(playerid, function[], style, caption[], info[], button1[], button2[])
 {
 	new ret = ShowPlayerDialog(playerid, DIALOG_DEFAULT_ID, style, caption, info, button1, button2);
 	if (ret)
 	{
-		format(DIALOG_sName[playerid], sizeof(DIALOG_sName[]), function);
+	    Dialog_playerDialogId[playerid] = "dialog_";
+	    strcat(Dialog_playerDialogId[playerid], function);
 	}
 	return ret;
 }
@@ -33,10 +32,10 @@ stock Dialog_Open(playerid, function[], style, caption[], info[], button1[], but
 
 #define ShowPlayerDialog(%0,%1, \
 	Dialog_Open(%0, #%1,
-	
+
 #define Dialog_Show(%0,%1, \
 	Dialog_Open(%0, #%1,
-	
+
 public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 {
 	for (new i = 0, l = strlen(inputtext); i < l; i ++)
@@ -46,20 +45,17 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 			inputtext[i] = '#';
 		}
 	}
-	
-	if (dialogid == DIALOG_DEFAULT_ID && strlen(DIALOG_sName[playerid]) > 0)
-	{
-	  	new string[40]= "dialog_";
-		strcat(string, DIALOG_sName[playerid]);
-        DIALOG_sName[playerid][0] = EOS;
 
-		CallLocalFunction(string, "ddds", playerid, response, listitem, (!inputtext[0]) ? ("\1") : (inputtext));
+	if (dialogid == DIALOG_DEFAULT_ID && Dialog_playerDialogId[playerid][0])
+	{
+		CallLocalFunction(Dialog_playerDialogId[playerid], "ddds", playerid, response, listitem, (!inputtext[0]) ? ("\1") : (inputtext));
 	}
-	
-	#if defined DIALOG_OnDialogResponse
-	    return DIALOG_OnDialogResponse(playerid, dialogid, response, listitem, inputtext);
+	else return 0;
+
+	#if defined Dialog_OnDialogResponse
+	    return Dialog_OnDialogResponse(playerid, dialogid, response, listitem, inputtext);
 	#else
-	    return 0;
+	    return 1;
 	#endif
 }
 #if defined _ALS_OnDialogResponse
@@ -67,7 +63,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 #else
 	#define _ALS_OnDialogResponse
 #endif
-#define OnDialogResponse DIALOG_OnDialogResponse
-#if defined DIALOG_OnDialogResponse
-	forward DIALOG_OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]);
+#define OnDialogResponse Dialog_OnDialogResponse
+#if defined Dialog_OnDialogResponse
+	forward Dialog_OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]);
 #endif
