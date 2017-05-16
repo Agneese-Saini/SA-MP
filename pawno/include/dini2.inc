@@ -1,4 +1,4 @@
-// Dini2.inc - v2.5 - By Gammix - Last updated on "16 May, 2017"
+// Dini2.inc - v2.5 - By Gammix - Last updated "16 May, 2017"
 #if defined dini2_included
 	#endinput
 #endif
@@ -25,7 +25,7 @@ static diniValues[DINI_MAX_INSTANCES][DINI_MAX_FIELDS][DINI_MAX_FIELD_VALUE];
 
 static diniFieldsList[DINI_MAX_INSTANCES][DINI_MAX_FIELDS];
 
-static sdbm(const string[])
+static stock sdbm(const string[])
 {
     new hash;
     new i;
@@ -39,7 +39,7 @@ static sdbm(const string[])
     return hash;
 }
 
-static bool:dini_Open(index, const file[])
+static stock bool:dini_Open(index, const file[])
 {
     new File:handle = fopen(file, (!fexist(file)) ? (io_readwrite) : (io_read));
     if (!handle)
@@ -342,31 +342,28 @@ native DINI_fcopytextfile(const file[], const newfile[]);
 */
 stock DINI_fcopytextfile(const file[], const newfile[])
 {
-	new File:handles[2];
-
-	handles[0] = fopen(file, io_read);
-	if (!handles[0])
+	new File:h1 = fopen(file, io_read);
+	if (!h1)
 	{
-		return 0;
+	    return 0;
 	}
-
-	handles[1] = fopen(newfile, io_write);
-	if (!handles[1])
+	
+	new File:h2 = fopen(newfile, io_write);
+	if (!h2)
 	{
-		fclose(handles[0]);
-		return 0;
+	    fclose(h1);
+	    return 0;
 	}
-
-	new data[INI_MAX_FIELD_NAME + INI_MAX_FIELD_VALUE];
-	while (fread(handles[0], data))
+	
+	new string[DINI_MAX_FIELD_NAME + DINI_MAX_FIELD_VALUE + 1];
+	while (fread(h1, string))
 	{
-		INI_StripLine(data);
-		strcat(data, "\r\n");
-		fwrite(handles[1], data);
+		fwrite(h2, string);
 	}
-
-	fclose(handles[0]);
-	fclose(handles[1]);
+	
+	fclose(h1);
+	fclose(h2);
+	
 	return 1;
 }
 
