@@ -1,4 +1,4 @@
-// Dini2.inc - v2.5 - By Gammix - Last updated "16 May, 2017"
+// Dini2.inc - v2.5.1 - By Gammix - Last updated "17 May, 2017"
 #if defined dini2_included
 	#endinput
 #endif
@@ -25,7 +25,7 @@ static diniValues[DINI_MAX_INSTANCES][DINI_MAX_FIELDS][DINI_MAX_FIELD_VALUE];
 
 static diniFieldsList[DINI_MAX_INSTANCES][DINI_MAX_FIELDS];
 
-static stock sdbm(const string[])
+static stock dini_sdbm(const string[])
 {
     new hash;
     new i;
@@ -74,7 +74,7 @@ static stock bool:dini_Open(index, const file[])
 		
         strmid(tempField, string, 0, pos);
         
-        fieldIndex = sdbm(tempField);
+        fieldIndex = dini_sdbm(tempField);
         fieldIndex %= DINI_MAX_FIELDS;
         
         diniFields[index][fieldIndex] = tempField;
@@ -125,13 +125,29 @@ native dini_Exists(const file[]);
 #define dini_Exists fexist
 
 /*
+native dini_Create(const file[]);
+*/
+stock dini_Create(const file[])
+{
+	new File:handle = fopen(file, io_write);
+	if (!handle)
+	{
+	    return 0;
+	}
+	
+	fclose(handle);
+	
+	return 1;
+}
+
+/*
 native dini_Get(const file[], const field[]);
 */
 stock dini_Get(const file[], const field[])
 {
 	static empty[DINI_MAX_FIELD_VALUE];
 	
-	new fileIndex = sdbm(file);
+	new fileIndex = dini_sdbm(file);
 	fileIndex %= DINI_MAX_INSTANCES;
 	if (!diniFiles[fileIndex][E_DINI_FILE_NAME][0])
 	{
@@ -150,7 +166,7 @@ stock dini_Get(const file[], const field[])
 	    return empty;
 	}
 
-	new fieldIndex = sdbm(field);
+	new fieldIndex = dini_sdbm(field);
 	fieldIndex %= DINI_MAX_FIELDS;
 	if (!diniFields[fileIndex][fieldIndex][0])
 	{
@@ -193,7 +209,7 @@ native dini_Set(const file[], const field[], value[]);
 */
 stock dini_Set(const file[], const field[], value[])
 {
-	new fileIndex = sdbm(file);
+	new fileIndex = dini_sdbm(file);
 	fileIndex %= DINI_MAX_INSTANCES;
 	if (!diniFiles[fileIndex][E_DINI_FILE_NAME][0])
 	{
@@ -207,7 +223,7 @@ stock dini_Set(const file[], const field[], value[])
 	    return 0;
 	}
 	
-	new fieldIndex = sdbm(field);
+	new fieldIndex = dini_sdbm(field);
 	fieldIndex %= DINI_MAX_FIELDS;
 	if (!diniFields[fileIndex][fieldIndex][0])
 	{
@@ -266,7 +282,7 @@ native dini_UnSet(const file[], const field[]);
 */
 stock dini_UnSet(const file[], const field[])
 {
-	new fileIndex = sdbm(file);
+	new fileIndex = dini_sdbm(file);
 	fileIndex %= DINI_MAX_INSTANCES;
 	if (!diniFiles[fileIndex][E_DINI_FILE_NAME][0])
 	{
@@ -280,7 +296,7 @@ stock dini_UnSet(const file[], const field[])
 	    return 0;
 	}
 
-	new fieldIndex = sdbm(field);
+	new fieldIndex = dini_sdbm(field);
 	fieldIndex %= DINI_MAX_FIELDS;
 	if (!diniFields[fileIndex][fieldIndex][0])
 	{
@@ -309,7 +325,7 @@ native dini_IsSet(const file[], const field[]);
 */
 stock dini_IsSet(const file[], const field[])
 {
-	new fileIndex = sdbm(file);
+	new fileIndex = dini_sdbm(file);
 	fileIndex %= DINI_MAX_INSTANCES;
 	if (!diniFiles[fileIndex][E_DINI_FILE_NAME][0])
 	{
@@ -323,7 +339,7 @@ stock dini_IsSet(const file[], const field[])
 	    return 0;
 	}
 
-	new fieldIndex = sdbm(field);
+	new fieldIndex = dini_sdbm(field);
 	fieldIndex %= DINI_MAX_FIELDS;
 	if (!diniFields[fileIndex][fieldIndex][0])
 	{
@@ -372,7 +388,7 @@ native dini_Timeout(const file[]);
 */
 stock dini_Timeout(const file[])
 {
-	new fileIndex = sdbm(file);
+	new fileIndex = dini_sdbm(file);
 	fileIndex %= DINI_MAX_INSTANCES;
 	if (!diniFiles[fileIndex][E_DINI_FILE_NAME][0] || strcmp(diniFiles[fileIndex][E_DINI_FILE_NAME], file))
 	{
