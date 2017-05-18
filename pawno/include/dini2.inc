@@ -1,4 +1,4 @@
-// Dini2.inc - v2.5.1 - By Gammix - Last updated "17 May, 2017"
+// Dini2.inc - v2.5.2 - By Gammix - Last updated "18 May, 2017"
 #if defined dini2_included
 	#endinput
 #endif
@@ -117,12 +117,14 @@ public dini_OnFileTimeout(index)
 /*
 native dini_Remove(const file[]);
 */
-#define dini_Remove fremove
+#define dini_Remove \
+	fremove
 
 /*
 native dini_Exists(const file[]);
 */
-#define dini_Exists fexist
+#define dini_Exists \
+	fexist
 
 /*
 native dini_Create(const file[]);
@@ -228,7 +230,7 @@ stock dini_Set(const file[], const field[], value[])
 	{
 	    return 0;
 	}
-	
+
 	new fieldIndex = dini_sdbm(field);
 	fieldIndex %= DINI_MAX_FIELDS;
 	if (!diniFields[fileIndex][fieldIndex][0])
@@ -237,7 +239,7 @@ stock dini_Set(const file[], const field[], value[])
 		strcat(diniValues[fileIndex][fieldIndex], value, DINI_MAX_FIELD_VALUE);
 
 		diniFieldsList[fileIndex][diniFiles[fileIndex][E_DINI_NUM_FIELDS]++] = fieldIndex;
-		
+
 		diniFiles[fileIndex][E_DINI_FILE_CHANGED] = true;
 	    return 2;
 	}
@@ -245,7 +247,7 @@ stock dini_Set(const file[], const field[], value[])
 	{
 	    return 0;
 	}
-	
+
 	diniValues[fileIndex][fieldIndex][0] = EOS;
 	strcat(diniValues[fileIndex][fieldIndex], value, DINI_MAX_FIELD_VALUE);
 
@@ -316,9 +318,16 @@ stock dini_UnSet(const file[], const field[])
 	diniFields[fileIndex][fieldIndex][0] = EOS;
 	diniValues[fileIndex][fieldIndex][0] = EOS;
 	
-	for (new i = fieldIndex; i < (diniFiles[fileIndex][E_DINI_NUM_FIELDS] - 1); i++)
+	for (new i; i < diniFiles[fileIndex][E_DINI_NUM_FIELDS]; i++)
 	{
-	    diniFieldsList[i] = diniFieldsList[i + 1];
+	    if (diniFieldsList[fileIndex][i] == fieldIndex)
+	    {
+	        for (new x = i; x < (diniFiles[fileIndex][E_DINI_NUM_FIELDS] - 1); x++)
+	        {
+	            diniFieldsList[fileIndex][x] = diniFieldsList[fileIndex][x + 1];
+	        }
+	        break;
+	    }
 	}
 	diniFiles[fileIndex][E_DINI_NUM_FIELDS]--;
 
