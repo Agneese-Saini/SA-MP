@@ -41,55 +41,74 @@ static stock dini_sdbm(const string[])
 
 static stock bool:dini_Open(index, const file[])
 {
-    new File:handle = fopen(file, (!fexist(file)) ? (io_readwrite) : (io_read));
-    if (!handle)
-    {
-        return false;
-    }
+	if (fexist(file))
+	{
+	    new File:handle = fopen(file, io_read);
+	    if (!handle)
+	    {
+	        return false;
+	    }
     
-    strcat(diniFiles[index][E_DINI_FILE_NAME], file, DINI_MAX_FILE_NAME);
-    diniFiles[index][E_DINI_FILE_TIMER] = SetTimerEx("dini_OnFileTimeout", 150, false, "i", index);
-    diniFiles[index][E_DINI_FILE_CHANGED] = false;
-    diniFiles[index][E_DINI_NUM_FIELDS] = 0;
-    
-    new string[DINI_MAX_FIELD_NAME + DINI_MAX_FIELD_VALUE + 1];
-	new pos;
-	new len;
-	new tempField[DINI_MAX_FIELD_NAME];
-	new fieldIndex;
+	    strcat(diniFiles[index][E_DINI_FILE_NAME], file, DINI_MAX_FILE_NAME);
+	    diniFiles[index][E_DINI_FILE_TIMER] = SetTimerEx("dini_OnFileTimeout", 150, false, "i", index);
+	    diniFiles[index][E_DINI_FILE_CHANGED] = false;
+	    diniFiles[index][E_DINI_NUM_FIELDS] = 0;
 
-	while (fread(handle, string))
-    {
-		pos = strfind(string, "=");
-		
-	 	len = strlen(string);
-        if (string[len - 2] == '\r')
-        {
-            string[len - 2] = EOS;
-        }
-        else if (string[len - 1] == '\n')
-        {
-            string[len - 1] = EOS;
+	    new string[DINI_MAX_FIELD_NAME + DINI_MAX_FIELD_VALUE + 1];
+		new pos;
+		new len;
+		new tempField[DINI_MAX_FIELD_NAME];
+		new fieldIndex;
+
+		while (fread(handle, string))
+	    {
+			pos = strfind(string, "=");
+
+		 	len = strlen(string);
+	        if (string[len - 2] == '\r')
+	        {
+	            string[len - 2] = EOS;
+	        }
+	        else if (string[len - 1] == '\n')
+	        {
+	            string[len - 1] = EOS;
+			}
+
+	        strmid(tempField, string, 0, pos);
+
+	        fieldIndex = dini_sdbm(tempField);
+	        fieldIndex %= DINI_MAX_FIELDS;
+
+	        diniFields[index][fieldIndex] = tempField;
+			strcat(diniValues[index][fieldIndex], string[pos + 1], DINI_MAX_FIELD_VALUE);
+
+			diniFieldsList[index][diniFiles[index][E_DINI_NUM_FIELDS]++] = fieldIndex;
 		}
 		
-        strmid(tempField, string, 0, pos);
-        
-        fieldIndex = dini_sdbm(tempField);
-        fieldIndex %= DINI_MAX_FIELDS;
-        
-        diniFields[index][fieldIndex] = tempField;
-		strcat(diniValues[index][fieldIndex], string[pos + 1], DINI_MAX_FIELD_VALUE);
-
-		diniFieldsList[index][diniFiles[index][E_DINI_NUM_FIELDS]++] = fieldIndex;
+		fclose(handle);
 	}
-	
+	else
+	{
+	    new File:handle = fopen(file, io_readwrite);
+	    if (!handle)
+	    {
+	        return false;
+	    }
+
+	    strcat(diniFiles[index][E_DINI_FILE_NAME], file, DINI_MAX_FILE_NAME);
+	    diniFiles[index][E_DINI_FILE_TIMER] = SetTimerEx("dini_OnFileTimeout", 150, false, "i", index);
+	    diniFiles[index][E_DINI_FILE_CHANGED] = false;
+	    diniFiles[index][E_DINI_NUM_FIELDS] = 0;
+
+		fclose(handle);
+	}
 	return true;
 }
 
 forward dini_OnFileTimeout(index);
 public dini_OnFileTimeout(index)
 {
-    if (diniFiles[index][E_DINI_FILE_CHANGED])
+    if (diniFiles[index][E_DINI_FILE_CHANGED] && fexist(diniFiles[index][E_DINI_FILE_NAME]))
     {
         new File:handle = fopen(diniFiles[index][E_DINI_FILE_NAME], io_write);
 	    if (!handle)
