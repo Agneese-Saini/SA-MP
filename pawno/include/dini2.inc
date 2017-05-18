@@ -129,13 +129,19 @@ native dini_Create(const file[]);
 */
 stock dini_Create(const file[])
 {
-	new File:handle = fopen(file, io_write);
-	if (!handle)
+	new fileIndex = dini_sdbm(file);
+	fileIndex %= DINI_MAX_INSTANCES;
+	if (!diniFiles[fileIndex][E_DINI_FILE_NAME][0])
+	{
+	    if (!dini_Open(fileIndex, file))
+	    {
+	        return 0;
+	    }
+	}
+	else if (strcmp(diniFiles[fileIndex][E_DINI_FILE_NAME], file))
 	{
 	    return 0;
 	}
-	
-	fclose(handle);
 	
 	return 1;
 }
