@@ -1,4 +1,4 @@
-// Dini2.inc - v2.5.2 - By Gammix - Last updated "18 May, 2017"
+// Dini2.inc - v2.5.3 - By Gammix - Last updated "18 May, 2017"
 #if defined dini2_included
 	#endinput
 #endif
@@ -142,7 +142,9 @@ stock dini_Create(const file[])
 	}
 	else if (strcmp(diniFiles[fileIndex][E_DINI_FILE_NAME], file))
 	{
-	    return 0;
+	    KillTimer(diniFiles[fileIndex][E_DINI_FILE_TIMER]);
+		dini_OnFileTimeout(fileIndex);
+	    return dini_Create(file);
 	}
 	
 	return 1;
@@ -171,7 +173,9 @@ stock dini_Get(const file[], const field[])
 	}
 	else if (strcmp(diniFiles[fileIndex][E_DINI_FILE_NAME], file))
 	{
-	    return empty;
+	    KillTimer(diniFiles[fileIndex][E_DINI_FILE_TIMER]);
+		dini_OnFileTimeout(fileIndex);
+	    return dini_Get(file, field);
 	}
 
 	new fieldIndex = dini_sdbm(field);
@@ -228,7 +232,9 @@ stock dini_Set(const file[], const field[], value[])
 	}
 	else if (strcmp(diniFiles[fileIndex][E_DINI_FILE_NAME], file))
 	{
-	    return 0;
+	    KillTimer(diniFiles[fileIndex][E_DINI_FILE_TIMER]);
+		dini_OnFileTimeout(fileIndex);
+	    return dini_Set(file, field, value);
 	}
 
 	new fieldIndex = dini_sdbm(field);
@@ -301,7 +307,9 @@ stock dini_UnSet(const file[], const field[])
 	}
 	else if (strcmp(diniFiles[fileIndex][E_DINI_FILE_NAME], file))
 	{
-	    return 0;
+	    KillTimer(diniFiles[fileIndex][E_DINI_FILE_TIMER]);
+		dini_OnFileTimeout(fileIndex);
+	    return dini_UnSet(file, field);
 	}
 
 	new fieldIndex = dini_sdbm(field);
@@ -351,7 +359,9 @@ stock dini_IsSet(const file[], const field[])
 	}
 	else if (strcmp(diniFiles[fileIndex][E_DINI_FILE_NAME], file))
 	{
-	    return 0;
+	    KillTimer(diniFiles[fileIndex][E_DINI_FILE_TIMER]);
+		dini_OnFileTimeout(fileIndex);
+	    return dini_IsSet(file, field);
 	}
 
 	new fieldIndex = dini_sdbm(field);
