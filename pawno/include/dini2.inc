@@ -41,7 +41,7 @@ static diniFileFields[DINI_MAX_HANDLES][DINI_MAX_FIELDS][DINI_MAX_FIELD_NAME];
 static diniFileValues[DINI_MAX_HANDLES][DINI_MAX_FIELDS][DINI_MAX_FIELD_VALUE];
 static diniFilePoolSize = -1;
 
-static dini_GetFileIndex(const file[])
+stock dini_GetFileIndex(const file[])
 {
 	for (new i; i <= diniFilePoolSize; i++)
 	{
