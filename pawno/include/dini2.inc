@@ -269,7 +269,7 @@ stock dini_IntSet(const file[], const field[], value)
 	{
  		if (!strcmp(field, diniFileFields[index][i]))
  		{
- 		    valstr(diniFileValues[index], value);
+ 		    valstr(diniFileValues[index][i], value);
     		diniFile[index][E_DINI_FILE_MODIFIED] = true;
  		    return 1;
  		}
