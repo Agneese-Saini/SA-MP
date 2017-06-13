@@ -262,14 +262,14 @@ stock dini_IntSet(const file[], const field[], value)
 	new index = dini_GetFileIndex(file);
 	if (index == -1)
 	{
-	    return empty;
+	    return 0;
 	}
 
     for (new i; i < diniFile[index][E_DINI_FILE_NUM_FIELDS]; i++)
 	{
  		if (!strcmp(field, diniFileFields[index][i]))
  		{
- 		    format(diniFileValues[index][i], DINI_MAX_FIELD_VALUE, value);
+ 		    valstr(diniFileValues[index], value);
     		diniFile[index][E_DINI_FILE_MODIFIED] = true;
  		    return 1;
  		}
@@ -296,14 +296,14 @@ stock dini_FloatSet(const file[], const field[], Float:value)
 	new index = dini_GetFileIndex(file);
 	if (index == -1)
 	{
-	    return empty;
+	    return 0;
 	}
 
     for (new i; i < diniFile[index][E_DINI_FILE_NUM_FIELDS]; i++)
 	{
  		if (!strcmp(field, diniFileFields[index][i]))
  		{
- 		    format(diniFileValues[index][i], DINI_MAX_FIELD_VALUE, value);
+ 		    format(diniFileValues[index][i], DINI_MAX_FIELD_VALUE, "%f", value);
     		diniFile[index][E_DINI_FILE_MODIFIED] = true;
  		    return 1;
  		}
@@ -336,7 +336,7 @@ stock dini_UnSet(const file[], const field[])
 	new index = dini_GetFileIndex(file);
 	if (index == -1)
 	{
-	    return empty;
+	    return 0;
 	}
 
 	for (new i; i < diniFile[index][E_DINI_FILE_NUM_FIELDS]; i++)
@@ -365,7 +365,7 @@ stock dini_IsSet(const file[], const field[])
 	new index = dini_GetFileIndex(file);
 	if (index == -1)
 	{
-	    return empty;
+	    return 0;
 	}
 
 	for (new i; i < diniFile[index][E_DINI_FILE_NUM_FIELDS]; i++)
