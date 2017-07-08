@@ -1,10 +1,8 @@
-#define FILTERSCRIPT
-
 #include <a_samp>
 #include <streamer>
-#include <zcmd>
-#include <sscanf2>
 #include <colandreas>
+#include <sscanf2>
+#include <zcmd>
 #include <dialogs>
 #include <easydialog>
 
@@ -42,11 +40,8 @@ enum E_MENU_TEXTDRAW
     E_MENU_TEXTDRAW_LEFT_COUNT,
     E_MENU_TEXTDRAW_RIGHT_COUNT,
     E_MENU_TEXTDRAW_LEFTBTN,
-    E_MENU_TEXTDRAW_LEFTBTN_TEXT,
     E_MENU_TEXTDRAW_RIGHTBTN,
-    E_MENU_TEXTDRAW_RIGHTBTN_TEXT,
     E_MENU_TEXTDRAW_MIDDLEBTN,
-    E_MENU_TEXTDRAW_MIDDLEBTN_TEXT,
     E_MENU_TEXTDRAW_CLOSE,
     E_MENU_TEXTDRAW_EMPTY_LEFT[2],
 	E_MENU_TEXTDRAW_EMPTY_RIGHT[2]
@@ -97,6 +92,12 @@ new playerLeftMenuListitem[MAX_PLAYERS];
 new playerRightMenuListitem[MAX_PLAYERS];
 
 new PlayerText:playerItemPickupTextDraw[MAX_PLAYERS];
+
+ScrollBar(page, totalPages, &Float:y, Float:maxHeight, &Float:height)
+{
+	height = maxHeight / totalPages;
+	y += (height * 9) * page;
+}
 
 Inv_AddItem(modelid, const name[], Float:x, Float:y, Float:z, Float:rx = 0.0, Float:ry = 0.0, Float:rz = 0.0)
 {
@@ -333,8 +334,6 @@ Inv_UpdateLeftMenu(playerid)
 
     if (nearbyItemsCount[playerid] == 0)
     {
-		PlayerTextDrawSetString(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_LEFTBTN_TEXT]], "~r~~h~~h~no item");
-
 		for (new i; i < MAX_LEFT_MENU_ROWS; i++)
 		{
 		    TextDrawHideForPlayer(playerid, menuTextDraw[menuTextDrawID[E_MENU_TEXTDRAW_LEFT_BOX][i]]);
@@ -383,10 +382,6 @@ Inv_UpdateLeftMenu(playerid)
 					{
 					    strcat(itemName, "...");
 					}
-
-					new string[128] = "~y~~h~~h~Pickup:~n~~y~~h~~h~";
-					strcat(string, itemName);
-					PlayerTextDrawSetString(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_LEFTBTN_TEXT]], string);
 				}
 				else
 				{
@@ -415,16 +410,17 @@ Inv_UpdateLeftMenu(playerid)
 	    {
 	        playerLeftMenuPage[playerid] = pages - 1;
 	    }
-
-		new Float:size = 5.599998 / (floatround((nearbyItemsCount[playerid] / MAX_LEFT_MENU_ROWS), floatround_tozero) + 1);
-		new Float:pos = (size * 9.000000) * playerLeftMenuPage[playerid];
-
+		
+		new Float:y = 172.000000;
+		new Float:height;
+		ScrollBar(playerLeftMenuPage[playerid], pages, y, 14.6, height);
+		
 		PlayerTextDrawDestroy(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_SCROLL]]);
-
-		menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_SCROLL]] = CreatePlayerTextDraw(playerid, 246.000000, (172.000000 + pos), "_");
+	
+		menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_SCROLL]] = CreatePlayerTextDraw(playerid, 246.000000, y, "_");
 		PlayerTextDrawBackgroundColor(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_SCROLL]], 255);
 		PlayerTextDrawFont(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_SCROLL]], 1);
-		PlayerTextDrawLetterSize(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_SCROLL]], 0.000000, size);
+		PlayerTextDrawLetterSize(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_SCROLL]], 0.000000, height);
 		PlayerTextDrawColor(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_SCROLL]], -1);
 		PlayerTextDrawSetOutline(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_SCROLL]], 0);
 		PlayerTextDrawSetProportional(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_SCROLL]], 1);
@@ -442,7 +438,7 @@ Inv_UpdateLeftMenu(playerid)
 	}
 
 	new string[128];
-	format(string, sizeof string, "~y~%i items", nearbyItemsCount[playerid]);
+	format(string, sizeof string, "Items close to you: ~y~%i", nearbyItemsCount[playerid]);
 	PlayerTextDrawSetString(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_LEFT_COUNT]], string);
 
 	if (nearbyItemsCount[playerid] == 0)
@@ -462,9 +458,6 @@ Inv_UpdateRightMenu(playerid)
 {
     if (playerInventoryItemsCount[playerid] == 0)
     {
-        PlayerTextDrawSetString(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_RIGHTBTN_TEXT]], "~r~~h~~h~no item");
-        PlayerTextDrawSetString(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_MIDDLEBTN_TEXT]], "~r~~h~~h~no item");
-
 		for (new i; i < MAX_PLAYER_ITEMS; i++)
 		{
 		    TextDrawHideForPlayer(playerid, menuTextDraw[menuTextDrawID[E_MENU_TEXTDRAW_RIGHT_MODEL][i]]);
@@ -473,7 +466,7 @@ Inv_UpdateRightMenu(playerid)
 		}
 
     	new string[128];
-		format(string, sizeof string, "~y~0/%i items", MAX_PLAYER_ITEMS);
+		format(string, sizeof string, "Items in your inventory: ~y~0/%i", MAX_PLAYER_ITEMS);
 		PlayerTextDrawSetString(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_RIGHT_COUNT]], string);
 
 		TextDrawShowForPlayer(playerid, menuTextDraw[menuTextDrawID[E_MENU_TEXTDRAW_EMPTY_RIGHT][0]]);
@@ -501,14 +494,6 @@ Inv_UpdateRightMenu(playerid)
 				{
 				    strcat(itemName, "...");
 				}
-
-				new string[128] = "~y~~h~~h~Drop:~n~~y~~h~~h~";
-				strcat(string, itemName);
-       			PlayerTextDrawSetString(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_RIGHTBTN_TEXT]], string);
-
-			    string = "~g~~h~~h~Use:~n~~g~~h~~h~";
-				strcat(string, itemName);
-				PlayerTextDrawSetString(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_MIDDLEBTN_TEXT]], string);
 			}
 			else
 			{
@@ -532,7 +517,7 @@ Inv_UpdateRightMenu(playerid)
 		}
 
     	new string[128];
-		format(string, sizeof string, "~y~%i/%i items", playerInventoryItemsCount[playerid], MAX_PLAYER_ITEMS);
+    	format(string, sizeof string, "Items in your inventory: ~y~%i/%i", playerInventoryItemsCount[playerid], MAX_PLAYER_ITEMS);
 		PlayerTextDrawSetString(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_RIGHT_COUNT]], string);
 
 		TextDrawHideForPlayer(playerid, menuTextDraw[menuTextDrawID[E_MENU_TEXTDRAW_EMPTY_RIGHT][0]]);
@@ -628,16 +613,6 @@ public OnFilterScriptInit()
 	TextDrawTextSize(menuTextDraw[menuTextDrawCount], 490.000000, 0.000000);
 	TextDrawSetSelectable(menuTextDraw[menuTextDrawCount++], 0);
 
-	menuTextDraw[menuTextDrawCount] = TextDrawCreate(162.000000, 150.000000, "Items on floor:");
-	TextDrawBackgroundColor(menuTextDraw[menuTextDrawCount], 0);
-	TextDrawFont(menuTextDraw[menuTextDrawCount], 2);
-	TextDrawLetterSize(menuTextDraw[menuTextDrawCount], 0.159999, 0.899999);
-	TextDrawColor(menuTextDraw[menuTextDrawCount], -1);
-	TextDrawSetOutline(menuTextDraw[menuTextDrawCount], 0);
-	TextDrawSetProportional(menuTextDraw[menuTextDrawCount], 1);
-	TextDrawSetShadow(menuTextDraw[menuTextDrawCount], 1);
-	TextDrawSetSelectable(menuTextDraw[menuTextDrawCount++], 0);
-
 	menuTextDraw[menuTextDrawCount] = TextDrawCreate(163.000000, 161.000000, "_");
 	TextDrawBackgroundColor(menuTextDraw[menuTextDrawCount], 255);
 	TextDrawFont(menuTextDraw[menuTextDrawCount], 1);
@@ -649,16 +624,6 @@ public OnFilterScriptInit()
 	TextDrawUseBox(menuTextDraw[menuTextDrawCount], 1);
 	TextDrawBoxColor(menuTextDraw[menuTextDrawCount], 1853316296);
 	TextDrawTextSize(menuTextDraw[menuTextDrawCount], 249.000000, 0.000000);
-	TextDrawSetSelectable(menuTextDraw[menuTextDrawCount++], 0);
-
-	menuTextDraw[menuTextDrawCount] = TextDrawCreate(255.000000, 150.000000, "Your Inventory:");
-	TextDrawBackgroundColor(menuTextDraw[menuTextDrawCount], 0);
-	TextDrawFont(menuTextDraw[menuTextDrawCount], 2);
-	TextDrawLetterSize(menuTextDraw[menuTextDrawCount], 0.159999, 0.899999);
-	TextDrawColor(menuTextDraw[menuTextDrawCount], -1);
-	TextDrawSetOutline(menuTextDraw[menuTextDrawCount], 0);
-	TextDrawSetProportional(menuTextDraw[menuTextDrawCount], 1);
-	TextDrawSetShadow(menuTextDraw[menuTextDrawCount], 1);
 	TextDrawSetSelectable(menuTextDraw[menuTextDrawCount++], 0);
 
 	menuTextDraw[menuTextDrawCount] = TextDrawCreate(257.000000, 161.000000, "_");
@@ -674,17 +639,17 @@ public OnFilterScriptInit()
 	TextDrawTextSize(menuTextDraw[menuTextDrawCount], 487.000000, 0.000000);
 	TextDrawSetSelectable(menuTextDraw[menuTextDrawCount++], 0);
 
-	menuTextDraw[menuTextDrawCount] = TextDrawCreate(247.000000, 163.000000, "_");
+    menuTextDraw[menuTextDrawCount] = TextDrawCreate(245.000000, 170.000000, "_");
 	TextDrawBackgroundColor(menuTextDraw[menuTextDrawCount], 255);
 	TextDrawFont(menuTextDraw[menuTextDrawCount], 1);
-	TextDrawLetterSize(menuTextDraw[menuTextDrawCount], 0.000000, 16.599998);
+	TextDrawLetterSize(menuTextDraw[menuTextDrawCount], 0.000000, 15.199996);
 	TextDrawColor(menuTextDraw[menuTextDrawCount], -1);
 	TextDrawSetOutline(menuTextDraw[menuTextDrawCount], 0);
 	TextDrawSetProportional(menuTextDraw[menuTextDrawCount], 1);
 	TextDrawSetShadow(menuTextDraw[menuTextDrawCount], 1);
 	TextDrawUseBox(menuTextDraw[menuTextDrawCount], 1);
 	TextDrawBoxColor(menuTextDraw[menuTextDrawCount], 842150600);
-	TextDrawTextSize(menuTextDraw[menuTextDrawCount], 246.000000, 0.000000);
+	TextDrawTextSize(menuTextDraw[menuTextDrawCount], 248.000000, 0.000000);
 	TextDrawSetSelectable(menuTextDraw[menuTextDrawCount++], 0);
 
     menuTextDrawID[E_MENU_TEXTDRAW_SCROLL_UP] = menuTextDrawCount;
@@ -799,7 +764,7 @@ public OnFilterScriptInit()
 			format(string, sizeof string, "%i.", (((a * MAX_RIGHT_MENU_COLUMNS) + b) + 1));
 			menuTextDraw[menuTextDrawCount] = TextDrawCreate((260.000000 + (b * 46.000000)), (164.000000 + (a * 51.000000)), string);
 			TextDrawBackgroundColor(menuTextDraw[menuTextDrawCount], 0);
-			TextDrawFont(menuTextDraw[menuTextDrawCount], 2);
+			TextDrawFont(menuTextDraw[menuTextDrawCount], 1);
 			TextDrawLetterSize(menuTextDraw[menuTextDrawCount], 0.189999, 0.899999);
 			TextDrawColor(menuTextDraw[menuTextDrawCount], -926365441);
 			TextDrawSetOutline(menuTextDraw[menuTextDrawCount], 0);
@@ -836,6 +801,17 @@ public OnFilterScriptInit()
 	TextDrawTextSize(menuTextDraw[menuTextDrawCount], 8.000000, 10.000000);
 	TextDrawSetSelectable(menuTextDraw[menuTextDrawCount++], 0);
 
+	menuTextDraw[menuTextDrawCount] = TextDrawCreate(242.000000, 335.000000, "PICKUP~n~ITEM");
+	TextDrawAlignment(menuTextDraw[menuTextDrawCount], 2);
+	TextDrawBackgroundColor(menuTextDraw[menuTextDrawCount], 0);
+	TextDrawFont(menuTextDraw[menuTextDrawCount], 1);
+	TextDrawLetterSize(menuTextDraw[menuTextDrawCount], 0.119998, 0.599999);
+	TextDrawColor(menuTextDraw[menuTextDrawCount], -926365441);
+	TextDrawSetOutline(menuTextDraw[menuTextDrawCount], 0);
+	TextDrawSetProportional(menuTextDraw[menuTextDrawCount], 1);
+	TextDrawSetShadow(menuTextDraw[menuTextDrawCount], 1);
+	TextDrawSetSelectable(menuTextDraw[menuTextDrawCount++], 0);
+
    	menuTextDrawID[E_MENU_TEXTDRAW_RIGHTBTN] = menuTextDrawCount;
 	menuTextDraw[menuTextDrawCount] = TextDrawCreate(258.000000, 318.000000, "LD_POOL:ball");
 	TextDrawBackgroundColor(menuTextDraw[menuTextDrawCount], 0);
@@ -863,6 +839,17 @@ public OnFilterScriptInit()
 	TextDrawTextSize(menuTextDraw[menuTextDrawCount], 8.000000, 10.000000);
 	TextDrawSetSelectable(menuTextDraw[menuTextDrawCount++], 0);
 
+	menuTextDraw[menuTextDrawCount] = TextDrawCreate(265.000000, 335.000000, "DROP~n~ITEM");
+	TextDrawAlignment(menuTextDraw[menuTextDrawCount], 2);
+	TextDrawBackgroundColor(menuTextDraw[menuTextDrawCount], 0);
+	TextDrawFont(menuTextDraw[menuTextDrawCount], 1);
+	TextDrawLetterSize(menuTextDraw[menuTextDrawCount], 0.119998, 0.599999);
+	TextDrawColor(menuTextDraw[menuTextDrawCount], -926365441);
+	TextDrawSetOutline(menuTextDraw[menuTextDrawCount], 0);
+	TextDrawSetProportional(menuTextDraw[menuTextDrawCount], 1);
+	TextDrawSetShadow(menuTextDraw[menuTextDrawCount], 1);
+	TextDrawSetSelectable(menuTextDraw[menuTextDrawCount++], 0);
+
    	menuTextDrawID[E_MENU_TEXTDRAW_MIDDLEBTN] = menuTextDrawCount;
 	menuTextDraw[menuTextDrawCount] = TextDrawCreate(281.000000, 318.000000, "LD_POOL:ball");
 	TextDrawBackgroundColor(menuTextDraw[menuTextDrawCount], 0);
@@ -886,6 +873,20 @@ public OnFilterScriptInit()
 	TextDrawSetOutline(menuTextDraw[menuTextDrawCount], 0);
 	TextDrawSetProportional(menuTextDraw[menuTextDrawCount], 1);
 	TextDrawSetShadow(menuTextDraw[menuTextDrawCount], 1);
+	TextDrawSetSelectable(menuTextDraw[menuTextDrawCount++], 0);
+
+	menuTextDraw[menuTextDrawCount] = TextDrawCreate(288.000000, 335.000000, "USE~n~ITEM");
+	TextDrawAlignment(menuTextDraw[menuTextDrawCount], 2);
+	TextDrawBackgroundColor(menuTextDraw[menuTextDrawCount], 0);
+	TextDrawFont(menuTextDraw[menuTextDrawCount], 1);
+	TextDrawLetterSize(menuTextDraw[menuTextDrawCount], 0.119998, 0.599999);
+	TextDrawColor(menuTextDraw[menuTextDrawCount], -926365441);
+	TextDrawSetOutline(menuTextDraw[menuTextDrawCount], 0);
+	TextDrawSetProportional(menuTextDraw[menuTextDrawCount], 1);
+	TextDrawSetShadow(menuTextDraw[menuTextDrawCount], 1);
+	TextDrawUseBox(menuTextDraw[menuTextDrawCount], 1);
+	TextDrawBoxColor(menuTextDraw[menuTextDrawCount], 0);
+	TextDrawTextSize(menuTextDraw[menuTextDrawCount], 238.000000, 0.000000);
 	TextDrawSetSelectable(menuTextDraw[menuTextDrawCount++], 0);
 
    	menuTextDrawID[E_MENU_TEXTDRAW_CLOSE] = menuTextDrawCount;
@@ -913,11 +914,11 @@ public OnFilterScriptInit()
 	TextDrawSetShadow(menuTextDraw[menuTextDrawCount], 1);
 	TextDrawSetSelectable(menuTextDraw[menuTextDrawCount++], 0);
 
-	menuTextDraw[menuTextDrawCount] = TextDrawCreate(488.000000, 335.000000, "~r~~h~~h~~h~Close~n~~r~~h~~h~~h~Inventory~n~");
+	menuTextDraw[menuTextDrawCount] = TextDrawCreate(487.000000, 335.000000, "~r~~h~~h~CLOSE~n~~r~~h~~h~INVENTORY~n~");
 	TextDrawAlignment(menuTextDraw[menuTextDrawCount], 3);
 	TextDrawBackgroundColor(menuTextDraw[menuTextDrawCount], 0);
-	TextDrawFont(menuTextDraw[menuTextDrawCount], 2);
-	TextDrawLetterSize(menuTextDraw[menuTextDrawCount], 0.079999, 0.599999);
+	TextDrawFont(menuTextDraw[menuTextDrawCount], 1);
+	TextDrawLetterSize(menuTextDraw[menuTextDrawCount], 0.119998, 0.599999);
 	TextDrawColor(menuTextDraw[menuTextDrawCount], -926365441);
 	TextDrawSetOutline(menuTextDraw[menuTextDrawCount], 0);
 	TextDrawSetProportional(menuTextDraw[menuTextDrawCount], 1);
@@ -939,10 +940,11 @@ public OnFilterScriptInit()
 	TextDrawSetSelectable(menuTextDraw[menuTextDrawCount++], 0);
 
    	menuTextDrawID[E_MENU_TEXTDRAW_EMPTY_LEFT][1] = menuTextDrawCount;
-	menuTextDraw[menuTextDrawCount] = TextDrawCreate(181.000000, 229.000000, "NOTHING FOUND");
+	menuTextDraw[menuTextDrawCount] = TextDrawCreate(204.000000, 232.000000, "NOTHING CLOSE TO YOU");
+	TextDrawAlignment(menuTextDraw[menuTextDrawCount], 2);
 	TextDrawBackgroundColor(menuTextDraw[menuTextDrawCount], 0);
-	TextDrawFont(menuTextDraw[menuTextDrawCount], 2);
-	TextDrawLetterSize(menuTextDraw[menuTextDrawCount], 0.149999, 1.299999);
+	TextDrawFont(menuTextDraw[menuTextDrawCount], 1);
+	TextDrawLetterSize(menuTextDraw[menuTextDrawCount], 0.149998, 0.899998);
 	TextDrawColor(menuTextDraw[menuTextDrawCount], 1179010815);
 	TextDrawSetOutline(menuTextDraw[menuTextDrawCount], 0);
 	TextDrawSetProportional(menuTextDraw[menuTextDrawCount], 1);
@@ -964,10 +966,11 @@ public OnFilterScriptInit()
 	TextDrawSetSelectable(menuTextDraw[menuTextDrawCount++], 0);
 
    	menuTextDrawID[E_MENU_TEXTDRAW_EMPTY_RIGHT][1] = menuTextDrawCount;
-	menuTextDraw[menuTextDrawCount] = TextDrawCreate(339.000000, 229.000000, "YOUR BAG IS EMPTY");
+	menuTextDraw[menuTextDrawCount] = TextDrawCreate(373.000000, 232.000000, "NOTHING IN YOUR INVENTORY");
+	TextDrawAlignment(menuTextDraw[menuTextDrawCount], 2);
 	TextDrawBackgroundColor(menuTextDraw[menuTextDrawCount], 0);
-	TextDrawFont(menuTextDraw[menuTextDrawCount], 2);
-	TextDrawLetterSize(menuTextDraw[menuTextDrawCount], 0.149999, 1.299999);
+	TextDrawFont(menuTextDraw[menuTextDrawCount], 1);
+	TextDrawLetterSize(menuTextDraw[menuTextDrawCount], 0.149998, 0.899998);
 	TextDrawColor(menuTextDraw[menuTextDrawCount], 1179010815);
 	TextDrawSetOutline(menuTextDraw[menuTextDrawCount], 0);
 	TextDrawSetProportional(menuTextDraw[menuTextDrawCount], 1);
@@ -991,7 +994,7 @@ public OnPlayerConnect(playerid)
 	menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid, 246.000000, 172.000000, "_");
 	PlayerTextDrawBackgroundColor(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 255);
 	PlayerTextDrawFont(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 1);
-	PlayerTextDrawLetterSize(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0.000000, 5.599998);
+	PlayerTextDrawLetterSize(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0.000000, 14.599998);
 	PlayerTextDrawColor(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], -1);
 	PlayerTextDrawSetOutline(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0);
 	PlayerTextDrawSetProportional(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 1);
@@ -1002,10 +1005,10 @@ public OnPlayerConnect(playerid)
 	PlayerTextDrawSetSelectable(playerid, menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]++], 0);
 
 	menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_LEFT_COUNT] = menuPlayerTextDrawCount[playerid];
-	menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,219.000000, 152.000000, "~y~0 items");
+	menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,162.000000, 150.000000, "Items close to you: ~y~0");
 	PlayerTextDrawBackgroundColor(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0);
-	PlayerTextDrawFont(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 2);
-	PlayerTextDrawLetterSize(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0.089998, 0.599999);
+	PlayerTextDrawFont(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 1);
+	PlayerTextDrawLetterSize(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0.159998, 0.899999);
 	PlayerTextDrawColor(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], -1);
 	PlayerTextDrawSetOutline(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0);
 	PlayerTextDrawSetProportional(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 1);
@@ -1013,10 +1016,10 @@ public OnPlayerConnect(playerid)
 	PlayerTextDrawSetSelectable(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]++], 0);
 
 	menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_RIGHT_COUNT] = menuPlayerTextDrawCount[playerid];
-	menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,314.000000, 152.000000, "~y~0/0 items");
+	menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,255.000000, 150.000000, "Items in your inventory: ~y~13/15");
 	PlayerTextDrawBackgroundColor(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0);
-	PlayerTextDrawFont(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 2);
-	PlayerTextDrawLetterSize(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0.089998, 0.599999);
+	PlayerTextDrawFont(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 1);
+	PlayerTextDrawLetterSize(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0.159998, 0.899999);
 	PlayerTextDrawColor(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], -1);
 	PlayerTextDrawSetOutline(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0);
 	PlayerTextDrawSetProportional(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 1);
@@ -1028,8 +1031,8 @@ public OnPlayerConnect(playerid)
     	menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_LEFT_TEXT][i] = menuPlayerTextDrawCount[playerid];
 		menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid, 186.000000, (164.000000 + (i * 22.000000)), "-");
 		PlayerTextDrawBackgroundColor(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0);
-		PlayerTextDrawFont(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 2);
-		PlayerTextDrawLetterSize(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0.099999, 0.699998);
+		PlayerTextDrawFont(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 1);
+		PlayerTextDrawLetterSize(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0.119998, 0.699998);
 		PlayerTextDrawColor(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], -926365441);
 		PlayerTextDrawSetOutline(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0);
 		PlayerTextDrawSetProportional(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 1);
@@ -1047,54 +1050,18 @@ public OnPlayerConnect(playerid)
     		menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_RIGHT_TEXT][(a * MAX_RIGHT_MENU_COLUMNS) + b] = menuPlayerTextDrawCount[playerid];
 			menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid, (260.000000 + (b * 46.000000)), (193.000000 + (a * 51.000000)), "-");
 			PlayerTextDrawBackgroundColor(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0);
-			PlayerTextDrawFont(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 2);
-			PlayerTextDrawLetterSize(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0.129998, 0.799998);
+			PlayerTextDrawFont(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 1);
+			PlayerTextDrawLetterSize(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0.149999, 0.799998);
 			PlayerTextDrawColor(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], -926365441);
 			PlayerTextDrawSetOutline(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0);
 			PlayerTextDrawSetProportional(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 1);
 			PlayerTextDrawSetShadow(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 1);
 			PlayerTextDrawUseBox(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 1);
 			PlayerTextDrawBoxColor(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0);
-			PlayerTextDrawTextSize(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 300.000000, 0.000000);
+			PlayerTextDrawTextSize(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], (300.000000 + (b * 46.000000)), (0.000000 + (a * 51.000000)));
 			PlayerTextDrawSetSelectable(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]++], 0);
 		}
 	}
-
-	menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_LEFTBTN_TEXT] = menuPlayerTextDrawCount[playerid];
-	menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,242.000000, 335.000000, "~r~~h~~h~Pickup~n~~r~~h~~h~-");
-	PlayerTextDrawAlignment(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 2);
-	PlayerTextDrawBackgroundColor(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0);
-	PlayerTextDrawFont(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 2);
-	PlayerTextDrawLetterSize(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0.079998, 0.599999);
-	PlayerTextDrawColor(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], -926365441);
-	PlayerTextDrawSetOutline(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0);
-	PlayerTextDrawSetProportional(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 1);
-	PlayerTextDrawSetShadow(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 1);
-	PlayerTextDrawSetSelectable(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]++], 0);
-
-	menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_RIGHTBTN_TEXT] = menuPlayerTextDrawCount[playerid];
-	menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,265.000000, 335.000000, "~r~~h~~h~Drop~n~~r~~h~~h~-");
-	PlayerTextDrawAlignment(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 2);
-	PlayerTextDrawBackgroundColor(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0);
-	PlayerTextDrawFont(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 2);
-	PlayerTextDrawLetterSize(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0.079998, 0.599999);
-	PlayerTextDrawColor(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], -926365441);
-	PlayerTextDrawSetOutline(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0);
-	PlayerTextDrawSetProportional(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 1);
-	PlayerTextDrawSetShadow(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 1);
-	PlayerTextDrawSetSelectable(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]++], 0);
-
-	menuPlayerTextDrawID[playerid][E_MENU_TEXTDRAW_MIDDLEBTN_TEXT] = menuPlayerTextDrawCount[playerid];
-	menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,288.000000, 335.000000, "~r~~h~~h~~h~Use:~n~~r~~h~~h~~h~-");
-	PlayerTextDrawAlignment(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 2);
-	PlayerTextDrawBackgroundColor(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0);
-	PlayerTextDrawFont(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 2);
-	PlayerTextDrawLetterSize(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0.079998, 0.599999);
-	PlayerTextDrawColor(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], -926365441);
-	PlayerTextDrawSetOutline(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 0);
-	PlayerTextDrawSetProportional(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 1);
-	PlayerTextDrawSetShadow(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]], 1);
-	PlayerTextDrawSetSelectable(playerid,menuPlayerTextDraw[playerid][menuPlayerTextDrawCount[playerid]++], 0);
 	
 	
 	
@@ -1300,159 +1267,6 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid)
 	return 1;
 }
 
-new createdItems[MAX_ITEMS];
-new createdItemsCount;
-
-CMD:additem(playerid)
-{
-	if (!IsPlayerAdmin(playerid))
-	{
-	    return SendClientMessage(playerid, COLOR_TOMATO, "You must be RCON-Admin to use this command.");
-	}
-	
-	if (createdItemsCount == 0)
-	{
-	    return SendClientMessage(playerid, COLOR_TOMATO, "There are no items created yet! Start with /newitem.");
-	}
-	
-	static string[MAX_ITEMS * 128];
-	string[0] = EOS;
-	for (new i; i < createdItemsCount; i++)
-	{
-	    format(string, sizeof string, "%s%i\t%s\n", string, item[createdItems[i]][E_ITEM_MODELID], item[createdItems[i]][E_ITEM_NAME]);
-	}
-	Dialog_Show(playerid, CREATED_ITEMS, DIALOG_STYLE_PREVMODEL, "Created items history", string, "Select", "Cancel");
-	return 1;
-}
-
-Dialog:CREATED_ITEMS(playerid, response, listitem, inputtext[])
-{
-	if (response)
-	{
-		new Float:x, Float:y, Float:z;
-		GetPlayerPos(playerid, x, y, z);
-		new Float:ang;
-		GetPlayerFacingAngle(playerid, ang);
-		x += (1.5 * floatsin(-ang, degrees));
-		y += (1.5 * floatcos(-ang, degrees));
-
-	    new itemid = Inv_AddItem(item[createdItems[listitem]][E_ITEM_MODELID], item[createdItems[listitem]][E_ITEM_NAME], x, y, z + item[createdItems[listitem]][E_ITEM_ZPUSH], item[createdItems[listitem]][E_ITEM_ROTX], item[createdItems[listitem]][E_ITEM_ROTY], item[createdItems[listitem]][E_ITEM_ROTZ]);
-	    if (itemid == -1)
-	    {
-	        return SendClientMessage(playerid, COLOR_TOMATO, "Cannot add anymore items, reached limit.");
-	    }
-	    
-	    new string[128];
-	    format(string, sizeof string, "Item created: %s [itemid: %i | modelid: %i]", item[createdItems[listitem]][E_ITEM_MODELID], item[createdItems[listitem]][E_ITEM_NAME], itemid);
-	    SendClientMessage(playerid, COLOR_GREEN, string);
-	}
-	return 1;
-}
-
-CMD:edititem(playerid, params[])
-{
-	if (!IsPlayerAdmin(playerid))
-	{
-	    return SendClientMessage(playerid, COLOR_TOMATO, "You must be RCON-Admin to use this command.");
-	}
-	
-    static string[MAX_ITEMS * 128];
-	string[0] = EOS;
-	new Float:x, Float:y, Float:z, Float:dist;
-	for (new i; i <= itemPoolSize; i++)
-	{
-	    if (!item[i][E_ITEM_VALID])
-	    {
-	        continue;
-	    }
-	    
-	    GetDynamicObjectPos(item[i][E_ITEM_OBJECTID], x, y, z);
-	    dist = GetPlayerDistanceFromPoint(playerid, x, y, z);
-	    if (dist > 20)
-	    {
-	        continue;
-	    }
-	    
-	    format(string, sizeof string, "%s%i\t%s~n~%im away\n", string, item[i][E_ITEM_MODELID], item[i][E_ITEM_NAME], floatround(dist));
-	}
-	
-	if (!string[0])
-	{
-	    return SendClientMessage(playerid, COLOR_TOMATO, "You are not close to any item.");
-	}
-	
-	Dialog_Show(playerid, EDIT_ITEMS, DIALOG_STYLE_PREVMODEL, "CrEdit nearby items", string, "Edit", "Cancel");
-	return 1;
-}
-
-Dialog:EDIT_ITEMS(playerid, response, listitem, inputtext[])
-{
-	if (response)
-	{
-	    new count;
-		new Float:x, Float:y, Float:z, Float:dist;
-		for (new i; i <= itemPoolSize; i++)
-		{
-		    if (!item[i][E_ITEM_VALID])
-		    {
-		        continue;
-		    }
-	    
-		    GetDynamicObjectPos(item[i][E_ITEM_OBJECTID], x, y, z);
-		    dist = GetPlayerDistanceFromPoint(playerid, x, y, z);
-		    if (dist > 20)
-		    {
-		        continue;
-		    }
-
-		    if (count++ == listitem)
-		    {
-		        Inv_EditItem(playerid, i);
-
-			    new string[128];
-			    format(string, sizeof string, "You are now editing item: %s [id: %i]", item[i][E_ITEM_NAME], i);
-			    SendClientMessage(playerid, COLOR_GREEN, string);
-		        break;
-		    }
-		}
-	}
-	return 1;
-}
-
-CMD:newitem(playerid, params[])
-{
-	if (!IsPlayerAdmin(playerid))
-	{
-	    return SendClientMessage(playerid, COLOR_TOMATO, "You must be RCON-Admin to use this command.");
-	}
-	
-	new itemName[MAX_ITEM_NAME], itemModelid;
-	if (sscanf(params, "is[64]", itemModelid, itemName))
-	{
-	    return SendClientMessage(playerid, COLOR_DEFAULT, "Usage: /newitem [modelid] [name]");
-	}
-
-	new Float:x, Float:y, Float:z;
-	GetPlayerPos(playerid, x, y, z);
-	new Float:ang;
-	GetPlayerFacingAngle(playerid, ang);
-	x += (1.5 * floatsin(-ang, degrees));
-	y += (1.5 * floatcos(-ang, degrees));
-    new itemid = Inv_AddItem(itemModelid, itemName, x, y, z);
-    if (itemid == -1)
-    {
-        return SendClientMessage(playerid, COLOR_TOMATO, "Cannot add anymore items, reached limit.");
-    }
-
-    new string[128];
-    format(string, sizeof string, "Item created: %s [itemid: %i | modelid: %i]", itemName, itemModelid, itemid);
-    SendClientMessage(playerid, COLOR_GREEN, string);
-	
-	createdItems[createdItemsCount++] = itemid;
-    SendClientMessage(playerid, COLOR_DEFAULT, "Item added to /items list, If you want to duplicate this item, type /additem.");
-	return 1;
-}
-
 public OnPlayerCommandPerformed(playerid, cmdtext[], success)
 {
 	if (playerUsingMenu[playerid])
@@ -1533,5 +1347,158 @@ public OnPlayerEnterDynamicArea(playerid, areaid)
 public OnPlayerLeaveDynamicArea(playerid, areaid)
 {
     Inv_UpdatePlaiyerPickupTextDraw(playerid);
+	return 1;
+}
+
+new createdItems[MAX_ITEMS];
+new createdItemsCount;
+
+CMD:additem(playerid)
+{
+	if (!IsPlayerAdmin(playerid))
+	{
+	    return SendClientMessage(playerid, COLOR_TOMATO, "You must be RCON-Admin to use this command.");
+	}
+
+	if (createdItemsCount == 0)
+	{
+	    return SendClientMessage(playerid, COLOR_TOMATO, "There are no items created yet! Start with /newitem.");
+	}
+
+	static string[MAX_ITEMS * 128];
+	string[0] = EOS;
+	for (new i; i < createdItemsCount; i++)
+	{
+	    format(string, sizeof string, "%s%i\t%s\n", string, item[createdItems[i]][E_ITEM_MODELID], item[createdItems[i]][E_ITEM_NAME]);
+	}
+	Dialog_Show(playerid, CREATED_ITEMS, DIALOG_STYLE_PREVMODEL, "Created items history", string, "Select", "Cancel");
+	return 1;
+}
+
+Dialog:CREATED_ITEMS(playerid, response, listitem, inputtext[])
+{
+	if (response)
+	{
+		new Float:x, Float:y, Float:z;
+		GetPlayerPos(playerid, x, y, z);
+		new Float:ang;
+		GetPlayerFacingAngle(playerid, ang);
+		x += (1.5 * floatsin(-ang, degrees));
+		y += (1.5 * floatcos(-ang, degrees));
+
+	    new itemid = Inv_AddItem(item[createdItems[listitem]][E_ITEM_MODELID], item[createdItems[listitem]][E_ITEM_NAME], x, y, z + item[createdItems[listitem]][E_ITEM_ZPUSH], item[createdItems[listitem]][E_ITEM_ROTX], item[createdItems[listitem]][E_ITEM_ROTY], item[createdItems[listitem]][E_ITEM_ROTZ]);
+	    if (itemid == -1)
+	    {
+	        return SendClientMessage(playerid, COLOR_TOMATO, "Cannot add anymore items, reached limit.");
+	    }
+
+	    new string[128];
+	    format(string, sizeof string, "Item created: %s [itemid: %i | modelid: %i]", item[createdItems[listitem]][E_ITEM_MODELID], item[createdItems[listitem]][E_ITEM_NAME], itemid);
+	    SendClientMessage(playerid, COLOR_GREEN, string);
+	}
+	return 1;
+}
+
+CMD:edititem(playerid, params[])
+{
+	if (!IsPlayerAdmin(playerid))
+	{
+	    return SendClientMessage(playerid, COLOR_TOMATO, "You must be RCON-Admin to use this command.");
+	}
+
+    static string[MAX_ITEMS * 128];
+	string[0] = EOS;
+	new Float:x, Float:y, Float:z, Float:dist;
+	for (new i; i <= itemPoolSize; i++)
+	{
+	    if (!item[i][E_ITEM_VALID])
+	    {
+	        continue;
+	    }
+
+	    GetDynamicObjectPos(item[i][E_ITEM_OBJECTID], x, y, z);
+	    dist = GetPlayerDistanceFromPoint(playerid, x, y, z);
+	    if (dist > 20)
+	    {
+	        continue;
+	    }
+
+	    format(string, sizeof string, "%s%i\t%s~n~%im away\n", string, item[i][E_ITEM_MODELID], item[i][E_ITEM_NAME], floatround(dist));
+	}
+
+	if (!string[0])
+	{
+	    return SendClientMessage(playerid, COLOR_TOMATO, "You are not close to any item.");
+	}
+
+	Dialog_Show(playerid, EDIT_ITEMS, DIALOG_STYLE_PREVMODEL, "CrEdit nearby items", string, "Edit", "Cancel");
+	return 1;
+}
+
+Dialog:EDIT_ITEMS(playerid, response, listitem, inputtext[])
+{
+	if (response)
+	{
+	    new count;
+		new Float:x, Float:y, Float:z, Float:dist;
+		for (new i; i <= itemPoolSize; i++)
+		{
+		    if (!item[i][E_ITEM_VALID])
+		    {
+		        continue;
+		    }
+
+		    GetDynamicObjectPos(item[i][E_ITEM_OBJECTID], x, y, z);
+		    dist = GetPlayerDistanceFromPoint(playerid, x, y, z);
+		    if (dist > 20)
+		    {
+		        continue;
+		    }
+
+		    if (count++ == listitem)
+		    {
+		        Inv_EditItem(playerid, i);
+
+			    new string[128];
+			    format(string, sizeof string, "You are now editing item: %s [id: %i]", item[i][E_ITEM_NAME], i);
+			    SendClientMessage(playerid, COLOR_GREEN, string);
+		        break;
+		    }
+		}
+	}
+	return 1;
+}
+
+CMD:newitem(playerid, params[])
+{
+	if (!IsPlayerAdmin(playerid))
+	{
+	    return SendClientMessage(playerid, COLOR_TOMATO, "You must be RCON-Admin to use this command.");
+	}
+
+	new itemName[MAX_ITEM_NAME], itemModelid;
+	if (sscanf(params, "is[64]", itemModelid, itemName))
+	{
+	    return SendClientMessage(playerid, COLOR_DEFAULT, "Usage: /newitem [modelid] [name]");
+	}
+
+	new Float:x, Float:y, Float:z;
+	GetPlayerPos(playerid, x, y, z);
+	new Float:ang;
+	GetPlayerFacingAngle(playerid, ang);
+	x += (1.5 * floatsin(-ang, degrees));
+	y += (1.5 * floatcos(-ang, degrees));
+    new itemid = Inv_AddItem(itemModelid, itemName, x, y, z);
+    if (itemid == -1)
+    {
+        return SendClientMessage(playerid, COLOR_TOMATO, "Cannot add anymore items, reached limit.");
+    }
+
+    new string[128];
+    format(string, sizeof string, "Item created: %s [itemid: %i | modelid: %i]", itemName, itemModelid, itemid);
+    SendClientMessage(playerid, COLOR_GREEN, string);
+
+	createdItems[createdItemsCount++] = itemid;
+    SendClientMessage(playerid, COLOR_DEFAULT, "Item added to /items list, If you want to duplicate this item, type /additem.");
 	return 1;
 }
