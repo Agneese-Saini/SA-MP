@@ -224,6 +224,9 @@ public OnPlayerConnect(playerid)
 		}
 	    else
 	    {
+	        format(string, sizeof string, "UPDATE `users` SET `last_activity_timestamp` = %i WHERE `id` = %i", gettime(), db_get_field_assoc_int(result, "id"));
+			db_query(banDatabase, string);
+	    
 	        for (new i; i < 100; i++)
 	        {
 	            SendClientMessage(playerid, -1, "");
@@ -258,6 +261,11 @@ public OnPlayerConnect(playerid)
 
 CMD:ban(playerid, params[])
 {
+	if (!IsPlayerAdmin(playerid))
+	{
+	    return SendClientMessage(playerid, COLOR_TOMATO, "You should be RCON Admin to use this command.");
+	}
+	
 	new targetid;
 	new reason[64];
 	new days;
@@ -291,7 +299,7 @@ CMD:ban(playerid, params[])
 	GetPlayerName(targetid, name, sizeof name);
 	GetPlayerIp(targetid, ip, sizeof ip);
 
-	new string[512] = ""COL_WHITE"You are about to ban a player! Please confirm the following\ncredentials and click \""COL_PINK"Ban"COL_WHITE"\" if they are correct, else click \""COL_TOMATO"Cancel"COL_WHITE"\".";
+	new string[1024] = ""COL_WHITE"You are about to ban a player! Please confirm the following\ncredentials and click \""COL_PINK"Ban"COL_WHITE"\" if they are correct, else click \""COL_TOMATO"Cancel"COL_WHITE"\".";
 	if (days != 0)
 	{
 		format(string, sizeof string, "%s\n\n- "COL_PINK"Player: "COL_WHITE"%s (IP: %s)\n- "COL_PINK"Type: "COL_WHITE"Temporary - %i days\n- "COL_PINK"Reason: "COL_WHITE"%s",
@@ -357,6 +365,11 @@ Dialog:BAN_PLAYER(playerid, response, listitem, inputtext[])
 
 CMD:searchban(playerid, params[])
 {
+	if (!IsPlayerAdmin(playerid))
+	{
+	    return SendClientMessage(playerid, COLOR_TOMATO, "You should be RCON Admin to use this command.");
+	}
+
 	if (!params[0] || params[0] == ' ' || strlen(params) < 4)
 	{
 	    return SendClientMessage(playerid, COLOR_WHITE, "Usage: /searchban [name/ip]");
@@ -374,7 +387,7 @@ CMD:searchban(playerid, params[])
 	    break;
 	}
 
-	new string[512];
+	new string[1024];
 	if (nameEntered)
 	{
 		format(string, sizeof string, "SELECT * FROM `users` WHERE `name` = '%s' LIMIT 1", params);
