@@ -1,7 +1,7 @@
-#if defined kickban_included
+#if defined kickbanfix_included
 	#endinput
 #endif
-#define kickban_included
+#define kickbanfix_included
 
 enum e_KICKBAN
 {
