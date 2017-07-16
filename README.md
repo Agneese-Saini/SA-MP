@@ -30,3 +30,4 @@ Click on the embedded links to directly goto the following's page.
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/progress2.inc">progress2.inc</a></b> - SouthClaw's progress2 with global textdraw support and some minor changes for productivity!
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/projectile.inc">projectile.inc</a></b> - Lets you create object physics simulation
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/script_init.inc">script_init.inc</a></b> - callback called when script inits and exits with two macros for depicting if the script is a GAMEMODE or FILTERSCRIPT
+    * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/fader.inc">fader.inc</a></b> - global and player textdraw color fader (support box and text)
