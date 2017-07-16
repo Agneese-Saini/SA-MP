@@ -881,6 +881,12 @@ stock Dialog_ShowPlayerDialog(playerid, dialogid, style, caption[], info[], butt
 	
 	return SelectTextDraw(playerid, DIALOG_SELECTED_LIST_ITEM_COLOR);
 }
+#if defined _ALS_ShowPlayerDialog
+    #undef ShowPlayerDialog
+#else
+    #define _ALS_ShowPlayerDialog
+#endif
+#define ShowPlayerDialog Dialog_ShowPlayerDialog
 
 /*
 native Dialog_SetListitemPreviewRot(playerid, listitem, Float:rx, Float:ry, Float:rz, Float:zoom, materialcolor1, materialcolor2);
