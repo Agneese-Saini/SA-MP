@@ -3,537 +3,968 @@
 #endif
 #define _dialogs_included
 
-/*
- * dialogs.inc
- * Version: v2.7.6 (last updated: 25 Feb, 2017
- * By Gammix
- *
- * Functions:
-   native ShowPlayerPreviewModelDialog(playerid, dialogid, style, caption[], models[], labels[][], button1[], button2[], limit = sizeof (models));
-   native Dialog_SetModelRot(playerid, listitem, Float:x = 0.0, Float:y = 0.0, Float:z = 0.0, Float:zoom = 1.0, color1 = -1, color2 = -1);
- *
- */
+#define NumOfPages(%0,%1) \
+	(((%0) - 1) / (%1) + 1)
 
 enum
 {
-    DIALOG_STYLE_PREVMODEL = 6,
-    DIALOG_STYLE_PREVMODEL_LIST
+    DIALOG_STYLE_PREVIEW_MODEL = 6
 };
 
-#define DIALOG_MAX_TEXT_DRAWS (100)
-
-#define DIALOG_MAX_LISTITEM_SIZE (350)
-
-#define Dialog_CountPages(%0,%1) \
-	(((%0) - 1) / (%1) + 1)
-
-#define Dialog_SetOpacity(%0,%1) \
-	((%0 & ~0xFF) | clamp(%1, 0x00, 0xFF))
-
-static PlayerText:p_DialogTextDraw[MAX_PLAYERS][DIALOG_MAX_TEXT_DRAWS];
-static p_DialogTextDrawPool[MAX_PLAYERS];
-
-enum E_PLAYER_DIALOG
+enum
 {
-		    E_PLAYER_DIALOG_ID,
-		    E_PLAYER_DIALOG_STYLE,
-    bool:	E_PLAYER_DIALOG_DUAL_BTN,
-		    E_PLAYER_DIALOG_LISTITEMS,
-		    E_PLAYER_DIALOG_LISTITEM_ID,
-		    E_PLAYER_DIALOG_PAGE,
-		    E_PLAYER_DIALOG_CLICK_TICKCOUNT,
-    bool:	E_PLAYER_DIALOG_CANCELED
+	MAX_DIALOG_PLAYER_TEXT_DRAWS = 100,
+	MAX_DIALOG_LIST_ROWS = 4,
+	MAX_DIALOG_LIST_COLUMNS = 8,
+	MAX_SMALL_DIALOG_LIST_ROWS = 3,
+	MAX_SMALL_DIALOG_LIST_COLUMNS = 4,
+	MAX_DIALOG_LIST_ITEMS = 256, // number of listitems a DIALOG_STYLE_PREVMODEL can have
+	MAX_DIALOG_LIST_ITEM_SIZE = 64 // each listitem label string size (-6 bits for model id and '\n')
 };
-static p_Dialog[MAX_PLAYERS][E_PLAYER_DIALOG];
 
-enum E_DIALOG_COMPONENT
+enum
 {
-	E_DIALOG_COMPONENT_SCROLL_UP,
-	E_DIALOG_COMPONENT_SCROLL_DOWN,
-	E_DIALOG_COMPONENT_BUTTON1,
-	E_DIALOG_COMPONENT_BUTTON2,
-	E_DIALOG_COMPONENT_BUTTONC,
-	E_DIALOG_COMPONENT_MODEL[24],
-	E_DIALOG_COMPONENT_LABEL[24],
-	E_DIALOG_COMPONENT_BAR[24],
-	E_DIALOG_COMPONENT_SCROLL
+	DIALOG_LIST_ITEM_COLOR = 5864548,
+	DIALOG_SELECTED_LIST_ITEM_COLOR = -1608903836
 };
-static p_DialogCompnent[MAX_PLAYERS][E_DIALOG_COMPONENT];
 
-static Dialog_Create(playerid, Float:posX, Float:posY, string[], bgcolor, font, Float:lettersizeX, Float:lettersizeY, textcolor, allign = 0, outline = 1, proportional = 1, shadow = 1, usebox = 0, boxcolor = 0, Float:textsizeX = -1.0, Float:textsizeY = -1.0, model = 0, Float:rotX = 0.0, Float:rotY = 0.0, Float:rotZ = 0.0, Float:zoom = 1.0, selectable = 0, show = 0)
+enum DIALOG_TEXTDRAW
 {
-	p_DialogTextDraw[playerid][p_DialogTextDrawPool[playerid]] = CreatePlayerTextDraw(playerid, posX, posY, string);
+    DIALOG_TEXTDRAW_SCROLL_BAR,
+    DIALOG_TEXTDRAW_SCROLL_UP,
+    DIALOG_TEXTDRAW_SCROLL_DOWN,
+    DIALOG_TEXTDRAW_LEFT_BUTTON,
+    DIALOG_TEXTDRAW_RIGHT_BUTTON,
+    DIALOG_TEXTDRAW_MIDDLE_BUTTON,
+    DIALOG_TEXTDRAW_MODEL[MAX_DIALOG_LIST_ROWS * MAX_DIALOG_LIST_COLUMNS],
+    DIALOG_TEXTDRAW_TEXT[MAX_DIALOG_LIST_ROWS * MAX_DIALOG_LIST_COLUMNS]
+};
 
-	PlayerTextDrawBackgroundColor(playerid, p_DialogTextDraw[playerid][p_DialogTextDrawPool[playerid]], bgcolor);
-	PlayerTextDrawFont(playerid, p_DialogTextDraw[playerid][p_DialogTextDrawPool[playerid]], font);
-	PlayerTextDrawLetterSize(playerid, p_DialogTextDraw[playerid][p_DialogTextDrawPool[playerid]], lettersizeX, lettersizeY);
-	PlayerTextDrawColor(playerid, p_DialogTextDraw[playerid][p_DialogTextDrawPool[playerid]], textcolor);
-	PlayerTextDrawAlignment(playerid, p_DialogTextDraw[playerid][p_DialogTextDrawPool[playerid]], allign);
-	PlayerTextDrawSetOutline(playerid, p_DialogTextDraw[playerid][p_DialogTextDrawPool[playerid]], outline);
-	PlayerTextDrawSetProportional(playerid, p_DialogTextDraw[playerid][p_DialogTextDrawPool[playerid]], proportional);
-	PlayerTextDrawSetShadow(playerid, p_DialogTextDraw[playerid][p_DialogTextDrawPool[playerid]], shadow);
-	PlayerTextDrawUseBox(playerid, p_DialogTextDraw[playerid][p_DialogTextDrawPool[playerid]], usebox);
-	PlayerTextDrawSetSelectable(playerid, p_DialogTextDraw[playerid][p_DialogTextDrawPool[playerid]], selectable);
+static playerDialogTextDrawID[MAX_PLAYERS][DIALOG_TEXTDRAW];
 
-	if (usebox)
-		PlayerTextDrawBoxColor(playerid, p_DialogTextDraw[playerid][p_DialogTextDrawPool[playerid]], boxcolor);
+static PlayerText:playerDialogTextDraw[MAX_PLAYERS][MAX_DIALOG_PLAYER_TEXT_DRAWS];
+static playerDialogTextDrawCount[MAX_PLAYERS];
 
-	if (textsizeX != -1.0 || textsizeY != -1.0)
-		PlayerTextDrawTextSize(playerid, p_DialogTextDraw[playerid][p_DialogTextDrawPool[playerid]], textsizeX, textsizeY);
+static playerDialogID[MAX_PLAYERS];
+static playerDialogStyle[MAX_PLAYERS];
+static playerDialogListitem[MAX_PLAYERS];
+static playerDialogPage[MAX_PLAYERS];
 
-	if(font == 5)
-	{
-		PlayerTextDrawSetPreviewModel(playerid, p_DialogTextDraw[playerid][p_DialogTextDrawPool[playerid]], model);
-		PlayerTextDrawSetPreviewRot(playerid, p_DialogTextDraw[playerid][p_DialogTextDrawPool[playerid]], rotX, rotY, rotZ, zoom);
-	}
+static playerDialogTotalListitems[MAX_PLAYERS];
+static playerDialogModel[MAX_PLAYERS][MAX_DIALOG_LIST_ITEMS];
+static playerDialogText[MAX_PLAYERS][MAX_DIALOG_LIST_ITEMS][MAX_DIALOG_LIST_ITEM_SIZE char];
+static playerDialogListitemModelRot[MAX_PLAYERS][MAX_DIALOG_LIST_ITEMS][6];
 
-	if (show)
-		PlayerTextDrawShow(playerid, p_DialogTextDraw[playerid][p_DialogTextDrawPool[playerid]]);
+static playerDialogClickTickCount[MAX_PLAYERS][MAX_DIALOG_LIST_ROWS * MAX_DIALOG_LIST_COLUMNS];
 
-	return p_DialogTextDrawPool[playerid]++;
+static Dialog_ScrollBar(page, totalPages, &Float:y, Float:maxHeight, &Float:height)
+{
+	height = maxHeight / totalPages;
+	y += (height * 7.4) * page;
 }
 
-static Dialog_Init(playerid, style, caption[], button1[], button2[])
+static Dialog_UpdatePlayerDialog(playerid)
 {
-	for (new i; i < DIALOG_MAX_TEXT_DRAWS; i++)
-		p_DialogTextDraw[playerid][i] = PlayerText:INVALID_TEXT_DRAW;
-
-	Dialog_Create(playerid, 173.000000, 122.000000, "_", 50, 1, 0.000000, 0.599999, -1, 0, 0, 1, 1, 1, 200, 462.000000, 19.000000, .show = 1);
-	Dialog_Create(playerid, 173.000000, 121.000000, caption, 50, 1, 0.129998, 0.799998, -36, 0, 0, 1, 1, 0, .show = 1);
-
-	Dialog_Create(playerid, 173.000000, 131.000000, "_", 50, 1, 0.000000, 21.599998, -1, 0, 0, 1, 1, 1, 150, 462.000000, 19.000000, .show = 1);
-	Dialog_Create(playerid, 177.000000, 135.000000, "_", 50, 1, 0.000000, 18.299997, -1, 0, 0, 1, 1, 1, 100, 458.000000, 19.000000, .show = 1);
-	Dialog_Create(playerid, 177.000000, 134.000000, "_", 50, 1, 0.000000, 18.499998, -1, 0, 0, 1, 1, 1, -106, 173.000000, 19.000000, .show = 1);
-	Dialog_Create(playerid, 454.000000, 135.000000, "_", 50, 1, 0.000000, 18.299997, -1, 0, 0, 1, 1, 1, -106, 452.000000, 19.000000, .show = 1);
-	Dialog_Create(playerid, 461.000000, 135.000000, "_", 50, 1, 0.000000, 18.299997, -1, 0, 0, 1, 1, 1, -106, 459.000000, 19.000000, .show = 1);
-	Dialog_Create(playerid, 462.000000, 134.000000, "_", 50, 1, 0.000000, -0.300001, -1, 0, 0, 1, 1, 1, -106, 174.000000, 19.000000, .show = 1);
-	Dialog_Create(playerid, 462.000000, 304.250000, "_", 50, 1, 0.000000, -0.400001, -1, 0, 0, 1, 1, 1, -106, 173.000000, 19.000000, .show = 1);
-
-	p_DialogCompnent[playerid][E_DIALOG_COMPONENT_SCROLL_UP] = Dialog_Create(playerid, 453.000000, 133.000000, "LD_POOL:ball", 50, 4, 0.500000, 1.000000, -106, 0, 0, 1, 1, 1, 255, 7.000000, 9.00000, .selectable = 1, .show = 1);
-	Dialog_Create(playerid, 454.000000, 134.000000, "LD_BEAT:up", 255, 4, 0.500000, 1.000000, 255, 0, 0, 1, 1, 1, 255, 5.000000, 6.000000, .show = 1);
-
-	p_DialogCompnent[playerid][E_DIALOG_COMPONENT_SCROLL_DOWN] = Dialog_Create(playerid, 453.000000, 293.000000, "LD_POOL:ball", 50, 4, 0.500000, 1.000000, -106, 0, 0, 1, 1, 1, 255, 7.000000, 9.00000, .selectable = 1, .show = 1);
-	Dialog_Create(playerid, 454.000000, 295.000000, "LD_BEAT:down", 255, 4, 0.500000, 1.000000, 255, 0, 0, 1, 1, 1, 255, 5.000000, 6.000000, .show = 1);
-
-	if (button2[0])
+	if (playerDialogTotalListitems[playerid] <= (MAX_SMALL_DIALOG_LIST_ROWS * MAX_SMALL_DIALOG_LIST_COLUMNS))
 	{
-		Dialog_Create(playerid, 302.000000, 310.000000, "_", 50, 1, 0.000000, -0.400001, -1, 0, 0, 1, 1, 1, -106, 253.000000, 19.000000, .show = 1);
-		Dialog_Create(playerid, 302.000000, 324.000000, "_", 50, 1, 0.000000, -0.400001, -1, 0, 0, 1, 1, 1, -106, 253.000000, 19.000000, .show = 1);
-		Dialog_Create(playerid, 253.000000, 304.000000, "(", 0, 1, 0.200000, 2.000000, -106, 0, 0, 1, 1, .show = 1);
-		Dialog_Create(playerid, 299.000000, 304.000000, ")", 0, 1, 0.200000, 2.000000, -106, 0, 0, 1, 1, .show = 1);
-		p_DialogCompnent[playerid][E_DIALOG_COMPONENT_BUTTON1] = Dialog_Create(playerid, 254.000000, 309.000000, "ld_plan:tvbase", 50, 4, 0.000000, 0.899998, 255, 0, 0, 1, 1, 1, 255, 46.000000, 13.000000, .selectable = 1, .show = 1);
-		Dialog_Create(playerid, 278.000000, 311.000000, button1, 50, 1, 0.129998, 0.799998, -36, 2, 0, 1, 1, 0, .show = 1);
-		if (!button1[0])
-			Dialog_Create(playerid, 278.000000, 311.000000, "button1", 50, 1, 0.129998, 0.799998, -36, 2, 0, 1, 1, 0, .show = 1);
-		else
-            Dialog_Create(playerid, 278.000000, 311.000000, button1, 50, 1, 0.129998, 0.799998, -36, 2, 0, 1, 1, 0, .show = 1);
-
-		Dialog_Create(playerid, 372.000000, 310.000000, "_", 50, 1, 0.000000, -0.400001, -1, 0, 0, 1, 1, 1, -106, 323.000000, 19.000000, .show = 1);
-		Dialog_Create(playerid, 372.000000, 324.000000, "_", 50, 1, 0.000000, -0.400001, -1, 0, 0, 1, 1, 1, -106, 323.000000, 19.000000, .show = 1);
-		Dialog_Create(playerid, 322.000000, 304.000000, "(", 0, 1, 0.200000, 2.000000, -106, 0, 0, 1, 1, .show = 1);
-		Dialog_Create(playerid, 369.000000, 304.000000, ")", 0, 1, 0.230000, 1.999999, -106, 0, 0, 1, 1, .show = 1);
-		p_DialogCompnent[playerid][E_DIALOG_COMPONENT_BUTTON2] = Dialog_Create(playerid, 324.000000, 309.000000, "ld_plan:tvbase", 50, 4, 0.000000, 0.899998, 255, 0, 0, 1, 1, 1, 255, 46.000000, 13.000000, .selectable = 1, .show = 1);
-		Dialog_Create(playerid, 348.000000, 311.000000, button2, 50, 1, 0.140000, 0.899999, -36, 2, 0, 1, 1, 0, .show = 1);
+	    return 0;
+	}
+	
+	new index;
+	new pages = NumOfPages(playerDialogTotalListitems[playerid], (MAX_DIALOG_LIST_ROWS * MAX_DIALOG_LIST_COLUMNS));
+	if (pages > 1)
+	{
+	    index = playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_SCROLL_BAR];
+	    PlayerTextDrawDestroy(playerid, playerDialogTextDraw[playerid][index]);
+	    
+	    new Float:y = 166.000000;
+	    new Float:height;
+	    Dialog_ScrollBar(playerDialogPage[playerid], pages, y, 16.400001, height);
+	    
+	    playerDialogTextDraw[playerid][index] = CreatePlayerTextDraw(playerid,463.000000, y, "_");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][index], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][index], 1);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][index], 0.000000, height);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][index], -1);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][index], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][index], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][index], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][index], -1608903786);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][index], 465.000000, 0.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][index], 0);
+		
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][index]);
 	}
 	else
 	{
-		Dialog_Create(playerid, 342.000000, 310.000000, "_", 50, 1, 0.000000, -0.400001, -1, 0, 0, 1, 1, 1, -106, 293.000000, 19.000000, .show = 1);
-		Dialog_Create(playerid, 342.000000, 324.000000, "_", 50, 1, 0.000000, -0.400001, -1, 0, 0, 1, 1, 1, -106, 293.000000, 19.000000, .show = 1);
-		Dialog_Create(playerid, 293.000000, 304.000000, "(", 0, 1, 0.200000, 2.000000, -106, 0, 0, 1, 1, .show = 1);
-		Dialog_Create(playerid, 339.000000, 304.000000, ")", 0, 1, 0.219999, 2.000000, -106, 0, 0, 1, 1, .show = 1);
-		p_DialogCompnent[playerid][E_DIALOG_COMPONENT_BUTTONC] = Dialog_Create(playerid, 294.000000, 309.000000, "ld_plan:tvbase", 50, 4, 0.000000, 0.899998, 255, 0, 0, 1, 1, 1, 255, 46.000000, 13.000000, .selectable = 1, .show = 1);
-	    if (!button1[0])
-			Dialog_Create(playerid, 317.000000, 311.000000, "button1", 50, 1, 0.140000, 0.899999, -36, 2, 0, 1, 1, 0, .show = 1);
-		else
-			Dialog_Create(playerid, 317.000000, 311.000000, button1, 50, 1, 0.140000, 0.899999, -36, 2, 0, 1, 1, 0, .show = 1);
+	    index = playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_SCROLL_BAR];
+	    PlayerTextDrawDestroy(playerid, playerDialogTextDraw[playerid][index]);
 	}
 
-	if (style == DIALOG_STYLE_PREVMODEL)
-	{
-		new count;
-		new Float:base[2] = {179.000000, 134.000000};
+	new itemid;
+	new text[MAX_DIALOG_LIST_ITEM_SIZE];
+    for (new a; a < MAX_DIALOG_LIST_ROWS; a++)
+    {
+    	for (new b; b < MAX_DIALOG_LIST_COLUMNS; b++)
+     	{
+			itemid = (((a * MAX_DIALOG_LIST_COLUMNS) + b) + (playerDialogPage[playerid] * (MAX_DIALOG_LIST_COLUMNS * MAX_DIALOG_LIST_ROWS)));
 
-		for (new i; i < 24; i++)
-		{
-			p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][i] = Dialog_Create(playerid, base[0], base[1], "_", Dialog_SetOpacity(0x3B3B3BFF, 200), 5, 0.129998, 0.799998, -1, 0, 0, 1, 1, 1, 0, 44.000000, 41.000000, .selectable = 1);
-	        p_DialogCompnent[playerid][E_DIALOG_COMPONENT_LABEL][i] = Dialog_Create(playerid, base[0] + 2.000000, base[1] + 1.000000, "", 255, 1, 0.140000, 0.899999, -36, 0, 1, 1, 2, 0);
-
-	        base[0] += 45.000000;
-
-	        count++;
-	        if (count == 6)
+			index = playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_MODEL][(a * MAX_DIALOG_LIST_COLUMNS) + b];
+			if (itemid >= playerDialogTotalListitems[playerid])
 			{
-				base[0] = 179.000000;
-		        base[1] += 42.000000;
-
-	            count = 0;
+			    PlayerTextDrawHide(playerid, playerDialogTextDraw[playerid][index]);
 			}
-		}
-	}
-	else
-	{
-		for (new i; i < (5); i++)
-		{
-			p_DialogCompnent[playerid][E_DIALOG_COMPONENT_BAR][i] = Dialog_Create(playerid, 177.000000, (134.000000 + (33.0 * i)), "ld_plan:tvbase", 50, 4, 0.129997, 0.799997, Dialog_SetOpacity(0x788FB0FF, 200), 0, 0, 1, 1, 1, 0, 274.000000, 32.000000, .selectable = 1);
-			p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][i] = Dialog_Create(playerid, 178.000000, (134.000000 + (33.0 * i)), "_", Dialog_SetOpacity(0x3B3B3BFF, 200), 5, 0.129997, 0.799997, -1, 0, 0, 1, 1, 1, 0, 34.000000, 30.000000);
-			p_DialogCompnent[playerid][E_DIALOG_COMPONENT_LABEL][i] = Dialog_Create(playerid, 215.000000, (135.000000 + (33.0 * i)), "", 255, 1, 0.099999, 0.599997, -36, 0, 1, 1, 2, 0);
-		}
-	}
-
-	p_DialogCompnent[playerid][E_DIALOG_COMPONENT_SCROLL] = Dialog_Create(playerid, 0.000000, 0.000000, "_", 0, 1, 0.0, 0.0, 0);
-}
-
-static Dialog_Exit(playerid)
-{
-	for (new i; i < p_DialogTextDrawPool[playerid]; i++)
-	{
-		PlayerTextDrawHide(playerid, p_DialogTextDraw[playerid][i]);
-		PlayerTextDrawDestroy(playerid, p_DialogTextDraw[playerid][i]);
-
-		p_DialogTextDraw[playerid][i] = PlayerText:INVALID_TEXT_DRAW;
-  	}
-
-  	p_DialogTextDrawPool[playerid] = 0;
-}
-
-static Dialog_GetListitem(playerid, listitem, &model, label[], &Float:x, &Float:y, &Float:z, &Float:zoom, &color1, &color2, maxlength = sizeof (label))
-{
-	static string[DIALOG_MAX_LISTITEM_SIZE];
-	format(string, sizeof (string), "DialogListitem_%i", listitem);
-	GetPVarString(playerid, string, string, DIALOG_MAX_LISTITEM_SIZE);
-
-	static dest[(DIALOG_MAX_LISTITEM_SIZE / 2)];
-
-	new type;
-	new pos;
-	for (new i; i < DIALOG_MAX_LISTITEM_SIZE; i++)
-	{
-	    if (string[i] == '|' || i == (DIALOG_MAX_LISTITEM_SIZE - 1))
-	    {
-	        strmid(dest, string, pos, i);
-	        pos = (i + 1);
-
-	        switch (type)
-	        {
-	            case 0: model = strval(dest);
-	            case 1: format(label, maxlength, dest);
-	            case 2: x = floatstr(dest);
-	            case 3: y = floatstr(dest);
-	            case 4: z = floatstr(dest);
-	            case 5: zoom = floatstr(dest);
-	            case 6: color1 = strval(dest);
-	            case 7: color2 = strval(dest);
-	        }
-	        type++;
-	    }
-	}
-}
-
-static Dialog_SetListitem(playerid, listitem, model, label[], Float:x, Float:y, Float:z, Float:zoom, color1, color2)
-{
-	static string[DIALOG_MAX_LISTITEM_SIZE];
-	format(string, DIALOG_MAX_LISTITEM_SIZE, "%i|%s|%f|%f|%f|%f|%i|%i", model, label, x, y, z, zoom, color1, color2);
-
-	static varname[45];
-	format(varname, sizeof (varname), "DialogListitem_%i", listitem);
-	SetPVarString(playerid, varname, string);
-}
-
-static Dialog_SetPage(playerid, page)
-{
-	p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEM_ID] = 0;
-
-	switch (p_Dialog[playerid][E_PLAYER_DIALOG_STYLE])
-	{
-		case DIALOG_STYLE_PREVMODEL:
-		{
-			PlayerTextDrawDestroy(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_SCROLL]]);
-			p_DialogTextDrawPool[playerid]--;
-
-			new pages = Dialog_CountPages(p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEMS], 24);
-			if (pages > 1)
+			else
 			{
-				new Float:whiles = ((145.500000 + 16.200000) / pages);
-				p_DialogCompnent[playerid][E_DIALOG_COMPONENT_SCROLL] = Dialog_Create(playerid, 455.000000, (144.000000 + (whiles * page)), "_", 0, 1, 0.000000, (whiles / 16.200000), 0, .usebox = 1, .boxcolor = Dialog_SetOpacity(0xD15454FF, 200), .textsizeX = 458.000000, .textsizeY = 0.000000, .show = 1);
-	  		}
-
-	  		new listitem, index, model, label[DIALOG_MAX_LISTITEM_SIZE / 2], Float:x, Float:y, Float:z, Float:zoom, color1, color2;
-			for (new i; i < 24; i++)
+				PlayerTextDrawSetPreviewModel(playerid, playerDialogTextDraw[playerid][index], playerDialogModel[playerid][itemid]);
+				PlayerTextDrawSetPreviewRot(playerid, playerDialogTextDraw[playerid][index], Float:playerDialogListitemModelRot[playerid][itemid][0], Float:playerDialogListitemModelRot[playerid][itemid][1], Float:playerDialogListitemModelRot[playerid][itemid][2], Float:playerDialogListitemModelRot[playerid][itemid][3]);
+				PlayerTextDrawSetPreviewVehCol(playerid, playerDialogTextDraw[playerid][index], playerDialogListitemModelRot[playerid][itemid][4], playerDialogListitemModelRot[playerid][itemid][5]);
+				PlayerTextDrawBackgroundColor(playerid, playerDialogTextDraw[playerid][index], (playerDialogListitem[playerid] == ((a * MAX_DIALOG_LIST_COLUMNS) + b)) ? (DIALOG_SELECTED_LIST_ITEM_COLOR) : (DIALOG_LIST_ITEM_COLOR));
+				PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][index]);
+			}
+			
+			index = playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_TEXT][(a * MAX_DIALOG_LIST_COLUMNS) + b];
+			if (itemid >= playerDialogTotalListitems[playerid])
 			{
-			    listitem = ((page * 24) + i);
-			    if (listitem >= p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEMS])
+			    PlayerTextDrawHide(playerid, playerDialogTextDraw[playerid][index]);
+			}
+			else
+			{
+			    if (playerDialogText[playerid][itemid]{0})
 			    {
-					PlayerTextDrawHide(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][index]]);
-					PlayerTextDrawHide(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_LABEL][index]]);
-
-					index++;
-				    continue;
+					strunpack(text, playerDialogText[playerid][itemid]);
+					PlayerTextDrawSetString(playerid, playerDialogTextDraw[playerid][index], text);
+				    PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][index]);
 				}
-
-				Dialog_GetListitem(playerid, listitem, model, label, x, y, z, zoom, color1, color2);
-				if (model < 0 || model > 20000)
-				 	continue;
-
-				PlayerTextDrawBackgroundColor(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][index]], Dialog_SetOpacity(0x3B3B3BFF, 150));
-				PlayerTextDrawSetPreviewModel(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][index]], model);
-				PlayerTextDrawSetPreviewRot(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][index]], x, y, z, zoom);
-				PlayerTextDrawSetPreviewVehCol(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][index]], color1, color2);
-			    PlayerTextDrawShow(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][index]]);
-
-				if (label[0])
+				else
 				{
-					PlayerTextDrawSetString(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_LABEL][index]], label);
-				    PlayerTextDrawShow(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_LABEL][index]]);
+				    PlayerTextDrawHide(playerid, playerDialogTextDraw[playerid][index]);
 				}
-
-				index++;
 			}
-
-			PlayerTextDrawBackgroundColor(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][0]], Dialog_SetOpacity(0xFF5959FF, 150));
-			PlayerTextDrawShow(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][0]]);
-		}
-
-		case DIALOG_STYLE_PREVMODEL_LIST:
-		{
-			PlayerTextDrawDestroy(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_SCROLL]]);
-			p_DialogTextDrawPool[playerid]--;
-
-			new pages = Dialog_CountPages(p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEMS], 5);
-			if (pages > 1)
-			{
-				new Float:whiles = ((145.500000 + 16.200000) / pages);
-				p_DialogCompnent[playerid][E_DIALOG_COMPONENT_SCROLL] = Dialog_Create(playerid, 455.000000, (144.000000 + (whiles * page)), "_", 0, 1, 0.000000, (whiles / 16.200000), 0, .usebox = 1, .boxcolor = Dialog_SetOpacity(0xD15454FF, 200), .textsizeX = 458.000000, .textsizeY = 0.000000, .show = 1);
-	  		}
-
-	  		new listitem, index, model, label[DIALOG_MAX_LISTITEM_SIZE / 2], Float:x, Float:y, Float:z, Float:zoom, color1, color2;
-			for (new i; i < 5; i++)
-			{
-			    listitem = ((page * 5) + i);
-			    if (listitem >= p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEMS])
-			    {
-					PlayerTextDrawHide(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_BAR][index]]);
-					PlayerTextDrawHide(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][index]]);
-					PlayerTextDrawHide(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_LABEL][index]]);
-
-					index++;
-				    continue;
-				}
-
-				Dialog_GetListitem(playerid, listitem, model, label, x, y, z, zoom, color1, color2);
-				if (model < 0 || model > 20000)
-				 	continue;
-
-                PlayerTextDrawColor(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_BAR][index]], Dialog_SetOpacity(0x788FB0FF, 200));
-			    PlayerTextDrawShow(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_BAR][index]]);
-
-				PlayerTextDrawSetPreviewModel(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][index]], model);
-				PlayerTextDrawSetPreviewRot(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][index]], x, y, z, zoom);
-				PlayerTextDrawSetPreviewVehCol(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][index]], color1, color2);
-			    PlayerTextDrawShow(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][index]]);
-
-				if (label[0])
-				{
-					PlayerTextDrawSetString(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_LABEL][index]], label);
-				    PlayerTextDrawShow(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_LABEL][index]]);
-				}
-
-				index++;
-			}
-
-			PlayerTextDrawColor(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_BAR][0]], Dialog_SetOpacity(0xFF5959FF, 200));
-			PlayerTextDrawShow(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_BAR][0]]);
-		}
-  	}
-}
-
-forward Dialog_HideForPlayer(playerid);
-public  Dialog_HideForPlayer(playerid)
-{
-	switch (p_Dialog[playerid][E_PLAYER_DIALOG_STYLE])
-	{
-		case DIALOG_STYLE_MSGBOX..DIALOG_STYLE_TABLIST_HEADERS:
-		{
-		    ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
-		}
-
-		case DIALOG_STYLE_PREVMODEL,
-			 DIALOG_STYLE_PREVMODEL_LIST:
-		{
-			Dialog_Exit(playerid);
-
-			p_Dialog[playerid][E_PLAYER_DIALOG_CANCELED] = true;
-			CancelSelectTextDraw(playerid);
 		}
 	}
-
-	p_Dialog[playerid][E_PLAYER_DIALOG_ID] = -1;
-	p_Dialog[playerid][E_PLAYER_DIALOG_STYLE] = -1;
-	p_Dialog[playerid][E_PLAYER_DIALOG_DUAL_BTN] = false;
-	p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEMS] = 0;
-	p_Dialog[playerid][E_PLAYER_DIALOG_PAGE] = 0;
-	p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEM_ID] = 0;
-	p_Dialog[playerid][E_PLAYER_DIALOG_CLICK_TICKCOUNT] = 0;
-}
-
-stock Dialog_ShowToPlayer(playerid, dialogid, style, caption[], info[], button1[], button2[])
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-		return 0;
-
-	CallRemoteFunction("Dialog_HideForPlayer", "i", playerid);
-
-	if (dialogid < 0)
-	{
-		p_Dialog[playerid][E_PLAYER_DIALOG_ID] = -1;
-		p_Dialog[playerid][E_PLAYER_DIALOG_STYLE] = -1;
-	    return 1;
-	}
-
-	p_Dialog[playerid][E_PLAYER_DIALOG_ID] = dialogid;
-	p_Dialog[playerid][E_PLAYER_DIALOG_STYLE] = style;
-
-	switch (style)
-	{
-		case DIALOG_STYLE_PREVMODEL,
-			 DIALOG_STYLE_PREVMODEL_LIST:
-		{
-			Dialog_Init(playerid, style, caption, button1, button2);
-
-			new pos;
-			static str[5 + DIALOG_MAX_LISTITEM_SIZE];
-			static str_model[6];
-			static str_label[DIALOG_MAX_LISTITEM_SIZE / 2];
-
-            for (new i, j = strlen(info); i < j; i++)
-			{
-			    if (info[i] == '\n')
-			    {
-					strmid(str, info, pos, i);
-					pos = (i + 1);
-				}
-				else if (i == (j - 1))
-				{
-					strmid(str, info, pos, j);
-				}
-				else continue;
-
-				for (new x, y = strlen(str); x < y; x++)
-				{
-				    if (str[x] == '\t')
-				    {
-				        strmid(str_model, str, 0, x);
-     					strmid(str_label, str, (x + 1), y);
-     					break;
-				    }
-				    else if (x == (y - 1))
-				    {
-				        strmid(str_model, str, 0, y);
-				        str_label[0] = EOS;
-     					break;
-				    }
-				}
-
-				Dialog_SetListitem(playerid, (p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEMS]++), strval(str_model), str_label, 0.0, 0.0, 0.0, 1.0, -1, -1);
-			}
-
-			p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEM_ID] = 0;
-			p_Dialog[playerid][E_PLAYER_DIALOG_PAGE] = 0;
-
-            Dialog_SetPage(playerid, 0);
-			SelectTextDraw(playerid, Dialog_SetOpacity(0xD15454FF, 200));
-		}
-
-		default:
-			ShowPlayerDialog(playerid, dialogid, style, caption, info, button1, button2);
-	}
-
 	return 1;
 }
-#if defined _ALS_ShowPlayerDialog
-	#undef ShowPlayerDialog
-#else
-	#define _ALS_ShowPlayerDialog
-#endif
-#define ShowPlayerDialog Dialog_ShowToPlayer
 
-stock ShowPlayerPreviewModelDialog(playerid, dialogid, style, caption[], models[], labels[][], button1[], button2[], limit = sizeof (models), limit2 = sizeof (labels))
+static Dialog_HidePlayerDialog(playerid)
+{
+	for (new i; i < playerDialogTextDrawCount[playerid]; i++)
+	{
+	    PlayerTextDrawDestroy(playerid, playerDialogTextDraw[playerid][i]);
+	}
+	playerDialogTextDrawCount[playerid] = 0;
+
+	playerDialogID[playerid] = -1;
+	playerDialogStyle[playerid] = -1;
+	playerDialogListitem[playerid] = 0;
+	playerDialogPage[playerid] = 0;
+	playerDialogTotalListitems[playerid] = 0;
+	return 1;
+}
+
+stock Dialog_ShowPlayerDialog(playerid, dialogid, style, caption[], info[], button1[], button2[])
 {
 	if (playerid < 0 || playerid >= MAX_PLAYERS)
-		return 0;
-
-	CallRemoteFunction("Dialog_HideForPlayer", "i", playerid);
-
-	if (dialogid < 0)
-		return 1;
-
-	switch (style)
 	{
-		case DIALOG_STYLE_PREVMODEL,
-			 DIALOG_STYLE_PREVMODEL_LIST:
+	    return 0;
+	}
+	
+	if (playerDialogID[playerid] >= 0 && playerDialogStyle[playerid] == DIALOG_STYLE_PREVIEW_MODEL)
+	{
+		Dialog_HidePlayerDialog(playerid);
+  	}
+	    
+	if (dialogid < 0)
+	{
+	    if (style == DIALOG_STYLE_PREVIEW_MODEL)
+	    {
+	        return 1;
+	    }
+	    
+	    return ShowPlayerDialog(playerid, dialogid, style, caption, info, button1, button2);
+	}
+	
+	if (style != DIALOG_STYLE_PREVIEW_MODEL)
+	{
+	    return ShowPlayerDialog(playerid, dialogid, style, caption, info, button1, button2);
+	}
+	
+	new pos;
+	new string[5/*modelid*/ + 1/*\n*/ + MAX_DIALOG_LIST_ITEM_SIZE/*text*/];
+	new index;
+	new pos2;
+	new modelid[5];
+	for (new i, len = strlen(info); i < len; i++)
+	{
+		if (info[i] == '\n')
 		{
+			strmid(string, info, pos, i);
+			pos = i + 1;
+		}
+		else if (i == (len - 1))
+		{
+			strmid(string, info, pos, len);
+		}
+		else
+		{
+		    continue;
 		}
 
-		default:
-			return 0;
+		if (playerDialogTotalListitems[playerid] == MAX_DIALOG_LIST_ITEMS)
+  		{
+    		printf("[PrevModelDialog.inc] - Warning: You have more than \"MAX_DIALOG_LIST_ITEMS\" (i.e. "#MAX_DIALOG_LIST_ITEMS" listitems), only the items under the limit were loaded.");
+			break;
+   		}
+   		index = playerDialogTotalListitems[playerid]++;
+
+		playerDialogText[playerid][index]{0} = EOS;
+		pos2 = strfind(string, "\t", true);
+		if (pos2 == -1)
+		{
+		    playerDialogModel[playerid][index] = strval(string);
+		}
+		else
+		{
+		    strmid(modelid, string, 0, pos2);
+		    playerDialogModel[playerid][index] = strval(modelid);
+		    strpack(playerDialogText[playerid][index], string[pos2 + 1], MAX_DIALOG_LIST_ITEM_SIZE);
+		}
+	}
+	
+	if (playerDialogTotalListitems[playerid] == 0)
+	{
+	    return 0;
+	}
+	
+	new bool:small_version = (playerDialogTotalListitems[playerid] <= (MAX_SMALL_DIALOG_LIST_ROWS * MAX_SMALL_DIALOG_LIST_COLUMNS));
+	
+	if (small_version)
+	{
+	    // Header
+	    playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,220.000000, 140.000000, caption);
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.159998, 1.000000);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 421075455);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 410.000000, 0.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		// Background
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,220.000000, 151.000000, "_");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 20.000000);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 150);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 410.000000, 0.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,223.000000, 156.000000, "_");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 16.400001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -926365496);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 407.000000, 0.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+		
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,224.000000, 157.000000, "_");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 16.200000);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 406.000000, 0.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		// ScrollBar
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,401.000000, 156.000000, "_");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 16.400001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -926365496);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 399.000000, 0.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_SCROLL_UP] = playerDialogTextDrawCount[playerid];
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,400.000000, 155.000000, "LD_POOL:ball");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.500000, 1.000000);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -926365496);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetShadow(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 7.000000, 9.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,401.000000, 156.000000, "LD_BEAT:up");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.500000, 1.000000);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetShadow(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 5.000000, 6.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_SCROLL_DOWN] = playerDialogTextDrawCount[playerid];
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,400.000000, 296.000000, "LD_POOL:ball");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.500000, 1.000000);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -926365496);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetShadow(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 7.000000, 9.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,401.000000, 298.000000, "LD_BEAT:down");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.500000, 1.000000);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetShadow(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 5.000000, 6.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		// Listitems
+		new text[MAX_DIALOG_LIST_ITEM_SIZE];
+		for (new a; a < MAX_SMALL_DIALOG_LIST_ROWS; a++)
+	    {
+	        for (new b; b < MAX_SMALL_DIALOG_LIST_COLUMNS; b++)
+	        {
+	            if (((a * MAX_SMALL_DIALOG_LIST_COLUMNS) + b) >= playerDialogTotalListitems[playerid])
+	            {
+	                break;
+	            }
+	            
+				playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_MODEL][(a * MAX_SMALL_DIALOG_LIST_COLUMNS) + b] = playerDialogTextDrawCount[playerid];
+				playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid, (225.000000 + (b * 43.000000)), (157.000000 + (a * 48.000000)), "_");
+				PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], (((a * MAX_SMALL_DIALOG_LIST_COLUMNS) + b) == playerDialogListitem[playerid]) ? (DIALOG_SELECTED_LIST_ITEM_COLOR) : (DIALOG_LIST_ITEM_COLOR));
+				PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 5);
+				PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.500000, 1.000000);
+				PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1);
+				PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+				PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+				PlayerTextDrawSetShadow(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+				PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+				PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+				PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 42.000000, 47.000000);
+				PlayerTextDrawSetPreviewModel(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], playerDialogModel[playerid][(a * MAX_SMALL_DIALOG_LIST_COLUMNS) + b]);
+				PlayerTextDrawSetPreviewRot(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0, 0, 0, 1.0);
+				PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+				PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+				if (playerDialogText[playerid][(a * MAX_SMALL_DIALOG_LIST_COLUMNS) + b]{0})
+				{
+					strunpack(text, playerDialogText[playerid][(a * MAX_SMALL_DIALOG_LIST_COLUMNS) + b]);
+					playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_TEXT][(a * MAX_SMALL_DIALOG_LIST_COLUMNS) + b] = playerDialogTextDrawCount[playerid];
+					playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid, (227.000000 + (b * 43.000000)), (160.000000 + (a * 48.000000)), text);
+					PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+					PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+					PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.129997, 0.799997);
+					PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1);
+					PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+					PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+					PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+					PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+					PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], (265.000000 + (b * 43.000000)), 0.000000);
+					PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+					PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+				}
+	        }
+		}
+	}
+	else
+	{
+	    // Header
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,170.000000, 140.000000, caption);
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.159998, 1.000000);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 421075455);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 470.000000, 0.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		// Background
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,170.000000, 151.000000, "_");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 20.000000);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 150);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 470.000000, 0.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,173.000000, 156.000000, "_");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 16.400001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -926365496);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 467.000000, 0.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,174.000000, 157.000000, "_");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 16.200000);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 466.000000, 0.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		// ScrollBar
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,461.000000, 156.000000, "_");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 16.400001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -926365496);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 459.000000, 0.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_SCROLL_BAR] = playerDialogTextDrawCount[playerid];
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,463.000000, 166.000000, "_");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 7.100001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1608903786);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 465.000000, 0.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++], 0);
+
+		playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_SCROLL_UP] = playerDialogTextDrawCount[playerid];
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,460.000000, 155.000000, "LD_POOL:ball");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.500000, 1.000000);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -926365496);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetShadow(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 7.000000, 9.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,461.000000, 156.000000, "LD_BEAT:up");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.500000, 1.000000);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetShadow(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 5.000000, 6.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_SCROLL_DOWN] = playerDialogTextDrawCount[playerid];
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,460.000000, 296.000000, "LD_POOL:ball");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.500000, 1.000000);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -926365496);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetShadow(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 7.000000, 9.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,461.000000, 298.000000, "LD_BEAT:down");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.500000, 1.000000);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetShadow(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 5.000000, 6.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+        // Listitems
+		for (new a; a < MAX_DIALOG_LIST_ROWS; a++)
+	    {
+	        for (new b; b < MAX_DIALOG_LIST_COLUMNS; b++)
+	        {
+				playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_MODEL][(a * MAX_DIALOG_LIST_COLUMNS) + b] = playerDialogTextDrawCount[playerid];
+				playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid, (175.000000 + (b * 35.000000)), (156.000000 + (a * 37.000000)), "_");
+				PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1608903836);
+				PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 5);
+				PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.500000, 1.000000);
+				PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1);
+				PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+				PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+				PlayerTextDrawSetShadow(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+				PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+				PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+				PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 34.000000, 36.000000);
+				PlayerTextDrawSetPreviewModel(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+				PlayerTextDrawSetPreviewRot(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0, 0, 0, 1.0);
+				PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++], 1);
+
+				playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_TEXT][(a * MAX_DIALOG_LIST_COLUMNS) + b] = playerDialogTextDrawCount[playerid];
+				playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid, (177.000000 + (b * 35.000000)), (160.000000 + (a * 37.000000)), "");
+				PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+				PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+				PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.129997, 0.799997);
+				PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1);
+				PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+				PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+				PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+				PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+				PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], (207.000000 + (b * 35.000000)), 0.000000);
+				PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++], 0);
+	        }
+		}
+		
+		// Update listitems
+		Dialog_UpdatePlayerDialog(playerid);
+	}
+	
+	if (button2[0])
+	{
+		// Left button
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,249.000000, 309.000000, "LD_POOL:ball");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 1.200001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -926365496);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 15.000000, 18.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,250.000000, 310.000000, "LD_POOL:ball");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 1.200001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 13.000000, 16.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,297.000000, 309.000000, "LD_POOL:ball");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 1.200001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -926365496);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 15.000000, 18.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,298.000000, 310.000000, "LD_POOL:ball");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 1.200001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 13.000000, 16.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,257.000000, 309.250000, "LD_SPAC:white");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 1.200001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -926365496);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 48.000000, 17.250000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_LEFT_BUTTON] = playerDialogTextDrawCount[playerid];
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,257.000000, 310.000000, "LD_SPAC:white");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 1.200001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 48.000000, 16.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,281.000000, 313.000000, button1);
+		PlayerTextDrawAlignment(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 2);
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.159997, 1.000000);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		// Right Button
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,329.000000, 309.000000, "LD_POOL:ball");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 1.200001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -926365496);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 15.000000, 18.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,330.000000, 310.000000, "LD_POOL:ball");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 1.200001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 13.000000, 16.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,377.000000, 309.000000, "LD_POOL:ball");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 1.200001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -926365496);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 15.000000, 18.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,378.000000, 310.000000, "LD_POOL:ball");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 1.200001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 13.000000, 16.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,337.000000, 309.250000, "LD_SPAC:white");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 1.200001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -926365496);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 48.000000, 17.250000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_RIGHT_BUTTON] = playerDialogTextDrawCount[playerid];
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,337.000000, 310.000000, "LD_SPAC:white");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 1.200001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 48.000000, 16.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,361.000000, 313.000000, button2);
+		PlayerTextDrawAlignment(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 2);
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.159997, 1.000000);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+	}
+	else
+	{
+		// Middle button
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,289.000000, 309.000000, "LD_POOL:ball");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 1.200001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -926365496);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 15.000000, 18.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,290.000000, 310.000000, "LD_POOL:ball");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 1.200001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 13.000000, 16.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,337.000000, 309.000000, "LD_POOL:ball");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 1.200001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -926365496);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 15.000000, 18.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,338.000000, 310.000000, "LD_POOL:ball");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 1.200001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 13.000000, 16.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,297.000000, 309.250000, "LD_SPAC:white");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 1.200001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -926365496);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 48.000000, 17.250000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_MIDDLE_BUTTON] = playerDialogTextDrawCount[playerid];
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,297.000000, 310.000000, "LD_SPAC:white");
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 4);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.000000, 1.200001);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 255);
+		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 48.000000, 16.000000);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+
+		playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]] = CreatePlayerTextDraw(playerid,321.000000, 313.000000, button1);
+		PlayerTextDrawAlignment(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 2);
+		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawLetterSize(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0.159997, 1.000000);
+		PlayerTextDrawColor(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], -1);
+		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
+		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
+		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
+	}
+	
+	playerDialogID[playerid] = dialogid;
+	playerDialogStyle[playerid] = style;
+	playerDialogListitem[playerid] = 0;
+	playerDialogPage[playerid] = 0;
+	
+	return SelectTextDraw(playerid, DIALOG_SELECTED_LIST_ITEM_COLOR);
+}
+
+/*
+native Dialog_SetListitemPreviewRot(playerid, listitem, Float:rx, Float:ry, Float:rz, Float:zoom, materialcolor1, materialcolor2);
+*/
+stock Dialog_SetListitemPreviewRot(playerid, listitem, Float:rx, Float:ry, Float:rz, Float:zoom, materialcolor1, materialcolor2)
+{
+	if (playerid < 0 || playerid >= MAX_PLAYERS)
+	{
+	    return 0;
+	}
+	
+	if (listitem < 0 || listitem >= MAX_DIALOG_LIST_ITEMS)
+	{
+	    return 0;
 	}
 
-	p_Dialog[playerid][E_PLAYER_DIALOG_ID] = dialogid;
-	p_Dialog[playerid][E_PLAYER_DIALOG_STYLE] = style;
-
-	Dialog_Init(playerid, style, caption, button1, button2);
-
- 	p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEMS]= limit;
- 	for (new i; i < limit; i++)
- 		Dialog_SetListitem(playerid, i, models[i], ((i >= limit2) ? ("") : (labels[i])), 0.0, 0.0, 0.0, 1.0, -1, -1);
-
-	p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEM_ID] = 0;
-	p_Dialog[playerid][E_PLAYER_DIALOG_PAGE] = 0;
-
-	Dialog_SetPage(playerid, 0);
-	SelectTextDraw(playerid, Dialog_SetOpacity(0xD15454FF, 200));
-
-	return true;
+    playerDialogListitemModelRot[playerid][listitem][0] = _:rx;
+    playerDialogListitemModelRot[playerid][listitem][1] = _:ry;
+    playerDialogListitemModelRot[playerid][listitem][2] = _:rz;
+    playerDialogListitemModelRot[playerid][listitem][3] = _:zoom;
+    playerDialogListitemModelRot[playerid][listitem][4] = materialcolo1;
+    playerDialogListitemModelRot[playerid][listitem][5] = materialcolo2;
+	return 1;
 }
+
+public OnPlayerConnect(playerid)
+{
+	for (new i; i < MAX_DIALOG_LIST_ITEMS; i++)
+	{
+		playerDialogListitemModelRot[playerid][i][0] = _:0.0;
+		playerDialogListitemModelRot[playerid][i][1] = _:0.0;
+		playerDialogListitemModelRot[playerid][i][2] = _:0.0;
+		playerDialogListitemModelRot[playerid][i][3] = _:1.0;
+	    playerDialogListitemModelRot[playerid][i][4] = random(255);
+	    playerDialogListitemModelRot[playerid][i][5] = random(255);
+    }
+    
+    #if defined GM_OnPlayerConnect
+       	return GM_OnPlayerConnect(playerid);
+	#else
+	   	return 1;
+	#endif
+}
+#if defined _ALS_OnPlayerConnect
+    #undef OnPlayerConnect
+#else
+    #define _ALS_OnPlayerConnect
+#endif
+#define OnPlayerConnect GM_OnPlayerConnect
+#if defined GM_OnPlayerConnect
+    forward GM_OnPlayerConnect(playerid);
+#endif
 
 public OnPlayerClickTextDraw(playerid, Text:clickedid)
 {
-	if (! p_Dialog[playerid][E_PLAYER_DIALOG_CANCELED])
+	if (playerDialogID[playerid] >= 0 && playerDialogStyle[playerid] == DIALOG_STYLE_PREVIEW_MODEL)
 	{
-		switch (p_Dialog[playerid][E_PLAYER_DIALOG_STYLE])
-		{
-		    case DIALOG_STYLE_PREVMODEL,
-				 DIALOG_STYLE_PREVMODEL_LIST:
+	    if (clickedid == Text:INVALID_TEXT_DRAW)
+	    {
+			new dialogid = playerDialogID[playerid];
+            Dialog_HidePlayerDialog(playerid);
+
+            new listitem;
+			if (playerDialogTotalListitems[playerid] <= (MAX_SMALL_DIALOG_LIST_ROWS * MAX_SMALL_DIALOG_LIST_COLUMNS))
 			{
-				if (clickedid == Text:INVALID_TEXT_DRAW)
-				{
-					Dialog_Exit(playerid);
-
-					new dialogid = p_Dialog[playerid][E_PLAYER_DIALOG_ID];
-					new listitem = p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEM_ID];
-
-					p_Dialog[playerid][E_PLAYER_DIALOG_ID] = -1;
-					p_Dialog[playerid][E_PLAYER_DIALOG_STYLE] = -1;
-					p_Dialog[playerid][E_PLAYER_DIALOG_DUAL_BTN] = false;
-					p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEMS] = 0;
-					p_Dialog[playerid][E_PLAYER_DIALOG_PAGE] = 0;
-					p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEM_ID] = 0;
-					p_Dialog[playerid][E_PLAYER_DIALOG_CLICK_TICKCOUNT] = 0;
-
-	    			if (funcidx("OnDialogResponse") != -1)
-						CallRemoteFunction("OnDialogResponse", "iiiis", playerid, dialogid, 0, listitem, "\1");
-				}
-
-				return 1;
+			    listitem = playerDialogListitem[playerid];
 			}
-		}
+			else
+			{
+			    listitem = (playerDialogListitem[playerid] + (playerDialogPage[playerid] * (MAX_DIALOG_LIST_COLUMNS * MAX_DIALOG_LIST_ROWS)));
+			}
+
+			new inputtext[5];
+			valstr(inputtext, playerDialogModel[playerid][listitem]);
+
+			CallLocalFunction("OnDialogResponse", "iiiis", playerid, dialogid, 0, listitem, inputtext);
+	    	return 1;
+	    }
 	}
-
-	p_Dialog[playerid][E_PLAYER_DIALOG_CANCELED] = false;
-
-	#if defined Dialog_OnPlayerClickTextDraw
-       	return Dialog_OnPlayerClickTextDraw(playerid, clickedid);
+	
+	#if defined GM_OnPlayerClickTextDraw
+       	return GM_OnPlayerClickTextDraw(playerid, Text:clickedid);
 	#else
-	   	return 0;
+	   	return 1;
 	#endif
 }
 #if defined _ALS_OnPlayerClickTextDraw
@@ -541,182 +972,124 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid)
 #else
     #define _ALS_OnPlayerClickTextDraw
 #endif
-#define OnPlayerClickTextDraw Dialog_OnPlayerClickTextDraw
-#if defined Dialog_OnPlayerClickTextDraw
-    forward Dialog_OnPlayerClickTextDraw(playerid, Text:clickedid);
+#define OnPlayerClickTextDraw GM_OnPlayerClickTextDraw
+#if defined GM_OnPlayerClickTextDraw
+    forward GM_OnPlayerClickTextDraw(playerid, Text:clickedid);
 #endif
 
 public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 {
-	switch (p_Dialog[playerid][E_PLAYER_DIALOG_STYLE])
+	if (playerDialogID[playerid] >= 0 && playerDialogStyle[playerid] == DIALOG_STYLE_PREVIEW_MODEL)
 	{
-	    case DIALOG_STYLE_PREVMODEL,
-			 DIALOG_STYLE_PREVMODEL_LIST:
-		{
-			if (playertextid == p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_BUTTON2]])
+	    if (playertextid == playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_SCROLL_UP]])
+	    {
+			if (playerDialogTotalListitems[playerid] <= (MAX_SMALL_DIALOG_LIST_ROWS * MAX_SMALL_DIALOG_LIST_COLUMNS))
 			{
-    			Dialog_Exit(playerid);
-				p_Dialog[playerid][E_PLAYER_DIALOG_CANCELED] = true;
-				CancelSelectTextDraw(playerid);
-
-				new dialogid = p_Dialog[playerid][E_PLAYER_DIALOG_ID];
-				new listitem = p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEM_ID];
-
-				p_Dialog[playerid][E_PLAYER_DIALOG_ID] = -1;
-				p_Dialog[playerid][E_PLAYER_DIALOG_STYLE] = -1;
-				p_Dialog[playerid][E_PLAYER_DIALOG_DUAL_BTN] = false;
-				p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEMS] = 0;
-				p_Dialog[playerid][E_PLAYER_DIALOG_PAGE] = 0;
-				p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEM_ID] = 0;
-				p_Dialog[playerid][E_PLAYER_DIALOG_CLICK_TICKCOUNT] = 0;
-
-	    		if (funcidx("OnDialogResponse") != -1)
-					CallRemoteFunction("OnDialogResponse", "iiiis", playerid, dialogid, 0, listitem, "\1");
+			    return 1;
 			}
-			else if (playertextid == p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_BUTTON1]] || playertextid == p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_BUTTONC]])
+			else
 			{
-    			Dialog_Exit(playerid);
-				p_Dialog[playerid][E_PLAYER_DIALOG_CANCELED] = true;
-				CancelSelectTextDraw(playerid);
-
-				new dialogid = p_Dialog[playerid][E_PLAYER_DIALOG_ID];
-				new listitem = p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEM_ID];
-
-				p_Dialog[playerid][E_PLAYER_DIALOG_ID] = -1;
-				p_Dialog[playerid][E_PLAYER_DIALOG_STYLE] = -1;
-				p_Dialog[playerid][E_PLAYER_DIALOG_DUAL_BTN] = false;
-				p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEMS] = 0;
-				p_Dialog[playerid][E_PLAYER_DIALOG_PAGE] = 0;
-				p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEM_ID] = 0;
-				p_Dialog[playerid][E_PLAYER_DIALOG_CLICK_TICKCOUNT] = 0;
-
-				if (funcidx("OnDialogResponse") != -1)
-					CallRemoteFunction("OnDialogResponse", "iiiis", playerid, dialogid, 1, listitem, "\1");
+			    if ((playerDialogPage[playerid] - 1) < 0)
+			    {
+			        return 1;
+			    }
 			}
-			else if (playertextid == p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_SCROLL_UP]])
+
+			playerDialogPage[playerid]--;
+			playerDialogListitem[playerid] = ((MAX_DIALOG_LIST_ROWS * MAX_DIALOG_LIST_COLUMNS) - 1);
+			Dialog_UpdatePlayerDialog(playerid);
+	    	return 1;
+	    }
+
+	    if (playertextid == playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_SCROLL_DOWN]])
+	    {
+			if (playerDialogTotalListitems[playerid] <= (MAX_SMALL_DIALOG_LIST_ROWS * MAX_SMALL_DIALOG_LIST_COLUMNS))
 			{
-				if ((p_Dialog[playerid][E_PLAYER_DIALOG_PAGE] - 1) < 0)
-					PlayerPlaySound(playerid, 1084, 0.0, 0.0, 0.0);
-				else
-					Dialog_SetPage(playerid, (--p_Dialog[playerid][E_PLAYER_DIALOG_PAGE]));
+			    return 1;
 			}
-			else if (playertextid == p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_SCROLL_DOWN]])
+			else
 			{
-				if ((p_Dialog[playerid][E_PLAYER_DIALOG_PAGE] + 1) >= Dialog_CountPages(p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEMS], ((p_Dialog[playerid][E_PLAYER_DIALOG_STYLE] == DIALOG_STYLE_PREVMODEL) ? (24) : (5))))
-					PlayerPlaySound(playerid, 1084, 0.0, 0.0, 0.0);
-				else
-					Dialog_SetPage(playerid, (++p_Dialog[playerid][E_PLAYER_DIALOG_PAGE]));
+			    if ((playerDialogPage[playerid] + 1) >= NumOfPages(playerDialogTotalListitems[playerid], (MAX_DIALOG_LIST_ROWS * MAX_DIALOG_LIST_COLUMNS)))
+			    {
+			        return 1;
+			    }
 			}
-	        else
+
+			playerDialogPage[playerid]++;
+			playerDialogListitem[playerid] = 0;
+			Dialog_UpdatePlayerDialog(playerid);
+	    	return 1;
+	    }
+
+	    if (playertextid == playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_LEFT_BUTTON]] || playertextid == playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_MIDDLE_BUTTON]])
+	    {
+			new dialogid = playerDialogID[playerid];
+            Dialog_HidePlayerDialog(playerid);
+
+            new listitem;
+			if (playerDialogTotalListitems[playerid] <= (MAX_SMALL_DIALOG_LIST_ROWS * MAX_SMALL_DIALOG_LIST_COLUMNS))
+			{
+			    listitem = playerDialogListitem[playerid];
+			}
+			else
+			{
+			    listitem = (playerDialogListitem[playerid] + (playerDialogPage[playerid] * (MAX_DIALOG_LIST_COLUMNS * MAX_DIALOG_LIST_ROWS)));
+			}
+
+			new inputtext[5];
+			valstr(inputtext, playerDialogModel[playerid][listitem]);
+
+			CallLocalFunction("OnDialogResponse", "iiiis", playerid, dialogid, 1, listitem, inputtext);
+	    	return CancelSelectTextDraw(playerid);
+	    }
+
+	    if (playertextid == playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_RIGHT_BUTTON]])
+	    {
+			new dialogid = playerDialogID[playerid];
+            Dialog_HidePlayerDialog(playerid);
+
+            new listitem;
+			if (playerDialogTotalListitems[playerid] <= (MAX_SMALL_DIALOG_LIST_ROWS * MAX_SMALL_DIALOG_LIST_COLUMNS))
+			{
+			    listitem = playerDialogListitem[playerid];
+			}
+			else
+			{
+			    listitem = (playerDialogListitem[playerid] + (playerDialogPage[playerid] * (MAX_DIALOG_LIST_COLUMNS * MAX_DIALOG_LIST_ROWS)));
+			}
+
+			new inputtext[5];
+			valstr(inputtext, playerDialogModel[playerid][listitem]);
+
+			CallLocalFunction("OnDialogResponse", "iiiis", playerid, dialogid, 0, listitem, inputtext);
+	    	return CancelSelectTextDraw(playerid);
+	    }
+	    
+	    for (new i, j = (playerDialogTotalListitems[playerid] <= (MAX_SMALL_DIALOG_LIST_ROWS * MAX_SMALL_DIALOG_LIST_COLUMNS)) ? (MAX_SMALL_DIALOG_LIST_ROWS * MAX_SMALL_DIALOG_LIST_COLUMNS) : (MAX_DIALOG_LIST_ROWS * MAX_DIALOG_LIST_COLUMNS); i < j; i++)
+	    {
+	        if (playertextid == playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_MODEL][i]])
 	        {
-    			new index = -1;
-			    switch (p_Dialog[playerid][E_PLAYER_DIALOG_STYLE])
-				{
-				    case DIALOG_STYLE_PREVMODEL:
-				    {
-						new listitem;
-						for (new i; i < 24; i++)
-						{
-						    listitem = ((p_Dialog[playerid][E_PLAYER_DIALOG_PAGE] * 24) + i);
-							if (listitem >= p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEMS])
-							    break;
+	            if ((GetTickCount() - playerDialogClickTickCount[playerid][i]) <= 200)
+	            {
+	                return OnPlayerClickPlayerTextDraw(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_LEFT_BUTTON]]);
+	            }
+				playerDialogClickTickCount[playerid][i] = GetTickCount();
 
-							if (playertextid == p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][i]])
-							{
-							 	p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEM_ID] = listitem;
-								index = i;
-								break;
-							}
-						}
-					}
-
-				    case DIALOG_STYLE_PREVMODEL_LIST:
-				    {
-						new listitem;
-						for (new i; i < 5; i++)
-						{
-						    listitem = ((p_Dialog[playerid][E_PLAYER_DIALOG_PAGE] * 5) + i);
-							if (listitem >= p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEMS])
-							    break;
-
-							if (playertextid == p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_BAR][i]])
-							{
-							 	p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEM_ID] = listitem;
-								index = i;
-								break;
-							}
-						}
-					}
-				}
-
-				if (index != -1)
-				{
-					if (GetTickCount() - p_Dialog[playerid][E_PLAYER_DIALOG_CLICK_TICKCOUNT] <= 200)
-					{
-						Dialog_Exit(playerid);
-						p_Dialog[playerid][E_PLAYER_DIALOG_CANCELED] = true;
-						CancelSelectTextDraw(playerid);
-
-						new dialogid = p_Dialog[playerid][E_PLAYER_DIALOG_ID];
-						new listitem = p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEM_ID];
-
-						p_Dialog[playerid][E_PLAYER_DIALOG_ID] = -1;
-						p_Dialog[playerid][E_PLAYER_DIALOG_STYLE] = -1;
-						p_Dialog[playerid][E_PLAYER_DIALOG_DUAL_BTN] = false;
-						p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEMS] = 0;
-						p_Dialog[playerid][E_PLAYER_DIALOG_PAGE] = 0;
-						p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEM_ID] = 0;
-						p_Dialog[playerid][E_PLAYER_DIALOG_CLICK_TICKCOUNT] = 0;
-
-						if (funcidx("OnDialogResponse") != -1)
-							CallRemoteFunction("OnDialogResponse", "iiiis", playerid, dialogid, 1, listitem, "\1");
-					}
-					else
-					{
-						switch (p_Dialog[playerid][E_PLAYER_DIALOG_STYLE])
-						{
-						    case DIALOG_STYLE_PREVMODEL:
-						    {
-							    for (new i; i < 24; i++)
-								{
-									if (((p_Dialog[playerid][E_PLAYER_DIALOG_PAGE] * 24) + i) >= p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEMS])
-									    break;
-
-		                            PlayerTextDrawBackgroundColor(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][i]], Dialog_SetOpacity(0x3B3B3BFF, 150));
-		                            PlayerTextDrawShow(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][i]]);
-								}
-								PlayerTextDrawBackgroundColor(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][index]], Dialog_SetOpacity(0xFF5959FF, 150));
-								PlayerTextDrawShow(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][index]]);
-						    }
-
-						    case DIALOG_STYLE_PREVMODEL_LIST:
-						    {
-							    for (new i; i < 5; i++)
-								{
-									if (((p_Dialog[playerid][E_PLAYER_DIALOG_PAGE] * 5) + i) >= p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEMS])
-									    break;
-
-		                            PlayerTextDrawColor(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_BAR][i]], Dialog_SetOpacity(0x788FB0FF, 200));
-		                            PlayerTextDrawShow(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_BAR][i]]);
-								}
-								PlayerTextDrawColor(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_BAR][index]], Dialog_SetOpacity(0xFF5959FF, 200));
-								PlayerTextDrawShow(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_BAR][index]]);
-						    }
-						}
-
-						p_Dialog[playerid][E_PLAYER_DIALOG_CLICK_TICKCOUNT] = GetTickCount();
-					}
-				}
+				PlayerTextDrawBackgroundColor(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_MODEL][playerDialogListitem[playerid]]], DIALOG_LIST_ITEM_COLOR);
+				PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_MODEL][playerDialogListitem[playerid]]]);
+				
+				playerDialogListitem[playerid] = i;
+				PlayerTextDrawBackgroundColor(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_MODEL][playerDialogListitem[playerid]]], DIALOG_SELECTED_LIST_ITEM_COLOR);
+				PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_MODEL][playerDialogListitem[playerid]]]);
+				break;
 			}
-
-			return 1;
-		}
+	    }
 	}
-
-    #if defined Dialog_OnPlayerClickPlayerTD
-       	return Dialog_OnPlayerClickPlayerTD(playerid, playertextid);
+	
+	#if defined GM_OnPlayerClickPlayerTD
+       	return GM_OnPlayerClickPlayerTD(playerid, PlayerText:playertextid);
 	#else
-	   	return 0;
+	   	return 1;
 	#endif
 }
 #if defined _ALS_OnPlayerClickPlayerTD
@@ -724,45 +1097,7 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 #else
     #define _ALS_OnPlayerClickPlayerTD
 #endif
-#define OnPlayerClickPlayerTextDraw Dialog_OnPlayerClickPlayerTD
-#if defined Dialog_OnPlayerClickPlayerTD
-    forward Dialog_OnPlayerClickPlayerTD(playerid, PlayerText:playertextid);
+#define OnPlayerClickPlayerTextDraw GM_OnPlayerClickPlayerTD
+#if defined GM_OnPlayerClickPlayerTD
+    forward GM_OnPlayerClickPlayerTD(playerid, PlayerText:playertextid);
 #endif
-
-stock Dialog_SetModelRot(playerid, listitem, Float:x = 0.0, Float:y = 0.0, Float:z = 0.0, Float:zoom = 1.0, color1 = -1, color2 = -1)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-		return 0;
-
-	if (p_Dialog[playerid][E_PLAYER_DIALOG_STYLE] == -1)
-		return 0;
-
-  	new index;
-    switch (p_Dialog[playerid][E_PLAYER_DIALOG_STYLE])
-	{
-		case DIALOG_STYLE_PREVMODEL,
-	      	 DIALOG_STYLE_PREVMODEL_LIST:
-		{
-		    if (listitem >= p_Dialog[playerid][E_PLAYER_DIALOG_LISTITEMS])
-		    	return 0;
-
-			if (p_Dialog[playerid][E_PLAYER_DIALOG_STYLE] == DIALOG_STYLE_PREVMODEL)
-				index = listitem - (floatround(Float:(listitem - 24), floatround_floor) * 24);
-			else
-				index = listitem - (floatround(Float:(listitem - 5), floatround_floor) * 5);
-
-			new model, label[DIALOG_MAX_LISTITEM_SIZE], unused;
-            Dialog_GetListitem(playerid, listitem, model, label, Float:unused, Float:unused, Float:unused, Float:unused, unused, unused);
-            Dialog_SetListitem(playerid, listitem, model, label, x, y, z, zoom, color1, color2);
-
-			PlayerTextDrawSetPreviewRot(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][index]], x, y, z, zoom);
-			PlayerTextDrawSetPreviewVehCol(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][index]], color1, color2);
-			PlayerTextDrawShow(playerid, p_DialogTextDraw[playerid][p_DialogCompnent[playerid][E_DIALOG_COMPONENT_MODEL][index]]);
-		}
-
-		default:
-		    return 0;
-	}
-
-	return 1;
-}
