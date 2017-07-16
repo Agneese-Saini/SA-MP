@@ -3,12 +3,16 @@
 #endif
 #define _dialogs_included
 
+// PreviewModelDialog.inc - v3.0.1
+// By Gammix
+
 #define NumOfPages(%0,%1) \
 	(((%0) - 1) / (%1) + 1)
 
 enum
 {
-    DIALOG_STYLE_PREVIEW_MODEL = 6
+    DIALOG_STYLE_PREVIEW_MODEL = 6,
+    DIALOG_STYLE_PREVMODEL = DIALOG_STYLE_PREVIEW_MODEL
 };
 
 enum
@@ -62,7 +66,7 @@ static Dialog_ScrollBar(page, totalPages, &Float:y, Float:maxHeight, &Float:heig
 	height = maxHeight / totalPages;
 	y += (height * 7.4) * page;
 }
-		
+
 static Dialog_CreatePlayerDialog(playerid, caption[], button1[], button2[], bool:smallVersion)
 {
 	if (smallVersion)
@@ -704,18 +708,18 @@ static Dialog_UpdatePlayerDialog(playerid)
 	{
 	    return 0;
 	}
-	
+
 	new index;
 	new pages = NumOfPages(playerDialogTotalListitems[playerid], (MAX_DIALOG_LIST_ROWS * MAX_DIALOG_LIST_COLUMNS));
 	if (pages > 1)
 	{
 	    index = playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_SCROLL_BAR];
 	    PlayerTextDrawDestroy(playerid, playerDialogTextDraw[playerid][index]);
-	    
+
 	    new Float:y = 166.000000;
 	    new Float:height;
 	    Dialog_ScrollBar(playerDialogPage[playerid], pages, y, 16.400001, height);
-	    
+
 	    playerDialogTextDraw[playerid][index] = CreatePlayerTextDraw(playerid,463.000000, y, "_");
 		PlayerTextDrawBackgroundColor(playerid,playerDialogTextDraw[playerid][index], 0);
 		PlayerTextDrawFont(playerid,playerDialogTextDraw[playerid][index], 1);
@@ -727,7 +731,7 @@ static Dialog_UpdatePlayerDialog(playerid)
 		PlayerTextDrawBoxColor(playerid,playerDialogTextDraw[playerid][index], -1608903786);
 		PlayerTextDrawTextSize(playerid,playerDialogTextDraw[playerid][index], 465.000000, 0.000000);
 		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][index], 0);
-		
+
 		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][index]);
 	}
 	else
@@ -757,7 +761,7 @@ static Dialog_UpdatePlayerDialog(playerid)
 				PlayerTextDrawBackgroundColor(playerid, playerDialogTextDraw[playerid][index], (playerDialogListitem[playerid] == ((a * MAX_DIALOG_LIST_COLUMNS) + b)) ? (DIALOG_SELECTED_LIST_ITEM_COLOR) : (DIALOG_LIST_ITEM_COLOR));
 				PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][index]);
 			}
-			
+
 			index = playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_TEXT][(a * MAX_DIALOG_LIST_COLUMNS) + b];
 			if (itemid >= playerDialogTotalListitems[playerid])
 			{
@@ -803,27 +807,27 @@ stock Dialog_ShowPlayerDialog(playerid, dialogid, style, caption[], info[], butt
 	{
 	    return 0;
 	}
-	
+
 	if (playerDialogID[playerid] >= 0 && playerDialogStyle[playerid] == DIALOG_STYLE_PREVIEW_MODEL)
 	{
 		Dialog_HidePlayerDialog(playerid);
   	}
-	    
+
 	if (dialogid < 0)
 	{
 	    if (style == DIALOG_STYLE_PREVIEW_MODEL)
 	    {
 	        return 1;
 	    }
-	    
+
 	    return ShowPlayerDialog(playerid, dialogid, style, caption, info, button1, button2);
 	}
-	
+
 	if (style != DIALOG_STYLE_PREVIEW_MODEL)
 	{
 	    return ShowPlayerDialog(playerid, dialogid, style, caption, info, button1, button2);
 	}
-	
+
 	new pos;
 	new string[5/*modelid*/ + 1/*\n*/ + MAX_DIALOG_LIST_ITEM_SIZE/*text*/];
 	new index;
@@ -865,20 +869,20 @@ stock Dialog_ShowPlayerDialog(playerid, dialogid, style, caption[], info[], butt
 		    strpack(playerDialogText[playerid][index], string[pos2 + 1], MAX_DIALOG_LIST_ITEM_SIZE);
 		}
 	}
-	
+
 	if (playerDialogTotalListitems[playerid] == 0)
 	{
 	    return 0;
 	}
-	
+
 	Dialog_CreatePlayerDialog(playerid, caption, button1, button2, bool:(playerDialogTotalListitems[playerid] <= (MAX_SMALL_DIALOG_LIST_ROWS * MAX_SMALL_DIALOG_LIST_COLUMNS)));
 	Dialog_UpdatePlayerDialog(playerid);
-	
+
 	playerDialogID[playerid] = dialogid;
 	playerDialogStyle[playerid] = style;
 	playerDialogListitem[playerid] = 0;
 	playerDialogPage[playerid] = 0;
-	
+
 	return SelectTextDraw(playerid, DIALOG_SELECTED_LIST_ITEM_COLOR);
 }
 #if defined _ALS_ShowPlayerDialog
@@ -905,19 +909,10 @@ stock Dialog_ShowPreviewModelDialog(playerid, dialogid, caption[], models[], lab
 
 	if (dialogid < 0)
 	{
-	    if (style == DIALOG_STYLE_PREVIEW_MODEL)
-	    {
-	        return 1;
-	    }
-
-	    return ShowPlayerDialog(playerid, dialogid, style, caption, info, button1, button2);
+	    return 1;
 	}
 
-	if (style != DIALOG_STYLE_PREVIEW_MODEL)
-	{
-	    return ShowPlayerDialog(playerid, dialogid, style, caption, info, button1, button2);
-	}
-
+	new index;
 	for (new i; i < size; i++)
 	{
 		if (playerDialogTotalListitems[playerid] == MAX_DIALOG_LIST_ITEMS)
@@ -938,9 +933,9 @@ stock Dialog_ShowPreviewModelDialog(playerid, dialogid, caption[], models[], lab
 
 	Dialog_CreatePlayerDialog(playerid, caption, button1, button2, bool:(playerDialogTotalListitems[playerid] <= (MAX_SMALL_DIALOG_LIST_ROWS * MAX_SMALL_DIALOG_LIST_COLUMNS)));
     Dialog_UpdatePlayerDialog(playerid);
-    
+
 	playerDialogID[playerid] = dialogid;
-	playerDialogStyle[playerid] = style;
+	playerDialogStyle[playerid] = DIALOG_STYLE_PREVIEW_MODEL;
 	playerDialogListitem[playerid] = 0;
 	playerDialogPage[playerid] = 0;
 
@@ -949,7 +944,7 @@ stock Dialog_ShowPreviewModelDialog(playerid, dialogid, caption[], models[], lab
 
 #define ShowPlayerPreviewModelDialog \
     Dialog_ShowPreviewModelDialog
-    
+
 /*
 native Dialog_SetListitemPreviewRot(playerid, listitem, Float:rx, Float:ry, Float:rz, Float:zoom, materialcolor1, materialcolor2);
 */
@@ -959,7 +954,7 @@ stock Dialog_SetListitemPreviewRot(playerid, listitem, Float:rx, Float:ry, Float
 	{
 	    return 0;
 	}
-	
+
 	if (listitem < 0 || listitem >= MAX_DIALOG_LIST_ITEMS)
 	{
 	    return 0;
@@ -988,7 +983,7 @@ public OnPlayerConnect(playerid)
 	    playerDialogListitemModelRot[playerid][i][4] = random(255);
 	    playerDialogListitemModelRot[playerid][i][5] = random(255);
     }
-    
+
     #if defined GM_OnPlayerConnect
        	return GM_OnPlayerConnect(playerid);
 	#else
@@ -1031,7 +1026,7 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid)
 	    	return 1;
 	    }
 	}
-	
+
 	#if defined GM_OnPlayerClickTextDraw
        	return GM_OnPlayerClickTextDraw(playerid, Text:clickedid);
 	#else
@@ -1135,7 +1130,7 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 			CallLocalFunction("OnDialogResponse", "iiiis", playerid, dialogid, 0, listitem, inputtext);
 	    	return CancelSelectTextDraw(playerid);
 	    }
-	    
+
 	    for (new i, j = (playerDialogTotalListitems[playerid] <= (MAX_SMALL_DIALOG_LIST_ROWS * MAX_SMALL_DIALOG_LIST_COLUMNS)) ? (MAX_SMALL_DIALOG_LIST_ROWS * MAX_SMALL_DIALOG_LIST_COLUMNS) : (MAX_DIALOG_LIST_ROWS * MAX_DIALOG_LIST_COLUMNS); i < j; i++)
 	    {
 	        if (playertextid == playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_MODEL][i]])
@@ -1148,7 +1143,7 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 
 				PlayerTextDrawBackgroundColor(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_MODEL][playerDialogListitem[playerid]]], DIALOG_LIST_ITEM_COLOR);
 				PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_MODEL][playerDialogListitem[playerid]]]);
-				
+
 				playerDialogListitem[playerid] = i;
 				PlayerTextDrawBackgroundColor(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_MODEL][playerDialogListitem[playerid]]], DIALOG_SELECTED_LIST_ITEM_COLOR);
 				PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_MODEL][playerDialogListitem[playerid]]]);
@@ -1156,7 +1151,7 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 			}
 	    }
 	}
-	
+
 	#if defined GM_OnPlayerClickPlayerTD
        	return GM_OnPlayerClickPlayerTD(playerid, PlayerText:playertextid);
 	#else
