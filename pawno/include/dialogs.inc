@@ -686,7 +686,6 @@ stock Dialog_ShowPlayerDialog(playerid, dialogid, style, caption[], info[], butt
 		PlayerTextDrawSetOutline(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
 		PlayerTextDrawSetProportional(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
 		PlayerTextDrawSetSelectable(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 0);
-		PlayerTextDrawUseBox(playerid,playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]], 1);
 		PlayerTextDrawShow(playerid, playerDialogTextDraw[playerid][playerDialogTextDrawCount[playerid]++]);
 
 		// Right Button
@@ -947,7 +946,6 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid)
 	    if (clickedid == Text:INVALID_TEXT_DRAW)
 	    {
 			new dialogid = playerDialogID[playerid];
-            Dialog_HidePlayerDialog(playerid);
 
             new listitem;
 			if (playerDialogTotalListitems[playerid] <= (MAX_SMALL_DIALOG_LIST_ROWS * MAX_SMALL_DIALOG_LIST_COLUMNS))
@@ -962,6 +960,7 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid)
 			new inputtext[5];
 			valstr(inputtext, playerDialogModel[playerid][listitem]);
 
+            Dialog_HidePlayerDialog(playerid);
 			CallLocalFunction("OnDialogResponse", "iiiis", playerid, dialogid, 0, listitem, inputtext);
 	    	return 1;
 	    }
@@ -1030,7 +1029,6 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 	    if (playertextid == playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_LEFT_BUTTON]] || playertextid == playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_MIDDLE_BUTTON]])
 	    {
 			new dialogid = playerDialogID[playerid];
-            Dialog_HidePlayerDialog(playerid);
 
             new listitem;
 			if (playerDialogTotalListitems[playerid] <= (MAX_SMALL_DIALOG_LIST_ROWS * MAX_SMALL_DIALOG_LIST_COLUMNS))
@@ -1045,6 +1043,7 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 			new inputtext[5];
 			valstr(inputtext, playerDialogModel[playerid][listitem]);
 
+            Dialog_HidePlayerDialog(playerid);
 			CallLocalFunction("OnDialogResponse", "iiiis", playerid, dialogid, 1, listitem, inputtext);
 	    	return CancelSelectTextDraw(playerid);
 	    }
@@ -1052,7 +1051,6 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 	    if (playertextid == playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_RIGHT_BUTTON]])
 	    {
 			new dialogid = playerDialogID[playerid];
-            Dialog_HidePlayerDialog(playerid);
 
             new listitem;
 			if (playerDialogTotalListitems[playerid] <= (MAX_SMALL_DIALOG_LIST_ROWS * MAX_SMALL_DIALOG_LIST_COLUMNS))
@@ -1067,6 +1065,7 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 			new inputtext[5];
 			valstr(inputtext, playerDialogModel[playerid][listitem]);
 
+            Dialog_HidePlayerDialog(playerid);
 			CallLocalFunction("OnDialogResponse", "iiiis", playerid, dialogid, 0, listitem, inputtext);
 	    	return CancelSelectTextDraw(playerid);
 	    }
