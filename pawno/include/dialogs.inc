@@ -3,7 +3,7 @@
 #endif
 #define _dialogs_included
 
-// PreviewModelDialog.inc - v3.0.1
+// PreviewModelDialog.inc - v3.0.2
 // By Gammix
 
 #define NumOfPages(%0,%1) \
@@ -829,10 +829,10 @@ stock Dialog_ShowPlayerDialog(playerid, dialogid, style, caption[], info[], butt
 	}
 
 	new pos;
-	new string[5/*modelid*/ + 1/*\n*/ + MAX_DIALOG_LIST_ITEM_SIZE/*text*/];
-	new index;
 	new pos2;
 	new modelid[6];
+	new index;
+	new string[sizeof modelid/*modelid*/ + 1/*\n*/ + MAX_DIALOG_LIST_ITEM_SIZE/*text*/];
 	for (new i, len = strlen(info); i < len; i++)
 	{
 		if (info[i] == '\n')
