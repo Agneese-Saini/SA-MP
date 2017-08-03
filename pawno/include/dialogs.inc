@@ -832,7 +832,7 @@ stock Dialog_ShowPlayerDialog(playerid, dialogid, style, caption[], info[], butt
 	new string[5/*modelid*/ + 1/*\n*/ + MAX_DIALOG_LIST_ITEM_SIZE/*text*/];
 	new index;
 	new pos2;
-	new modelid[5];
+	new modelid[6];
 	for (new i, len = strlen(info); i < len; i++)
 	{
 		if (info[i] == '\n')
