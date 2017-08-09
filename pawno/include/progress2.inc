@@ -667,86 +667,86 @@ static stock PB_RenderBar(Bar:barid)
 	{
 		case BAR_DIRECTION_RIGHT:
 		{
-			PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND] = TextDrawCreate(playerid, PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_Y], "_");
-			TextDrawUseBox		(playerid, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1);
-			TextDrawTextSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_X] + PB_eBar[barid][PB_e_BAR_WIDTH] - 4.0, 0.0);
-			TextDrawLetterSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10);
-			TextDrawBoxColor	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_BACKGROUND_COLOR]);
+			PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_Y], "_");
+			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1);
+			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_X] + PB_eBar[barid][PB_e_BAR_WIDTH] - 4.0, 0.0);
+			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10);
+			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_BACKGROUND_COLOR]);
 
-			PB_txtBar[barid][BAR_TEXTDRAW_FILL] = TextDrawCreate(playerid, PB_eBar[barid][PB_e_BAR_X] + 1.2, PB_eBar[barid][PB_e_BAR_Y] + 2.15, "_");
-			TextDrawUseBox		(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1);
-			TextDrawTextSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], PB_eBar[barid][PB_e_BAR_X] + PB_eBar[barid][PB_e_BAR_WIDTH] - 5.5, 0.0);
-			TextDrawLetterSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
-			TextDrawBoxColor	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], (PB_eBar[barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_eBar[barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
+			PB_txtBar[barid][BAR_TEXTDRAW_FILL] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X] + 1.2, PB_eBar[barid][PB_e_BAR_Y] + 2.15, "_");
+			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1);
+			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], PB_eBar[barid][PB_e_BAR_X] + PB_eBar[barid][PB_e_BAR_WIDTH] - 5.5, 0.0);
+			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
+			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], (PB_eBar[barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_eBar[barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
 
-			PB_txtBar[barid][BAR_TEXTDRAW_MAIN] = TextDrawCreate(playerid, PB_eBar[barid][PB_e_BAR_X] + 1.2, PB_eBar[barid][PB_e_BAR_Y] + 2.15, "_");
-			TextDrawUseBox		(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1);
-			TextDrawTextSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_BarPercent(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_WIDTH], PB_eBar[barid][PB_e_BAR_MAX_VALUE], PB_eBar[barid][PB_e_BAR_VALUE], PB_eBar[barid][PB_e_BAR_DIRECTION]), 0.0);
-			TextDrawLetterSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
-			TextDrawBoxColor	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_COLOR]);
+			PB_txtBar[barid][BAR_TEXTDRAW_MAIN] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X] + 1.2, PB_eBar[barid][PB_e_BAR_Y] + 2.15, "_");
+			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1);
+			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_BarPercent(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_WIDTH], PB_eBar[barid][PB_e_BAR_MAX_VALUE], PB_eBar[barid][PB_e_BAR_VALUE], PB_eBar[barid][PB_e_BAR_DIRECTION]), 0.0);
+			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
+			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_COLOR]);
 		}
 
 		case BAR_DIRECTION_LEFT:
 		{
-			PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND] = TextDrawCreate(playerid, PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_Y], "_");
-			TextDrawUseBox		(playerid, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1);
-			TextDrawTextSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 4.0, 0.0);
-			TextDrawLetterSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10);
-			TextDrawBoxColor	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_BACKGROUND_COLOR]);
+			PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_Y], "_");
+			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1);
+			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 4.0, 0.0);
+			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10);
+			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_BACKGROUND_COLOR]);
 
-			PB_txtBar[barid][BAR_TEXTDRAW_FILL] = TextDrawCreate(playerid, PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] + 2.15, "_");
-			TextDrawUseBox		(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1);
-			TextDrawTextSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
-			TextDrawLetterSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
-			TextDrawBoxColor	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], (PB_eBar[barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_eBar[barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
+			PB_txtBar[barid][BAR_TEXTDRAW_FILL] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] + 2.15, "_");
+			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1);
+			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
+			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
+			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], (PB_eBar[barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_eBar[barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
 
-			PB_txtBar[barid][BAR_TEXTDRAW_MAIN] = TextDrawCreate(playerid, PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] + 2.15, "_");
-			TextDrawUseBox		(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1);
-			TextDrawTextSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_BarPercent(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_WIDTH], PB_eBar[barid][PB_e_BAR_MAX_VALUE], PB_eBar[barid][PB_e_BAR_VALUE], PB_eBar[barid][PB_e_BAR_DIRECTION]), 0.0);
-			TextDrawLetterSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
-			TextDrawBoxColor	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_COLOR]);
+			PB_txtBar[barid][BAR_TEXTDRAW_MAIN] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] + 2.15, "_");
+			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1);
+			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_BarPercent(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_WIDTH], PB_eBar[barid][PB_e_BAR_MAX_VALUE], PB_eBar[barid][PB_e_BAR_VALUE], PB_eBar[barid][PB_e_BAR_DIRECTION]), 0.0);
+			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
+			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_COLOR]);
 		}
 
 		case BAR_DIRECTION_UP:
 		{
-			PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND] = TextDrawCreate(playerid, PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_Y], "_");
-			TextDrawUseBox		(playerid, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1);
-			TextDrawTextSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 4.0, 0.0);
-			TextDrawLetterSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1.0, -((PB_eBar[barid][PB_e_BAR_HEIGHT] / 10) * 1.02) -0.35);
-			TextDrawBoxColor	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_BACKGROUND_COLOR]);
+			PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_Y], "_");
+			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1);
+			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 4.0, 0.0);
+			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1.0, -((PB_eBar[barid][PB_e_BAR_HEIGHT] / 10) * 1.02) -0.35);
+			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_BACKGROUND_COLOR]);
 
-			PB_txtBar[barid][BAR_TEXTDRAW_FILL] = TextDrawCreate(playerid, PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] - 1.0, "_");
-			TextDrawUseBox		(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1);
-			TextDrawTextSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
-			TextDrawLetterSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1.0, -(PB_eBar[barid][PB_e_BAR_HEIGHT] / 10.0) * 1.02);
-			TextDrawBoxColor	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], (PB_eBar[barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_eBar[barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
+			PB_txtBar[barid][BAR_TEXTDRAW_FILL] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] - 1.0, "_");
+			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1);
+			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
+			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1.0, -(PB_eBar[barid][PB_e_BAR_HEIGHT] / 10.0) * 1.02);
+			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], (PB_eBar[barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_eBar[barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
 
-			PB_txtBar[barid][BAR_TEXTDRAW_MAIN] = TextDrawCreate(playerid, PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] - 1.0, "_");
-			TextDrawUseBox		(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1);
-			TextDrawTextSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
-			TextDrawLetterSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1.0, PB_BarPercent(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_HEIGHT], PB_eBar[barid][PB_e_BAR_MAX_VALUE], PB_eBar[barid][PB_e_BAR_VALUE], PB_eBar[barid][PB_e_BAR_DIRECTION]));
-			TextDrawBoxColor	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_COLOR]);
+			PB_txtBar[barid][BAR_TEXTDRAW_MAIN] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] - 1.0, "_");
+			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1);
+			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
+			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1.0, PB_BarPercent(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_HEIGHT], PB_eBar[barid][PB_e_BAR_MAX_VALUE], PB_eBar[barid][PB_e_BAR_VALUE], PB_eBar[barid][PB_e_BAR_DIRECTION]));
+			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_COLOR]);
 		}
 
 		case BAR_DIRECTION_DOWN:
 		{
-			PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND] = TextDrawCreate(playerid, PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_Y], "_");
-			TextDrawUseBox		(playerid, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1);
-			TextDrawTextSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 4.0, 0.0);
-			TextDrawLetterSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1.0, ((PB_eBar[barid][PB_e_BAR_HEIGHT] / 10)) -0.35);
-			TextDrawBoxColor	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_BACKGROUND_COLOR]);
+			PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_Y], "_");
+			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1);
+			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 4.0, 0.0);
+			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1.0, ((PB_eBar[barid][PB_e_BAR_HEIGHT] / 10)) -0.35);
+			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_BACKGROUND_COLOR]);
 
-			PB_txtBar[barid][BAR_TEXTDRAW_FILL] = TextDrawCreate(playerid, PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] + 1.0, "_");
-			TextDrawUseBox		(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1);
-			TextDrawTextSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
-			TextDrawLetterSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1.0, (PB_eBar[barid][PB_e_BAR_HEIGHT] / 10.0) - 0.55);
-			TextDrawBoxColor	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL], (PB_eBar[barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_eBar[barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
+			PB_txtBar[barid][BAR_TEXTDRAW_FILL] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] + 1.0, "_");
+			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1);
+			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
+			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1.0, (PB_eBar[barid][PB_e_BAR_HEIGHT] / 10.0) - 0.55);
+			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], (PB_eBar[barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_eBar[barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
 
-			PB_txtBar[barid][BAR_TEXTDRAW_MAIN] = TextDrawCreate(playerid, PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] + 1.0, "_");
-			TextDrawUseBox		(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1);
-			TextDrawTextSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
-			TextDrawLetterSize	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1.0, PB_BarPercent(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_HEIGHT], PB_eBar[barid][PB_e_BAR_MAX_VALUE], PB_eBar[barid][PB_e_BAR_VALUE], PB_eBar[barid][PB_e_BAR_DIRECTION]));
-			TextDrawBoxColor	(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_COLOR]);
+			PB_txtBar[barid][BAR_TEXTDRAW_MAIN] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] + 1.0, "_");
+			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1);
+			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
+			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1.0, PB_BarPercent(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_HEIGHT], PB_eBar[barid][PB_e_BAR_MAX_VALUE], PB_eBar[barid][PB_e_BAR_VALUE], PB_eBar[barid][PB_e_BAR_DIRECTION]));
+			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_COLOR]);
 		}
 	}
 
