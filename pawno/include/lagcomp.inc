@@ -274,13 +274,13 @@ static ProcessDamage(&playerid, &issuerid, &Float:amount, &weaponid, &bodypart)
 			{
    	 			bullets = 1.0;
 			}
-			
+
 			new Float:f = floatfract(bullets);
 			if (f > 0.01 && f < 0.99)
 			{
 				bullets = 1.0;
 			}
-			
+
 	 	    amount = playerWeaponDamage[issuerid][weaponid] * bullets;
 		}
 
@@ -292,13 +292,13 @@ static ProcessDamage(&playerid, &issuerid, &Float:amount, &weaponid, &bodypart)
 			{
 				bullets = 1.0;
 			}
-			
+
 			new Float:f = floatfract(bullets);
 			if (f > 0.01 && f < 0.99)
 			{
 				bullets = 1.0;
 			}
-			
+
 	 	    amount = playerWeaponDamage[issuerid][weaponid] * bullets;
 		}
 
@@ -383,15 +383,15 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 	{
 		return 0;
 	}
-	
+
 	new Float:ox, Float:oy, Float:oz, Float:hx, Float:hy, Float:hz;
 	GetPlayerLastShotVectors(playerid, ox, oy, oz, hx, hy, hz);
 
 	new Float:length = VectorSize((ox - hx), (oy - hy), (oz - hz));
-	
+
 	new Float:x, Float:y, Float:z;
 	GetPlayerPos(playerid, x, y, z);
-	
+
 	new Float:origin_dist = VectorSize((ox - x), (oy - y), (oz - z));
 
 	if (origin_dist > 15.0)
@@ -424,7 +424,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 			case WEAPON_SNIPER: maxrange = 320.0; // 34 - Sniper
 			case WEAPON_MINIGUN: maxrange = 75.0; // 38 - Minigun
 	    }
-	    
+
 		if (length > maxrange)
 		{
 			return 0;
@@ -444,7 +444,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 			}
 		}
 	}
-	
+
 	playerLastShot[playerid][E_PLAYER_LAST_SHOT_TYPE] = hittype;
 	playerLastShot[playerid][E_PLAYER_LAST_SHOT_HIT_ID] = hitid;
 	#if defined LC_OnPlayerWeaponShot
@@ -471,7 +471,7 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart)
 	{
 		return 1;
 	}
-	
+
 	switch (weaponid)
  	{
  		case WEAPON_GRENADE,
@@ -489,7 +489,7 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart)
     	{
     	    // process
 		}
-    	
+
     	case WEAPON_DROWN:
     	{
     	    new Float:health;
@@ -534,7 +534,7 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart)
 
     new Float:health;
 	GetPlayerHealth(playerid, health);
-	
+
 	if (((armour + health) - amount) <= 0.0)
 	{
 	    playerDeath[playerid][E_PLAYER_DEATH_VALID] = true;
@@ -568,12 +568,12 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
 	{
 		return 1;
 	}
-	
+
 	if (!ProcessDamage(damagedid, playerid, amount, weaponid, bodypart))
 	{
 		return 1;
 	}
-	
+
 	if ((WEAPON_COLT45 <= weaponid <= WEAPON_SNIPER) || weaponid == WEAPON_MINIGUN)
     {
         if (playerLastShot[playerid][E_PLAYER_LAST_SHOT_TYPE] == BULLET_HIT_TYPE_PLAYER && playerLastShot[playerid][E_PLAYER_LAST_SHOT_HIT_ID] == damagedid && !playerLastShot[playerid][E_PLAYER_LAST_SHOT_RETURN])
@@ -585,12 +585,12 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
       	    playerLastShot[playerid][E_PLAYER_LAST_SHOT_RETURN] = false;
       	    return 0;
 		}
-		
+
 		playerLastShot[playerid][E_PLAYER_LAST_SHOT_TYPE] = BULLET_HIT_TYPE_NONE;
   		playerLastShot[playerid][E_PLAYER_LAST_SHOT_HIT_ID] = INVALID_PLAYER_ID;
     	playerLastShot[playerid][E_PLAYER_LAST_SHOT_RETURN] = false;
     }
-    
+
     new Float:armour;
 	GetPlayerArmour(damagedid, armour);
 
@@ -603,7 +603,8 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
 	  	if (armour < 0.0)
 	  	{
 			SetPlayerArmour(damagedid, 0.0);
-			SetPlayerHealth(damagedid, (health + armour));
+			health += armour;
+			SetPlayerHealth(damagedid, health);
 		}
 		else
 		{
@@ -612,7 +613,8 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
 	}
 	else
 	{
-		SetPlayerHealth(damagedid, (health - amount));
+	    health -= amount;
+		SetPlayerHealth(damagedid, health);
 	}
 
     if (health <= 0.0)
@@ -698,18 +700,41 @@ stock LC_GetPlayerTeam(playerid)
 #endif
 #define GetPlayerTeam LC_GetPlayerTeam
 
+stock LC_SetPlayerHealth(playerid, Float:health)
+{
+	if (playerid < 0 || playerid >= MAX_PLAYERS)
+	{
+	    return 0;
+	}
+
+	if (health < 0.0)
+	{
+        playerDeath[damagedid][E_PLAYER_DEATH_VALID] = true;
+		playerDeath[damagedid][E_PLAYER_DEATH_KILLERID] = INVALID_PLAYER_ID;
+		playerDeath[damagedid][E_PLAYER_DEATH_REASON] = WEAPON_UNKNOWN;
+	}
+	
+	return SetPlayerHealth(playerid, health);
+}
+#if defined _ALS_SetPlayerHealth
+    #undef SetPlayerHealth
+#else
+    #define _ALS_SetPlayerHealth
+#endif
+#define SetPlayerHealth LC_SetPlayerHealth
+
 stock SetPlayerWeaponDamage(playerid, weaponid, Float:damage)
 {
 	if (playerid < 0 || playerid >= MAX_PLAYERS)
 	{
 	    return 0;
 	}
-	
+
 	if (weaponid < 0 || weaponid >= 53)
 	{
 	    return 0;
 	}
-	
+
     playerWeaponDamage[playerid][weaponid] = damage;
 	return 1;
 }
