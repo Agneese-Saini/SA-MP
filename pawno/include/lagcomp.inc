@@ -425,7 +425,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 			case WEAPON_MINIGUN: maxrange = 75.0; // 38 - Minigun
 	    }
 
-		if (length > maxrange)
+		if (maxrange != 0.0 && length > maxrange)
 		{
 			return 0;
 		}
