@@ -7,45 +7,45 @@
 	#define KEY_AIM 128
 #endif
 
-enum ATT_e
+enum E_PLAYER_ATTACHMENT
 {
-	bool:	ATT_e_USED,
- 			ATT_e_MODEL,
-    		ATT_e_BONE,
-    Float:	ATT_e_X,
-   	Float:	ATT_e_Y,
-   	Float:	ATT_e_Z,
-   	Float:  ATT_e_RX,
-   	Float:  ATT_e_RY,
-   	Float:  ATT_e_RZ,
-   	Float:  ATT_e_SX,
-   	Float:  ATT_e_SY,
-   	Float:  ATT_e_SZ,
-			ATT_e_COLOR1,
-			ATT_e_COLOR2
+	bool:E_PLAYER_ATTACHMENT_USED,
+ 	E_PLAYER_ATTACHMENT_MODEL,
+    E_PLAYER_ATTACHMENT_BONE,
+    Float:E_PLAYER_ATTACHMENT_X,
+   	Float:E_PLAYER_ATTACHMENT_Y,
+   	Float:E_PLAYER_ATTACHMENT_Z,
+   	Float:E_PLAYER_ATTACHMENT_RX,
+   	Float:E_PLAYER_ATTACHMENT_RY,
+   	Float:E_PLAYER_ATTACHMENT_RZ,
+   	Float:E_PLAYER_ATTACHMENT_SX,
+   	Float:E_PLAYER_ATTACHMENT_SY,
+   	Float:E_PLAYER_ATTACHMENT_SZ,
+	E_PLAYER_ATTACHMENT_COLOR1,
+	E_PLAYER_ATTACHMENT_COLOR2
 };
-static ATT_ePlayerData[MAX_PLAYERS][MAX_PLAYER_ATTACHED_OBJECTS][ATT_e];
+static playerAttachment[MAX_PLAYERS][MAX_PLAYER_ATTACHED_OBJECTS][E_PLAYER_ATTACHMENT];
 
 public OnPlayerConnect(playerid)
 {
     for (new i; i < MAX_PLAYER_ATTACHED_OBJECTS; i++)
     {
-   	 	ATT_ePlayerData[playerid][i][ATT_e_USED] = false;
-   	 	ATT_ePlayerData[playerid][i][ATT_e_MODEL] = 0;
-   	 	ATT_ePlayerData[playerid][i][ATT_e_BONE] = 0;
-   	 	ATT_ePlayerData[playerid][i][ATT_e_X] = 0.0;
-   	 	ATT_ePlayerData[playerid][i][ATT_e_Y] = 0.0;
-   	 	ATT_ePlayerData[playerid][i][ATT_e_Z] = 0.0;
-   	 	ATT_ePlayerData[playerid][i][ATT_e_RX] = 0.0;
-   	 	ATT_ePlayerData[playerid][i][ATT_e_RY] = 0.0;
-   	 	ATT_ePlayerData[playerid][i][ATT_e_RZ] = 0.0;
-   	 	ATT_ePlayerData[playerid][i][ATT_e_SX] = 1.0;
-   	 	ATT_ePlayerData[playerid][i][ATT_e_SY] = 1.0;
-   	 	ATT_ePlayerData[playerid][i][ATT_e_SZ] = 1.0;
-   	 	ATT_ePlayerData[playerid][i][ATT_e_COLOR1] = 0;
-   	 	ATT_ePlayerData[playerid][i][ATT_e_COLOR2] = 0;
+   	 	playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_USED] = false;
+   	 	playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_MODEL] = 0;
+   	 	playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_BONE] = 0;
+   	 	playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_X] = 0.0;
+   	 	playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_Y] = 0.0;
+   	 	playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_Z] = 0.0;
+   	 	playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_RX] = 0.0;
+   	 	playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_RY] = 0.0;
+   	 	playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_RZ] = 0.0;
+   	 	playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_SX] = 1.0;
+   	 	playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_SY] = 1.0;
+   	 	playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_SZ] = 1.0;
+   	 	playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_COLOR1] = 0;
+   	 	playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_COLOR2] = 0;
 	}
-	
+
 	#if defined ATT_OnPlayerConnect
 		return ATT_OnPlayerConnect(playerid);
 	#else
@@ -86,22 +86,16 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 		{
 		    for (new i; i < MAX_PLAYER_ATTACHED_OBJECTS; i++)
 			{
-				if (!IsPlayerAttachedObjectSlotUsed(playerid, i) && ATT_ePlayerData[playerid][i][ATT_e_USED])
+				if (!IsPlayerAttachedObjectSlotUsed(playerid, i) && playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_USED])
 			    {
 					SetPlayerAttachedObject(playerid, i,
-												ATT_ePlayerData[playerid][i][ATT_e_MODEL],
-												ATT_ePlayerData[playerid][i][ATT_e_BONE],
-												ATT_ePlayerData[playerid][i][ATT_e_X],
-												ATT_ePlayerData[playerid][i][ATT_e_Y],
-												ATT_ePlayerData[playerid][i][ATT_e_Z],
-											 	ATT_ePlayerData[playerid][i][ATT_e_RX],
-												ATT_ePlayerData[playerid][i][ATT_e_RY],
-											 	ATT_ePlayerData[playerid][i][ATT_e_RZ],
-											 	ATT_ePlayerData[playerid][i][ATT_e_SX],
-											 	ATT_ePlayerData[playerid][i][ATT_e_SY],
-											 	ATT_ePlayerData[playerid][i][ATT_e_SZ],
-												ATT_ePlayerData[playerid][i][ATT_e_COLOR1],
-												ATT_ePlayerData[playerid][i][ATT_e_COLOR2]);
+						playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_MODEL],
+						playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_BONE],
+						playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_X], playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_Y], playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_Z],
+				 		playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_RX], playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_RY], playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_RZ],
+					 	playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_SX], playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_SY], playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_SZ],
+						playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_COLOR1],
+						playerAttachment[playerid][i][E_PLAYER_ATTACHMENT_COLOR2]);
 				}
 			}
 		}
@@ -128,20 +122,20 @@ stock ATT_SetPlayerAttachedObject(playerid, index, modelid, bone, Float:fOffsetX
     new ret = SetPlayerAttachedObject(playerid, index, modelid, bone, fOffsetX, fOffsetY, fOffsetZ, fRotX, fRotY, fRotZ, fScaleX, fScaleY, fScaleZ, materialcolor1, materialcolor2);
     if (ret)
 	{
-		ATT_ePlayerData[playerid][index][ATT_e_USED] = true;
-		ATT_ePlayerData[playerid][index][ATT_e_MODEL] = modelid;
-		ATT_ePlayerData[playerid][index][ATT_e_BONE] = bone;
-		ATT_ePlayerData[playerid][index][ATT_e_X] = fOffsetX;
-		ATT_ePlayerData[playerid][index][ATT_e_Y] = fOffsetY;
-		ATT_ePlayerData[playerid][index][ATT_e_Z] = fOffsetZ;
-		ATT_ePlayerData[playerid][index][ATT_e_RX] = fRotX;
-		ATT_ePlayerData[playerid][index][ATT_e_RY] = fRotY;
-		ATT_ePlayerData[playerid][index][ATT_e_RZ] = fRotZ;
-		ATT_ePlayerData[playerid][index][ATT_e_SX] = fScaleX;
-		ATT_ePlayerData[playerid][index][ATT_e_SY] = fScaleY;
-		ATT_ePlayerData[playerid][index][ATT_e_SZ] = fScaleZ;
-		ATT_ePlayerData[playerid][index][ATT_e_COLOR1] = materialcolor1;
-		ATT_ePlayerData[playerid][index][ATT_e_COLOR2] = materialcolor2;
+		playerAttachment[playerid][index][E_PLAYER_ATTACHMENT_USED] = true;
+		playerAttachment[playerid][index][E_PLAYER_ATTACHMENT_MODEL] = modelid;
+		playerAttachment[playerid][index][E_PLAYER_ATTACHMENT_BONE] = bone;
+		playerAttachment[playerid][index][E_PLAYER_ATTACHMENT_X] = fOffsetX;
+		playerAttachment[playerid][index][E_PLAYER_ATTACHMENT_Y] = fOffsetY;
+		playerAttachment[playerid][index][E_PLAYER_ATTACHMENT_Z] = fOffsetZ;
+		playerAttachment[playerid][index][E_PLAYER_ATTACHMENT_RX] = fRotX;
+		playerAttachment[playerid][index][E_PLAYER_ATTACHMENT_RY] = fRotY;
+		playerAttachment[playerid][index][E_PLAYER_ATTACHMENT_RZ] = fRotZ;
+		playerAttachment[playerid][index][E_PLAYER_ATTACHMENT_SX] = fScaleX;
+		playerAttachment[playerid][index][E_PLAYER_ATTACHMENT_SY] = fScaleY;
+		playerAttachment[playerid][index][E_PLAYER_ATTACHMENT_SZ] = fScaleZ;
+		playerAttachment[playerid][index][E_PLAYER_ATTACHMENT_COLOR1] = materialcolor1;
+		playerAttachment[playerid][index][E_PLAYER_ATTACHMENT_COLOR2] = materialcolor2;
 	}
 	return ret;
 }
@@ -157,7 +151,7 @@ stock ATT_RemovePlayerAttachedObject(playerid, index)
    	new ret = RemovePlayerAttachedObject(playerid, index);
    	if (ret)
 	{
-		ATT_ePlayerData[playerid][index][ATT_e_USED] = false;
+		playerAttachment[playerid][index][E_PLAYER_ATTACHMENT_USED] = false;
 	}
 	return ret;
 }
