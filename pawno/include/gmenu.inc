@@ -3,7 +3,7 @@
 #endif
 #define gmenu_included
 
-// GMenu.inc - By Gammix - Last updated: 5 Sept, 2017
+// GMenu.inc - By Gammix - Version: 2.2.0 - Last updated: 5 Sept, 2017
 
 #if !defined MENU_SOUND_UPDOWN
 	#define MENU_SOUND_UPDOWN \
