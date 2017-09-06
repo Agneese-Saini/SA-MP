@@ -3,7 +3,7 @@
 #endif
 #define gmenu_included
 
-// GMenu.inc - By Gammix - Version: 2.2.0 - Last updated: 5 Sept, 2017
+// GMenu.inc - By Gammix - Last updated: 5 Sept, 2017
 
 #if !defined MENU_SOUND_UPDOWN
 	#define MENU_SOUND_UPDOWN \
@@ -84,7 +84,7 @@ static Internal_UpdateListitemInfo(playerid)
 	{
         PlayerTextDrawShow(playerid, menuPlayerTextDraws[playerid][menuPlayerTextDrawsID[playerid][E_MENU_TEXTDRAW_INFO_BOX]]);
         PlayerTextDrawShow(playerid, menuPlayerTextDraws[playerid][menuPlayerTextDrawsID[playerid][E_MENU_TEXTDRAW_INFO_ICON]]);
-        
+
 	    new string[MENU_MAX_LISTITEM_SIZE];
 	    strunpack(string, playerMenuListitemsInfo[playerid][listitemid]);
 	    PlayerTextDrawSetString(playerid, menuPlayerTextDraws[playerid][menuPlayerTextDrawsID[playerid][E_MENU_TEXTDRAW_INFO_TEXT]], string);
@@ -124,12 +124,12 @@ static Internal_UpdateListitems(playerid)
         	PlayerTextDrawColor(playerid, menuPlayerTextDraws[playerid][menuPlayerTextDrawsID[playerid][E_MENU_TEXTDRAW_LISTITEMS][i]], -1);
         	PlayerTextDrawBoxColor(playerid, menuPlayerTextDraws[playerid][menuPlayerTextDrawsID[playerid][E_MENU_TEXTDRAW_LISTITEMS][i]], 175);
 		}
-		
+
 	    strunpack(string, playerMenuListitems[playerid][listitem]);
 	    PlayerTextDrawSetString(playerid, menuPlayerTextDraws[playerid][menuPlayerTextDrawsID[playerid][E_MENU_TEXTDRAW_LISTITEMS][i]], string);
         PlayerTextDrawShow(playerid, menuPlayerTextDraws[playerid][menuPlayerTextDrawsID[playerid][E_MENU_TEXTDRAW_LISTITEMS][i]]);
 	}
-	
+
 	Internal_UpdateListitemInfo(playerid);
 }
 
@@ -138,20 +138,20 @@ native ShowPlayerMenu(playerid, menuid[], caption[], type[] = "Interaction Menu"
 */
 #define ShowPlayerMenu(%0,%1, \
 	Internal_ShowPlayerMenu(%0, #%1,
-	
+
 stock Internal_ShowPlayerMenu(playerid, menuid[], caption[], type[] = "INTERACTION MENU", captionTextColor = 0xf7f7f7ff, captionBoxColor = 0xdb0dd0bb, captionSprite[] = "loadsc12:loadsc12")
 {
 	if (playerid < 0 || playerid >= MAX_PLAYERS)
 	{
 	    return 0;
 	}
-	
+
 	for (new i; i < menuPlayerTextDrawsCount[playerid]; i++)
 	{
 	    PlayerTextDrawDestroy(playerid, menuPlayerTextDraws[playerid][i]);
 	}
     menuPlayerTextDrawsCount[playerid] = 0;
-    
+
     menuPlayerTextDraws[playerid][menuPlayerTextDrawsCount[playerid]] = CreatePlayerTextDraw(playerid,12.000000, 141.000000, captionSprite);
 	PlayerTextDrawBackgroundColor(playerid,menuPlayerTextDraws[playerid][menuPlayerTextDrawsCount[playerid]], 255);
 	PlayerTextDrawFont(playerid,menuPlayerTextDraws[playerid][menuPlayerTextDrawsCount[playerid]], 4);
@@ -204,7 +204,7 @@ stock Internal_ShowPlayerMenu(playerid, menuid[], caption[], type[] = "INTERACTI
 	PlayerTextDrawTextSize(playerid,menuPlayerTextDraws[playerid][menuPlayerTextDrawsCount[playerid]], 150.000000, 0.000000);
 	PlayerTextDrawSetSelectable(playerid,menuPlayerTextDraws[playerid][menuPlayerTextDrawsCount[playerid]], 0);
 	PlayerTextDrawShow(playerid,menuPlayerTextDraws[playerid][menuPlayerTextDrawsCount[playerid]++]);
-	
+
 	for (new i; type[i] != EOS; i++)
 	{
 	    toupper(type[i]);
@@ -246,7 +246,7 @@ stock Internal_ShowPlayerMenu(playerid, menuid[], caption[], type[] = "INTERACTI
 	PlayerTextDrawTextSize(playerid,menuPlayerTextDraws[playerid][menuPlayerTextDrawsCount[playerid]], 150.000000, 0.000000);
 	PlayerTextDrawSetSelectable(playerid,menuPlayerTextDraws[playerid][menuPlayerTextDrawsCount[playerid]], 0);
 	PlayerTextDrawShow(playerid,menuPlayerTextDraws[playerid][menuPlayerTextDrawsCount[playerid]++]);
-	
+
 	for (new i; i < MENU_MAX_LISTITEMS_PERPAGE; i++)
 	{
 		menuPlayerTextDraws[playerid][menuPlayerTextDrawsCount[playerid]] = CreatePlayerTextDraw(playerid,13.000000, (196.000000 + (15 * i)), "_");
@@ -263,7 +263,7 @@ stock Internal_ShowPlayerMenu(playerid, menuid[], caption[], type[] = "INTERACTI
 		PlayerTextDrawSetSelectable(playerid,menuPlayerTextDraws[playerid][menuPlayerTextDrawsCount[playerid]], 0);
 		menuPlayerTextDrawsID[playerid][E_MENU_TEXTDRAW_LISTITEMS][i] = menuPlayerTextDrawsCount[playerid]++;
 	}
-	
+
 	menuPlayerTextDraws[playerid][menuPlayerTextDrawsCount[playerid]] = CreatePlayerTextDraw(playerid,13.000000, 319.000000, "_box");
 	PlayerTextDrawBackgroundColor(playerid,menuPlayerTextDraws[playerid][menuPlayerTextDrawsCount[playerid]], 0);
 	PlayerTextDrawFont(playerid,menuPlayerTextDraws[playerid][menuPlayerTextDrawsCount[playerid]], 1);
@@ -359,7 +359,7 @@ stock HidePlayerMenu(playerid)
 	    PlayerTextDrawDestroy(playerid, menuPlayerTextDraws[playerid][i]);
 	}
     menuPlayerTextDrawsCount[playerid] = 0;
-    
+
     playerMenu[playerid][E_PLAYER_MENU_ID][0] = EOS;
 	return 1;
 }
@@ -385,6 +385,62 @@ public OnPlayerConnect(playerid)
     forward Menu_OnPlayerConnect(playerid);
 #endif
 
+public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
+{
+	if(playerMenu[playerid][E_PLAYER_MENU_ID][0] != EOS)
+	{
+		if (newkeys == KEY_SECONDARY_ATTACK && (GetTickCount() - playerMenu[playerid][E_PLAYER_MENU_TICKCOUNT]) >= 200)
+		{
+    		playerMenu[playerid][E_PLAYER_MENU_TICKCOUNT] = GetTickCount();
+			PlayerPlaySound(playerid, MENU_SOUND_CLOSE, 0.0, 0.0, 0.0);
+
+			new menuid[32] = "menu_";
+			strcat(menuid, playerMenu[playerid][E_PLAYER_MENU_ID]);
+
+			for (new i; i < menuPlayerTextDrawsCount[playerid]; i++)
+			{
+			    PlayerTextDrawDestroy(playerid, menuPlayerTextDraws[playerid][i]);
+			}
+		    menuPlayerTextDrawsCount[playerid] = 0;
+		    playerMenu[playerid][E_PLAYER_MENU_ID][0] = EOS;
+
+			CallLocalFunction(menuid, "iii", playerid, MENU_RESPONSE_CLOSE, (playerMenu[playerid][E_PLAYER_MENU_LISTITEM] + (playerMenu[playerid][E_PLAYER_MENU_PAGE] * MENU_MAX_LISTITEMS_PERPAGE)));
+		}
+		else if (newkeys == KEY_SPRINT && (GetTickCount() - playerMenu[playerid][E_PLAYER_MENU_TICKCOUNT]) >= 200)
+		{
+    		playerMenu[playerid][E_PLAYER_MENU_TICKCOUNT] = GetTickCount();
+			PlayerPlaySound(playerid, MENU_SOUND_SELECT, 0.0, 0.0, 0.0);
+
+			new menuid[32] = "menu_";
+			strcat(menuid, playerMenu[playerid][E_PLAYER_MENU_ID]);
+
+			for (new i; i < menuPlayerTextDrawsCount[playerid]; i++)
+			{
+			    PlayerTextDrawDestroy(playerid, menuPlayerTextDraws[playerid][i]);
+			}
+		    menuPlayerTextDrawsCount[playerid] = 0;
+		    playerMenu[playerid][E_PLAYER_MENU_ID][0] = EOS;
+
+			CallLocalFunction(menuid, "iii", playerid, MENU_RESPONSE_SELECT, (playerMenu[playerid][E_PLAYER_MENU_LISTITEM] + (playerMenu[playerid][E_PLAYER_MENU_PAGE] * MENU_MAX_LISTITEMS_PERPAGE)));
+		}
+	}
+	
+	#if defined Menu_OnPlayerKeyStateChange
+       	return Menu_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
+	#else
+	   	return 1;
+	#endif
+}
+#if defined _ALS_OnPlayerKeyStateChange
+    #undef OnPlayerKeyStateChange
+#else
+    #define _ALS_OnPlayerKeyStateChange
+#endif
+#define OnPlayerKeyStateChange Menu_OnPlayerKeyStateChange
+#if defined Menu_OnPlayerKeyStateChange
+    forward Menu_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
+#endif
+		
 public OnPlayerUpdate(playerid)
 {
 	if(playerMenu[playerid][E_PLAYER_MENU_ID][0] != EOS)
@@ -393,11 +449,12 @@ public OnPlayerUpdate(playerid)
 		GetPlayerKeys(playerid, keys, updown, leftright);
 
 		#pragma unused leftright
+		#pragma unused keys
 
 		if (updown == KEY_DOWN && (GetTickCount() - playerMenu[playerid][E_PLAYER_MENU_TICKCOUNT]) >= 200)
 		{
 		    new listitem = (playerMenu[playerid][E_PLAYER_MENU_LISTITEM] + (playerMenu[playerid][E_PLAYER_MENU_PAGE] * MENU_MAX_LISTITEMS_PERPAGE));
-		    
+
     		playerMenu[playerid][E_PLAYER_MENU_TICKCOUNT] = GetTickCount();
 			PlayerPlaySound(playerid, MENU_SOUND_UPDOWN, 0.0, 0.0, 0.0);
 
@@ -450,38 +507,6 @@ public OnPlayerUpdate(playerid)
 			new menuid[32] = "menu_";
 			strcat(menuid, playerMenu[playerid][E_PLAYER_MENU_ID]);
 			CallLocalFunction(menuid, "iii", playerid, MENU_RESPONSE_DOWN, (playerMenu[playerid][E_PLAYER_MENU_LISTITEM] + (playerMenu[playerid][E_PLAYER_MENU_PAGE] * MENU_MAX_LISTITEMS_PERPAGE)));
-		}
-		else if (keys == KEY_SECONDARY_ATTACK && (GetTickCount() - playerMenu[playerid][E_PLAYER_MENU_TICKCOUNT]) >= 200)
-		{
-			PlayerPlaySound(playerid, MENU_SOUND_CLOSE, 0.0, 0.0, 0.0);
-
-			new menuid[32] = "menu_";
-			strcat(menuid, playerMenu[playerid][E_PLAYER_MENU_ID]);
-			
-			for (new i; i < menuPlayerTextDrawsCount[playerid]; i++)
-			{
-			    PlayerTextDrawDestroy(playerid, menuPlayerTextDraws[playerid][i]);
-			}
-		    menuPlayerTextDrawsCount[playerid] = 0;
-		    playerMenu[playerid][E_PLAYER_MENU_ID][0] = EOS;
-    
-			CallLocalFunction(menuid, "iii", playerid, MENU_RESPONSE_CLOSE, (playerMenu[playerid][E_PLAYER_MENU_LISTITEM] + (playerMenu[playerid][E_PLAYER_MENU_PAGE] * MENU_MAX_LISTITEMS_PERPAGE)));
-		}
-		else if (keys == KEY_SPRINT && (GetTickCount() - playerMenu[playerid][E_PLAYER_MENU_TICKCOUNT]) >= 200)
-		{
-			PlayerPlaySound(playerid, MENU_SOUND_SELECT, 0.0, 0.0, 0.0);
-
-			new menuid[32] = "menu_";
-			strcat(menuid, playerMenu[playerid][E_PLAYER_MENU_ID]);
-
-			for (new i; i < menuPlayerTextDrawsCount[playerid]; i++)
-			{
-			    PlayerTextDrawDestroy(playerid, menuPlayerTextDraws[playerid][i]);
-			}
-		    menuPlayerTextDrawsCount[playerid] = 0;
-		    playerMenu[playerid][E_PLAYER_MENU_ID][0] = EOS;
-
-			CallLocalFunction(menuid, "iii", playerid, MENU_RESPONSE_SELECT, (playerMenu[playerid][E_PLAYER_MENU_LISTITEM] + (playerMenu[playerid][E_PLAYER_MENU_PAGE] * MENU_MAX_LISTITEMS_PERPAGE)));
 		}
 	}
 
