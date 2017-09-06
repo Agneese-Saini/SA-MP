@@ -735,9 +735,9 @@ stock LC_SetPlayerHealth(playerid, Float:health)
 
 	if (health < 0.0)
 	{
-        playerDeath[damagedid][E_PLAYER_DEATH_VALID] = true;
-		playerDeath[damagedid][E_PLAYER_DEATH_KILLERID] = INVALID_PLAYER_ID;
-		playerDeath[damagedid][E_PLAYER_DEATH_REASON] = WEAPON_UNKNOWN;
+        playerDeath[playerid][E_PLAYER_DEATH_VALID] = true;
+		playerDeath[playerid][E_PLAYER_DEATH_KILLERID] = INVALID_PLAYER_ID;
+		playerDeath[playerid][E_PLAYER_DEATH_REASON] = WEAPON_UNKNOWN;
 	}
 
 	return SetPlayerHealth(playerid, health);
