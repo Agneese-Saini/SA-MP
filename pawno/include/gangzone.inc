@@ -3,6 +3,8 @@
 #endif
 #define gangzones_included
 
+// Gangzones.inc - By Gammix - Version: 3.0 - Last Updated: 5 Sept, 2017
+
 /*
 native GangZoneBorderCreate(zoneid[], Float:minx, Float:miny, Float:maxx, Float:maxy, Float:bordersize = 3.0);
 */
