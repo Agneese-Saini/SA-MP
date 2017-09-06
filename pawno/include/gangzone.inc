@@ -8,7 +8,7 @@ native GangZoneBorderCreate(zoneid[], Float:minx, Float:miny, Float:maxx, Float:
 */
 stock GangZoneBorderCreate(zoneid[], Float:minx, Float:miny, Float:maxx, Float:maxy, Float:bordersize = 3.0)
 {
-	zoneid[0] = GangZoneCreate(minx - bordersize, miny + bordersize, minx + bordersize, maxx - bordersize);
+    zoneid[0] = GangZoneCreate(minx - bordersize, miny + bordersize, minx + bordersize, maxy - bordersize);
 	zoneid[1] = GangZoneCreate(minx - bordersize, maxy - bordersize, maxx + bordersize, maxy + bordersize);
 	zoneid[2] = GangZoneCreate(maxx - bordersize, miny + bordersize, maxx + bordersize, maxy - bordersize);
 	zoneid[3] = GangZoneCreate(minx - bordersize, miny - bordersize, maxx + bordersize, miny + bordersize);
@@ -20,31 +20,29 @@ native GangZoneNumberCreate(zoneid[], Float:minx, Float:miny, Float:maxx, Float:
 */
 stock GangZoneNumberCreate(zoneid[], Float:minx, Float:miny, Float:maxx, Float:maxy, number, Float:numbersize = 0.7)
 {
-	new Float:centposx,
-		Float:centposy;
-	centposx = (minx + maxx) / 2;
-	centposy = (miny + maxy) / 2;
+	new Float:centposx = (minx + maxx) / 2;
+	new Float:centposy = (miny + maxy) / 2;
 
+	new num[3];
+	format(num, sizeof num, "%d", number);
+	
 	if (number >= 0 && number <= 9)
 	{
-	    return Internal_GangZoneCreateNumber(zoneid, number, centposx, centposy, numbersize);
+	    return Internal_GangZoneCreateNumber(zoneid, num[0], centposx, centposy, numbersize);
 	}
 	else if (number > 9 && number <= 99)
 	{
 	    #define NUMBER_DISTANCE \
 			25.0
 
-		new num[3];
-	   	format(num, sizeof num, "%d", number);
-
 	    new temp[5];
-		new ret = Internal_GangZoneCreateNumber(temp, strval(num[0]), (centposx - (NUMBER_DISTANCE * numbersize)), centposy, numbersize);
+		new ret = Internal_GangZoneCreateNumber(temp, num[0], (centposx - (NUMBER_DISTANCE * numbersize)), centposy, numbersize);
         for (new i; i < ret; i++)
         {
 			zoneid[i] = temp[i];
         }
 
-        new ret2 = Internal_GangZoneCreateNumber(temp, strval(num[1]), (centposx + (NUMBER_DISTANCE * numbersize)), centposy, numbersize);
+        new ret2 = Internal_GangZoneCreateNumber(temp, num[1], (centposx + (NUMBER_DISTANCE * numbersize)), centposy, numbersize);
         for (new i; i < ret2; i++)
         {
 			zoneid[i + ret] = temp[i];
@@ -61,9 +59,9 @@ static Internal_GangZoneCreateNumber(zoneid[], number, Float:centposx, Float:cen
 	#define LETTER_XSQUASH \
 		0.7
 	
-	switch(number)
+	switch (number)
 	{
-	  	case 0:
+	  	case '0':
 	  	{
 			new Float:gztk = LETTER_STROKE*numbersize;
 			new Float:gsdisx = 20.0*numbersize*LETTER_XSQUASH;
@@ -74,14 +72,16 @@ static Internal_GangZoneCreateNumber(zoneid[], number, Float:centposx, Float:cen
         	zoneid[3] = GangZoneCreate(centposx+gsdisx-gztk,centposy-gsdisy+gztk,centposx+gsdisx+gztk,centposy+gsdisy-gztk); // Right of 0
         	return 4;
 	  	}
-	  	case 1:
+	  	
+	  	case '1':
 	  	{
 			new Float:gztk = LETTER_STROKE*numbersize;
 			new Float:gsdisy = 20.0*numbersize;
 			zoneid[0] = GangZoneCreate(centposx-gztk,centposy-gsdisy-gztk,centposx+gztk,centposy+gsdisy+gztk);
         	return 1;
 	  	}
-	  	case 2:
+	  	
+	  	case '2':
 	  	{
 			new Float:gztk = LETTER_STROKE*numbersize;
 			new Float:gsdisy = 20.0*numbersize;
@@ -93,7 +93,8 @@ static Internal_GangZoneCreateNumber(zoneid[], number, Float:centposx, Float:cen
 	        zoneid[4] = GangZoneCreate(centposx-gsdisx,centposy-gsdisy-gztk,centposx+gsdisx,centposy-gsdisy+gztk); // Down
         	return 5;
 	  	}
-	  	case 3:
+	  	
+	  	case '3':
 	  	{
 			new Float:gztk = LETTER_STROKE*numbersize;
 			new Float:gsdisy = 20.0*numbersize;
@@ -104,7 +105,8 @@ static Internal_GangZoneCreateNumber(zoneid[], number, Float:centposx, Float:cen
 			zoneid[3] = GangZoneCreate(centposx-gsdisx,centposy-gsdisy-gztk,centposx+gsdisx,centposy-gsdisy+gztk); // Down
         	return 4;
 	  	}
-	  	case 4:
+	  	
+	  	case '4':
 	  	{
 	  		new Float:gztk = LETTER_STROKE*numbersize;
 			new Float:gsdisy = 20.0*numbersize;
@@ -114,7 +116,8 @@ static Internal_GangZoneCreateNumber(zoneid[], number, Float:centposx, Float:cen
 			zoneid[2] = GangZoneCreate(centposx+gsdisx,centposy-gsdisy,centposx+gsdisx+gztk+gztk,centposy+gsdisy); // Stick
         	return 3;
 	  	}
-	  	case 5:
+	  	
+	  	case '5':
 	  	{
 	  		new Float:gztk = LETTER_STROKE*numbersize;
 			new Float:gsdisy = 20.0*numbersize;
@@ -126,7 +129,8 @@ static Internal_GangZoneCreateNumber(zoneid[], number, Float:centposx, Float:cen
 			zoneid[4] = GangZoneCreate(centposx-gsdisx-gztk,centposy-gsdisy-gztk,centposx+gsdisx+gztk,centposy-gsdisy+gztk); // Down
         	return 5;
 	  	}
-	  	case 6:
+	  	
+	  	case '6':
 	  	{
 	  		new Float:gztk = LETTER_STROKE*numbersize;
 			new Float:gsdisy = 20.0*numbersize;
@@ -138,7 +142,8 @@ static Internal_GangZoneCreateNumber(zoneid[], number, Float:centposx, Float:cen
 			zoneid[4] = GangZoneCreate(centposx+gsdisx-gztk-gztk,centposy-gsdisy+gztk,centposx+gsdisx,centposy-gztk); // Right small stick
         	return 5;
 	  	}
-	  	case 7:
+	  	
+	  	case '7':
 	  	{
 			new Float:gztk = LETTER_STROKE*numbersize;
 			new Float:gsdisy = 20.0*numbersize;
@@ -147,7 +152,8 @@ static Internal_GangZoneCreateNumber(zoneid[], number, Float:centposx, Float:cen
 			zoneid[1] = GangZoneCreate(centposx-gsdisx-gsdisx,centposy+gsdisy-gztk,centposx+gsdisx+gztk,centposy+gsdisy+gztk); // Up of 7
         	return 2;
 	  	}
-	  	case 8:
+	  	
+	  	case '8':
 	  	{
 	  		new Float:gztk = LETTER_STROKE*numbersize;
 			new Float:gsdisy = 20.0*numbersize;
@@ -159,7 +165,8 @@ static Internal_GangZoneCreateNumber(zoneid[], number, Float:centposx, Float:cen
 			zoneid[4] = GangZoneCreate(centposx-gsdisx+gztk,centposy-gsdisy-gztk,centposx+gsdisx-gztk,centposy-gsdisy+gztk); // Down
         	return 5;
 	  	}
-	  	case 9:
+	  	
+	  	case '9':
 	  	{
 	  		new Float:gztk = LETTER_STROKE*numbersize;
 			new Float:gsdisy = 20.0*numbersize;
