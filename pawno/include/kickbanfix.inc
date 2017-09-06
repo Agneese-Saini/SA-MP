@@ -3,26 +3,26 @@
 #endif
 #define kickbanfix_included
 
-enum e_KICKBAN
+enum E_KICKBAN
 {
-	e_KICKBAN_TIMER,
-	e_KICKBAN_TYPE,
-	e_KICKBAN_REASON[150]
+	E_KICKBAN_TIMER,
+	E_KICKBAN_TYPE,
+	E_KICKBAN_REASON[150]
 };
-static KB_ePlayer[MAX_PLAYERS][e_KICKBAN];
+static playerKickbanDelay[MAX_PLAYERS][E_KICKBAN];
 
-stock FIX_Kick(playerid, delay = 150)
+stock KB_Kick(playerid, delay = 50)
 {
-	if (! IsPlayerConnected(playerid) || KB_ePlayer[playerid][e_KICKBAN_TIMER])
+	if (! IsPlayerConnected(playerid) || playerKickbanDelay[playerid][E_KICKBAN_TIMER])
 	{
 		return 0;
 	}
 
 	CallRemoteFunction("OnPlayerDelayKickProcessed", "ii", playerid, SetTimerEx("OnPlayerDelayKicked", delay, false, "i", playerid));
 
-	KB_ePlayer[playerid][e_KICKBAN_TYPE] = 0;
-	KB_ePlayer[playerid][e_KICKBAN_REASON][0] = EOS;
-	
+	playerKickbanDelay[playerid][E_KICKBAN_TYPE] = 0;
+	playerKickbanDelay[playerid][E_KICKBAN_REASON][0] = EOS;
+
 	return 1;
 }
 #if defined _ALS_Kick
@@ -31,19 +31,19 @@ stock FIX_Kick(playerid, delay = 150)
 	native BAD_Kick(playerid) = Kick;
 	#define _ALS_Kick
 #endif
-#define Kick FIX_Kick
+#define Kick KB_Kick
 
-stock FIX_Ban(playerid, delay = 150)
+stock KB_Ban(playerid, delay = 50)
 {
-	if (! IsPlayerConnected(playerid) || KB_ePlayer[playerid][e_KICKBAN_TIMER])
+	if (! IsPlayerConnected(playerid) || playerKickbanDelay[playerid][E_KICKBAN_TIMER])
 	{
 		return 0;
 	}
 
 	CallRemoteFunction("OnPlayerDelayKickProcessed", "ii", playerid, SetTimerEx("OnPlayerDelayKicked", delay, false, "i", playerid));
 
-	KB_ePlayer[playerid][e_KICKBAN_TYPE] = 1;
-	KB_ePlayer[playerid][e_KICKBAN_REASON][0] = EOS;
+	playerKickbanDelay[playerid][E_KICKBAN_TYPE] = 1;
+	playerKickbanDelay[playerid][E_KICKBAN_REASON][0] = EOS;
 
 	return 1;
 }
@@ -53,20 +53,20 @@ stock FIX_Ban(playerid, delay = 150)
 	native BAD_Ban(playerid) = Ban;
 	#define _ALS_Ban
 #endif
-#define Ban FIX_Ban
+#define Ban KB_Ban
 
-stock FIX_BanEx(playerid, const reason[], delay = 150)
+stock KB_BanEx(playerid, const reason[], delay = 50)
 {
-	if (! IsPlayerConnected(playerid) || KB_ePlayer[playerid][e_KICKBAN_TIMER])
+	if (! IsPlayerConnected(playerid) || playerKickbanDelay[playerid][E_KICKBAN_TIMER])
 	{
 		return 0;
 	}
 
 	CallRemoteFunction("OnPlayerDelayKickProcessed", "ii", playerid, SetTimerEx("OnPlayerDelayKicked", delay, false, "i", playerid));
 
-	KB_ePlayer[playerid][e_KICKBAN_TYPE] = 2;
-	KB_ePlayer[playerid][e_KICKBAN_REASON][0] = EOS;
-	strcat(KB_ePlayer[playerid][e_KICKBAN_REASON], reason);
+	playerKickbanDelay[playerid][E_KICKBAN_TYPE] = 2;
+	playerKickbanDelay[playerid][E_KICKBAN_REASON][0] = EOS;
+	strcat(playerKickbanDelay[playerid][E_KICKBAN_REASON], reason);
 
 	return 1;
 }
@@ -76,14 +76,14 @@ stock FIX_BanEx(playerid, const reason[], delay = 150)
 	native BAD_BanEx(playerid, const reason[]) = BanEx;
 	#define _ALS_BanEx
 #endif
-#define BanEx FIX_BanEx
+#define BanEx KB_BanEx
 
 forward OnPlayerDelayKicked(playerid);
 public	OnPlayerDelayKicked(playerid)
 {
 	CallRemoteFunction("OnPlayerDelayKickProcessed", "ii", playerid, 0);
 
-	switch (KB_ePlayer[playerid][e_KICKBAN_TYPE])
+	switch (playerKickbanDelay[playerid][E_KICKBAN_TYPE])
 	{
 		case 0:
 		{
@@ -95,7 +95,7 @@ public	OnPlayerDelayKicked(playerid)
 		}
 		case 2:
 		{
-			BAD_BanEx(playerid, KB_ePlayer[playerid][e_KICKBAN_REASON]);
+			BAD_BanEx(playerid, playerKickbanDelay[playerid][E_KICKBAN_REASON]);
 		}
 	}
 }
@@ -103,12 +103,12 @@ public	OnPlayerDelayKicked(playerid)
 forward OnPlayerDelayKickProcessed(playerid, i);
 public  OnPlayerDelayKickProcessed(playerid, i)
 {
-    KB_ePlayer[playerid][e_KICKBAN_TIMER] = i;
+    playerKickbanDelay[playerid][E_KICKBAN_TIMER] = i;
 }
 
 public OnPlayerConnect(playerid)
 {
-	KB_ePlayer[playerid][e_KICKBAN_TIMER] = 0;
+	playerKickbanDelay[playerid][E_KICKBAN_TIMER] = 0;
 
 	#if defined KB_OnPlayerConnect
 		return KB_OnPlayerConnect(playerid);
@@ -129,10 +129,10 @@ public OnPlayerConnect(playerid)
 
 public OnPlayerDisconnect(playerid, reason)
 {
-	if (KB_ePlayer[playerid][e_KICKBAN_TIMER])
+	if (playerKickbanDelay[playerid][E_KICKBAN_TIMER])
 	{
-		KillTimer(KB_ePlayer[playerid][e_KICKBAN_TIMER]);
-		KB_ePlayer[playerid][e_KICKBAN_TIMER] = 0;
+		KillTimer(playerKickbanDelay[playerid][E_KICKBAN_TIMER]);
+		playerKickbanDelay[playerid][E_KICKBAN_TIMER] = 0;
 
 		OnPlayerDelayKicked(playerid);
 	}
@@ -155,7 +155,7 @@ forward KB_OnPlayerDisconnect(playerid, reason);
 
 public OnPlayerUpdate(playerid)
 {
-	if (KB_ePlayer[playerid][e_KICKBAN_TIMER])
+	if (playerKickbanDelay[playerid][E_KICKBAN_TIMER])
 	{
 		return 0;
 	}
@@ -178,7 +178,7 @@ public OnPlayerUpdate(playerid)
 
 public OnPlayerCommandText(playerid, cmdtext[])
 {
-	if (KB_ePlayer[playerid][e_KICKBAN_TIMER])
+	if (playerKickbanDelay[playerid][E_KICKBAN_TIMER])
 	{
 		return 0;
 	}
@@ -201,7 +201,7 @@ public OnPlayerCommandText(playerid, cmdtext[])
 
 public OnPlayerText(playerid, text[])
 {
-	if (KB_ePlayer[playerid][e_KICKBAN_TIMER])
+	if (playerKickbanDelay[playerid][E_KICKBAN_TIMER])
 	{
 		return 0;
 	}
@@ -224,7 +224,7 @@ public OnPlayerText(playerid, text[])
 
 public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 {
-	if (KB_ePlayer[playerid][e_KICKBAN_TIMER])
+	if (playerKickbanDelay[playerid][E_KICKBAN_TIMER])
 	{
 		return 0;
 	}
@@ -247,7 +247,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 
 public OnPlayerDeath(playerid, killerid, reason)
 {
-	if (KB_ePlayer[playerid][e_KICKBAN_TIMER])
+	if (playerKickbanDelay[playerid][E_KICKBAN_TIMER])
 	{
 		return 0;
 	}
@@ -270,7 +270,7 @@ public OnPlayerDeath(playerid, killerid, reason)
 
 public OnVehicleMod(playerid, vehicleid, componentid)
 {
-	if (KB_ePlayer[playerid][e_KICKBAN_TIMER])
+	if (playerKickbanDelay[playerid][E_KICKBAN_TIMER])
 	{
 		return 0;
 	}
@@ -293,7 +293,7 @@ public OnVehicleMod(playerid, vehicleid, componentid)
 
 public OnVehicleRespray(playerid, vehicleid, color1, color2)
 {
-	if (KB_ePlayer[playerid][e_KICKBAN_TIMER])
+	if (playerKickbanDelay[playerid][E_KICKBAN_TIMER])
 	{
 		return 0;
 	}
