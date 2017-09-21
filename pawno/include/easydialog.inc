@@ -1,8 +1,9 @@
-// easydialog.inc - By Emmet_ & Gammix - Last updated on 16 May, 2017
 #if defined easydialog_included
 	#endinput
 #endif
 #define easydialog_included
+
+// easydialog.inc - By Emmet_ - Last updated on 21 Sept, 2017
 
 #define DIALOG:%0(%1) \
 	forward dialog_%0(%1); public dialog_%0(%1)
@@ -10,17 +11,42 @@
 #define Dialog:%0(%1) \
 	forward dialog_%0(%1); public dialog_%0(%1)
 
-#define DIALOG_DEFAULT_ID (32700)
+#if !defined DIALOG_DEFAULT_ID
+	#define DIALOG_DEFAULT_ID \
+		32700
+#endif
 
-static Dialog_playerDialogId[MAX_PLAYERS][31];
+#if !defined DIALOG_PREFIX
+	#define DIALOG_PREFIX \
+	    "dialog_"
+#endif
 
-stock Dialog_Open(playerid, function[], style, caption[], info[], button1[], button2[])
+#if !defined DIALOG_PREFIX_LENGTH
+	#define DIALOG_PREFIX_LENGTH \
+	    7
+#endif
+
+static playerDialogID[MAX_PLAYERS][31 - DIALOG_PREFIX_LENGTH];
+
+/*
+native Dialog_Hide(playerid);
+*/
+#define Dialog_Hide(%0) \
+	ShowPlayerDialog(playerid, -1, -1, "", "", "", "")
+
+/*
+native Dialog_GetID(playerid, dest[], maxlength);
+*/
+#define Dialog_GetID(%0,%1,%2) \
+	format(%1, %2, playerDialogID[%0]);
+	
+stock Dialog_ShowPlayerDialog(playerid, function[], style, caption[], info[], button1[], button2[])
 {
-	new ret = ShowPlayerDialog(playerid, DIALOG_DEFAULT_ID, style, caption, info, button1, button2);
+	new bool:ret = bool:ShowPlayerDialog(playerid, DIALOG_DEFAULT_ID, style, caption, info, button1, button2);
 	if (ret)
 	{
-	    Dialog_playerDialogId[playerid] = "dialog_";
-	    strcat(Dialog_playerDialogId[playerid], function);
+	    playerDialogID[playerid] = DIALOG_PREFIX;
+	    strcat(playerDialogID[playerid], function);
 	}
 	return ret;
 }
@@ -31,10 +57,13 @@ stock Dialog_Open(playerid, function[], style, caption[], info[], button1[], but
 #endif
 
 #define ShowPlayerDialog(%0,%1, \
-	Dialog_Open(%0, #%1,
+	Dialog_ShowPlayerDialog(%0, #%1,
 
+/*
+native Dialog_Show(playerid, Function<>, style, caption[], info[], button1[], button2[]);
+*/
 #define Dialog_Show(%0,%1, \
-	Dialog_Open(%0, #%1,
+	Dialog_ShowPlayerDialog(%0, #%1,
 
 public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 {
@@ -46,10 +75,10 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 		}
 	}
 
-	if (dialogid == DIALOG_DEFAULT_ID && Dialog_playerDialogId[playerid][0])
+	if (dialogid == DIALOG_DEFAULT_ID && playerDialogID[playerid][0])
 	{
-		CallLocalFunction(Dialog_playerDialogId[playerid], "ddds", playerid, response, listitem, (!inputtext[0]) ? ("\1") : (inputtext));
-		Dialog_playerDialogId[playerid][0] = EOS;
+		CallLocalFunction(playerDialogID[playerid], "ddds", playerid, response, listitem, ((!inputtext[0]) ? ("\1") : (inputtext)));
+		playerDialogID[playerid][0] = EOS;
 	}
 	else return 0;
 
