@@ -1018,7 +1018,7 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid)
 			    listitem = (playerDialogListitem[playerid] + (playerDialogPage[playerid] * (MAX_DIALOG_LIST_COLUMNS * MAX_DIALOG_LIST_ROWS)));
 			}
 
-			new inputtext[5];
+			new inputtext[6];
 			valstr(inputtext, playerDialogModel[playerid][listitem]);
 
             Dialog_HidePlayerDialog(playerid);
@@ -1101,7 +1101,7 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 			    listitem = (playerDialogListitem[playerid] + (playerDialogPage[playerid] * (MAX_DIALOG_LIST_COLUMNS * MAX_DIALOG_LIST_ROWS)));
 			}
 
-			new inputtext[5];
+			new inputtext[6];
 			valstr(inputtext, playerDialogModel[playerid][listitem]);
 
             Dialog_HidePlayerDialog(playerid);
@@ -1123,7 +1123,7 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 			    listitem = (playerDialogListitem[playerid] + (playerDialogPage[playerid] * (MAX_DIALOG_LIST_COLUMNS * MAX_DIALOG_LIST_ROWS)));
 			}
 
-			new inputtext[5];
+			new inputtext[6];
 			valstr(inputtext, playerDialogModel[playerid][listitem]);
 
             Dialog_HidePlayerDialog(playerid);
