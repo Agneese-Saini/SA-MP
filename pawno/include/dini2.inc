@@ -430,14 +430,18 @@ native dini_NumFields(const file[]);
 */
 stock dini_NumFields(const file[])
 {
-    for (new i; i <= diniFilePoolSize; i++)
+	if (!fexist(file))
 	{
-	    if (diniFile[i][E_DINI_FILE_NAME][0] != EOS && !strcmp(diniFile[i][E_DINI_FILE_NAME], file))
-	    {
-		    return diniFile[i][E_DINI_FILE_NUM_FIELDS];
-	    }
+	    return 0;
 	}
-	return 0;
+
+	new index = dini_GetFileIndex(file);
+	if (index == -1)
+	{
+	    return 0;
+	}
+
+    return diniFile[index][E_DINI_FILE_NUM_FIELDS];
 }
 
 /*
@@ -446,21 +450,28 @@ native dini_GetFieldName(const file[], field);
 stock dini_GetFieldName(const file[], field)
 {
 	new empty[DINI_MAX_FIELD_NAME];
-	if (field < 0) {
+	if (field < 0)
+	{
 		return empty;
 	}
 
-    for (new i; i <= diniFilePoolSize; i++)
+	if (!fexist(file))
 	{
-	    if (diniFile[i][E_DINI_FILE_NAME][0] != EOS && !strcmp(diniFile[i][E_DINI_FILE_NAME], file))
-	    {
-			if (field < diniFile[i][E_DINI_FILE_NUM_FIELDS]) {
-				return diniFileFields[i][field];
-			}
-			return empty;
-	    }
+	    return empty;
 	}
-	return empty;
+
+	new index = dini_GetFileIndex(file);
+	if (index == -1)
+	{
+	    return empty;
+	}
+
+    if (field >= diniFile[index][E_DINI_FILE_NUM_FIELDS])
+	{
+	    return empty;
+	}
+	
+    return diniFileFields[index][field];
 }
 
 /*
@@ -469,19 +480,26 @@ native dini_GetFieldValue(const file[], field);
 stock dini_GetFieldValue(const file[], field)
 {
 	new empty[DINI_MAX_FIELD_VALUE];
-	if (field < 0) {
+	if (field < 0)
+	{
 		return empty;
 	}
 
-    for (new i; i <= diniFilePoolSize; i++)
+	if (!fexist(file))
 	{
-	    if (diniFile[i][E_DINI_FILE_NAME][0] != EOS && !strcmp(diniFile[i][E_DINI_FILE_NAME], file))
-	    {
-			if (field < diniFile[i][E_DINI_FILE_NUM_FIELDS]) {
-				return diniFileValues[i][field];
-			}
-			return empty;
-	    }
+	    return empty;
 	}
-	return empty;
+
+	new index = dini_GetFileIndex(file);
+	if (index == -1)
+	{
+	    return empty;
+	}
+
+    if (field >= diniFile[index][E_DINI_FILE_NUM_FIELDS])
+	{
+	    return empty;
+	}
+
+    return diniFileValues[index][field];
 }
