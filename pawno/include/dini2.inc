@@ -1,505 +1,498 @@
-// dini2.inc - v2.7 - updated 29 Sept, 2017 - By Gammix
 #if defined dini2_included
 	#endinput
 #endif
 #define dini2_included
 
-#if !defined DINI_MAX_HANDLES
-	#define DINI_MAX_HANDLES (16)
+/**********************************************/
+// Dini2.inc | v2.8 | Updated: 6 Oct, 2017 | By Gammix
+// New API code
+/**********************************************/
+
+// definitions
+#if !defined DINI_MAX_FILES
+	#define DINI_MAX_FILES \
+		16
 #endif
 
 #if !defined DINI_MAX_FILE_NAME
-	#define DINI_MAX_FILE_NAME (128)
-#endif
-
-#if !defined DINI_TIMER_INTERVAL
-	#define DINI_TIMER_INTERVAL (150)
+	#define DINI_MAX_FILE_NAME \
+		128
 #endif
 
 #if !defined DINI_MAX_FIELDS
-	#define DINI_MAX_FIELDS (64)
+	#define DINI_MAX_FIELDS \
+		64
 #endif
 
 #if !defined DINI_MAX_FIELD_NAME
-	#define DINI_MAX_FIELD_NAME (64)
+	#define DINI_MAX_FIELD_NAME \
+		32
 #endif
 
 #if !defined DINI_MAX_FIELD_VALUE
-	#define DINI_MAX_FIELD_VALUE (512)
+	#define DINI_MAX_FIELD_VALUE \
+		256
 #endif
 
-enum E_DINI_FILE
-{
-    E_DINI_FILE_NAME[DINI_MAX_FILE_NAME],
-    E_DINI_FILE_TIMER,
-	bool:E_DINI_FILE_MODIFIED,
-	E_DINI_FILE_NUM_FIELDS
+// variables decleration
+enum E_DINI {
+	E_DINI_FILE_NAME[DINI_MAX_FILE_NAME],
+	E_DINI_TIMER,
+	bool:E_DINI_SAVE_FILE,
+	E_DINI_NUM_FIELDS
 };
 
-static diniFile[DINI_MAX_HANDLES][E_DINI_FILE];
-static diniFileFields[DINI_MAX_HANDLES][DINI_MAX_FIELDS][DINI_MAX_FIELD_NAME];
-static diniFileValues[DINI_MAX_HANDLES][DINI_MAX_FIELDS][DINI_MAX_FIELD_VALUE];
-static diniFilePoolSize = -1;
+static diniFileData[Dini:DINI_MAX_FILES][E_DINI];
+static diniFileFields[Dini:DINI_MAX_FILES][DINI_MAX_FIELDS][DINI_MAX_FIELD_NAME];
+static diniFileValues[Dini:DINI_MAX_FILES][DINI_MAX_FIELDS][DINI_MAX_FIELD_VALUE];
+static Dini:diniFilePoolSize = Dini:-1;
 
-stock dini_GetFileIndex(const file[])
-{
-	for (new i; i <= diniFilePoolSize; i++)
-	{
-	    if (diniFile[i][E_DINI_FILE_NAME][0] != EOS && !strcmp(diniFile[i][E_DINI_FILE_NAME], file))
-	    {
-	        return i;
-	    }
+// functions decelration
+Dini:dini_open(const filename[], timeout = 100);
+dini_is_valid(Dini:index);
+dini_close(Dini:index);
+Dini:dini_get_file_poolsize();
+dini_get_file_name(Dini:index, dest[], maxlength = sizeof(dest));
+dini_num_fields(Dini:index);
+dini_get_field_id(Dini:index, const field[]);
+dini_remove_field_id(Dini:index, fieldid);
+dini_get_field_name(Dini:index, fieldid, dest[], maxlength = sizeof(dest));
+dini_set(Dini:index, fieldid, const value[]);
+dini_get(Dini:index, fieldid, dest[], maxlength = sizeof(dest));
+dini_set_assoc(Dini:index, const field[], const value[]);
+dini_get_assoc(Dini:index, const field[], dest[], maxlength = sizeof(dest));
+
+// callbacks decelrations
+forward OnDiniFileTimeout(Dini:index);
+
+// callbacks implementation
+public OnDiniFileTimeout(Dini:index) {
+	if (diniFileData[index][E_DINI_SAVE_FILE]) {
+		new File:h = fopen(diniFileData[index][E_DINI_FILE_NAME], io_write);
+		if (h) {
+		    new line[DINI_MAX_FIELD_NAME + 1 + DINI_MAX_FIELD_VALUE];
+		    for (new i; i < diniFileData[index][E_DINI_NUM_FIELDS]; i++) {
+				format(line, sizeof(line), "%s=%s\r\n", diniFileFields[index][i], diniFileValues[index][i]);
+				fwrite(h, line);
+			}
+
+			fclose(h);
+		}
 	}
 
-	new index = -1;
-	for (new i; i < DINI_MAX_HANDLES; i++)
-	{
-	    if (diniFile[i][E_DINI_FILE_NAME][0] == EOS)
-	    {
-	        index = i;
-	        break;
-	    }
+	diniFileData[index][E_DINI_FILE_NAME][0] = EOS;
+
+	if (diniFilePoolSize == index) {
+		for (new Dini:i = diniFilePoolSize; i != Dini:-1; i--) {
+			if (diniFileData[index][E_DINI_FILE_NAME][0]) {
+                diniFilePoolSize = i;
+				break;
+			}
+		}
 	}
 
-	if (index == -1)
-	{
-        KillTimer(diniFile[0][E_DINI_FILE_TIMER]);
- 		dini_OnFileTimeout(0);
- 		index = 0;
+	if (diniFilePoolSize == index) {
+        diniFilePoolSize = Dini:-1;
+	}
+}
+
+// functions implementation
+stock Dini:dini_open(const filename[], timeout = 100) {
+	for (new Dini:i; i <= diniFilePoolSize; i++) {
+		if (diniFileData[i][E_DINI_FILE_NAME][0] && !strcmp(diniFileData[i][E_DINI_FILE_NAME], filename)) {
+			return i;
+		}
 	}
 
-    diniFile[index][E_DINI_FILE_NUM_FIELDS] = 0;
-	if (fexist(file))
-	{
-		new File:handle = fopen(file, io_read);
-		if (!handle)
-		{
-		    return -1;
+	new Dini:index = Dini:-1;
+	for (new Dini:i; i < Dini:DINI_MAX_FILES; i++) {
+		if (!diniFileData[i][E_DINI_FILE_NAME][0]) {
+			index = i;
+			break;
+		}
+	}
+
+	if (index == Dini:-1) {
+		return Dini:-1;
+	}
+
+	if (fexist(filename)) {
+		new File:h = fopen(filename, io_read);
+		if (!h) {
+			return Dini:-2;
 		}
 
-		new string[DINI_MAX_FIELD_NAME/*field*/ + 1/*=*/ + DINI_MAX_FIELD_VALUE/*value*/];
+		diniFileData[index][E_DINI_NUM_FIELDS] = 0;
+
+		new line[DINI_MAX_FIELD_NAME + 1 + DINI_MAX_FIELD_VALUE];
 		new pos;
 		new len;
 		new fieldIndex;
-
-	    while (fread(handle, string))
-	    {
-	        pos = strfind(string, "=");
-	        if (pos == -1)
-	        {
-	            continue;
-	        }
-
-	        if (diniFile[index][E_DINI_FILE_NUM_FIELDS] == DINI_MAX_FIELDS)
-	        {
-	            break;
-	        }
-
-	        len = strlen(string);
-	        if (string[len - 2] == '\r')
-	        {
-	            string[len - 2] = EOS;
-	        }
-	        else if (string[len - 1] == '\n')
-	        {
-	            string[len - 1] = EOS;
+		while (fread(h, line)) {
+			pos = strfind(line, "=");
+			if (pos == -1) {
+				continue;
 			}
 
-			fieldIndex = diniFile[index][E_DINI_FILE_NUM_FIELDS]++;
-			strmid(diniFileFields[index][fieldIndex], string, 0, pos, DINI_MAX_FIELD_NAME);
-			format(diniFileValues[index][fieldIndex], DINI_MAX_FIELD_VALUE, string[pos + 1]);
-	    }
+			if (diniFileData[index][E_DINI_NUM_FIELDS] == DINI_MAX_FIELDS) {
+				break;
+			}
 
-	    fclose(handle);
+			len = strlen(line);
+	        if (len >= 2 && line[len - 2] == '\r') {
+	            line[len - 2] = EOS;
+	        }
+	        else if (len >= 1 && line[len - 1] == '\n') {
+	            line[len - 1] = EOS;
+			}
+
+			fieldIndex = diniFileData[index][E_DINI_NUM_FIELDS]++;
+			strmid(diniFileFields[index][fieldIndex], line, 0, pos, DINI_MAX_FIELD_NAME);
+			format(diniFileValues[index][fieldIndex], DINI_MAX_FIELD_VALUE, line[pos + 1]);
+		}
+
+		fclose(h);
+	}
+	else {
+     	new File:h = fopen(filename, io_write);
+		if (!h) {
+			return Dini:-2;
+		}
+
+		diniFileData[index][E_DINI_NUM_FIELDS] = 0;
+
+		fclose(h);
+	}
+
+	format(diniFileData[index][E_DINI_FILE_NAME], DINI_MAX_FILE_NAME, filename);
+	if (timeout <= 0) {
+	    diniFileData[index][E_DINI_TIMER] = -1;
+	}
+	else {
+    	diniFileData[index][E_DINI_TIMER] = SetTimerEx("OnDiniFileTimeout", timeout, false, "i", _:index);
     }
+	diniFileData[index][E_DINI_SAVE_FILE] = false;
 
-    if (index > diniFilePoolSize)
-    {
+    if (diniFilePoolSize < index) {
         diniFilePoolSize = index;
-    }
+	}
 
-    format(diniFile[index][E_DINI_FILE_NAME], DINI_MAX_FILE_NAME, file);
-    diniFile[index][E_DINI_FILE_TIMER] = SetTimerEx("dini_OnFileTimeout", DINI_TIMER_INTERVAL, false, "i", index);
-    diniFile[index][E_DINI_FILE_MODIFIED] = false;
 	return index;
 }
 
-forward dini_OnFileTimeout(index);
-public dini_OnFileTimeout(index)
-{
-	if (diniFile[index][E_DINI_FILE_MODIFIED])
-	{
-		new File:handle = fopen(diniFile[index][E_DINI_FILE_NAME], io_write);
-		if (handle)
-		{
-			new string[DINI_MAX_FIELD_NAME/*field*/ + 1/*=*/ + DINI_MAX_FIELD_VALUE/*value*/];
-		    for (new i; i < (diniFile[index][E_DINI_FILE_NUM_FIELDS] - 1); i++)
-			{
-			    format(string, sizeof string, "%s=%s\r\n", diniFileFields[index][i], diniFileValues[index][i]);
-			    fwrite(handle, string);
-			}
-			format(string, sizeof string, "%s=%s", diniFileFields[index][(diniFile[index][E_DINI_FILE_NUM_FIELDS] - 1)], diniFileValues[index][(diniFile[index][E_DINI_FILE_NUM_FIELDS] - 1)]);
-			fwrite(handle, string);
-
-			fclose(handle);
-		}
+stock dini_is_valid(Dini:index) {
+	if (index <= Dini:-1 || index > diniFilePoolSize) {
+		return -1;
 	}
 
-	diniFile[index][E_DINI_FILE_NAME][0] = EOS;
-
-	for (new i = diniFilePoolSize; i > -1; i--)
-	{
-	    if (diniFile[i][E_DINI_FILE_NAME][0] != EOS && diniFilePoolSize < i)
-	    {
-	        diniFilePoolSize = i;
-	        break;
-	    }
-	}
+	return (!diniFileData[index][E_DINI_FILE_NAME][0]) ? (0) : (1);
 }
 
-/*
-native dini_Create(const file[]);
-*/
-#define dini_Create \
-    dini_GetFileIndex
-
-/*
-native dini_Remove(const file[]);
-*/
-#define dini_Remove \
-	fremove
-
-/*
-native dini_Exists(const file[]);
-*/
-#define dini_Exists \
-	fexist
-
-/*
-native dini_Get(const file[], const field[]);
-*/
-stock dini_Get(const file[], const field[])
-{
-	static empty[DINI_MAX_FIELD_VALUE];
-	if (!fexist(file))
-	{
-	    return empty;
-	}
-
-	new index = dini_GetFileIndex(file);
-	if (index == -1)
-	{
-	    return empty;
-	}
-
-	for (new i; i < diniFile[index][E_DINI_FILE_NUM_FIELDS]; i++)
-	{
- 		if (!strcmp(field, diniFileFields[index][i]))
- 		{
- 		    return diniFileValues[index][i];
- 		}
-	}
-	return empty;
-}
-
-/*
-native dini_Int(const file[], const field[]);
-*/
-#define dini_Int(%1,%2) \
-	strval(dini_Get(%1,%2))
-
-/*
-native Float:dini_Float(const file[], const field[]);
-*/
-#define dini_Float(%1,%2) \
-	floatstr(dini_Get(%1,%2))
-
-/*
-native bool:dini_Bool(const file[], const field[]);
-*/
-#define dini_Bool(%1,%2) \
-	bool:strval(dini_Get(%1,%2))
-
-/*
-native dini_Set(const file[], const field[], value[]);
-*/
-stock dini_Set(const file[], const field[], value[])
-{
-	new index = dini_GetFileIndex(file);
-	if (index == -1)
-	{
-	    return 0;
-	}
-
-    for (new i; i < diniFile[index][E_DINI_FILE_NUM_FIELDS]; i++)
-	{
- 		if (!strcmp(field, diniFileFields[index][i]))
- 		{
- 		    format(diniFileValues[index][i], DINI_MAX_FIELD_VALUE, value);
-    		diniFile[index][E_DINI_FILE_MODIFIED] = true;
- 		    return 1;
- 		}
-	}
-
-	if (diniFile[index][E_DINI_FILE_NUM_FIELDS] == DINI_MAX_FIELDS)
-	{
-	    printf("[dini2] - Error: Field \"%s\" couldn't be created in file \"%s\", increase the limit of \"DINI_MAX_FIELDS\" to have more fields.", field, file, (DINI_MAX_FIELDS + 1));
+stock dini_close(Dini:index) {
+	if (dini_is_valid(index) != 1) {
 		return 0;
 	}
 
-	new i = diniFile[index][E_DINI_FILE_NUM_FIELDS]++;
-	format(diniFileFields[index][i], DINI_MAX_FIELD_NAME, field);
-	format(diniFileValues[index][i], DINI_MAX_FIELD_VALUE, value);
-	diniFile[index][E_DINI_FILE_MODIFIED] = true;
-	return 0;
-}
-
-/*
-native dini_IntSet(const file[], const field[], value);
-*/
-stock dini_IntSet(const file[], const field[], value)
-{
-	new index = dini_GetFileIndex(file);
-	if (index == -1)
-	{
-	    return 0;
-	}
-
-    for (new i; i < diniFile[index][E_DINI_FILE_NUM_FIELDS]; i++)
-	{
- 		if (!strcmp(field, diniFileFields[index][i]))
- 		{
- 		    valstr(diniFileValues[index][i], value);
-    		diniFile[index][E_DINI_FILE_MODIFIED] = true;
- 		    return 1;
- 		}
-	}
-
-	if (diniFile[index][E_DINI_FILE_NUM_FIELDS] == DINI_MAX_FIELDS)
-	{
-	    printf("[dini2] - Error: Field \"%s\" couldn't be created in file \"%s\", increase the limit of \"DINI_MAX_FIELDS\" to have more fields.", field, file, (DINI_MAX_FIELDS + 1));
-		return 0;
-	}
-
-	new i = diniFile[index][E_DINI_FILE_NUM_FIELDS]++;
-	format(diniFileFields[index][i], DINI_MAX_FIELD_NAME, field);
-	valstr(diniFileValues[index][i], value);
-	diniFile[index][E_DINI_FILE_MODIFIED] = true;
-	return 0;
-}
-
-/*
-native dini_FloatSet(const file[], const field[], Float:value);
-*/
-stock dini_FloatSet(const file[], const field[], Float:value)
-{
-	new index = dini_GetFileIndex(file);
-	if (index == -1)
-	{
-	    return 0;
-	}
-
-    for (new i; i < diniFile[index][E_DINI_FILE_NUM_FIELDS]; i++)
-	{
- 		if (!strcmp(field, diniFileFields[index][i]))
- 		{
- 		    format(diniFileValues[index][i], DINI_MAX_FIELD_VALUE, "%f", value);
-    		diniFile[index][E_DINI_FILE_MODIFIED] = true;
- 		    return 1;
- 		}
-	}
-
-	if (diniFile[index][E_DINI_FILE_NUM_FIELDS] == DINI_MAX_FIELDS)
-	{
-	    printf("[dini2] - Error: Field \"%s\" couldn't be created in file \"%s\", increase the limit of \"DINI_MAX_FIELDS\" to have more fields.", field, file, (DINI_MAX_FIELDS + 1));
-		return 0;
-	}
-
-	new i = diniFile[index][E_DINI_FILE_NUM_FIELDS]++;
-	format(diniFileFields[index][i], DINI_MAX_FIELD_NAME, field);
-	format(diniFileValues[index][i], DINI_MAX_FIELD_VALUE, "%f", value);
-	diniFile[index][E_DINI_FILE_MODIFIED] = true;
-	return 0;
-}
-
-/*
-native dini_BoolSet(const file[], const field[], bool:value);
-*/
-#define dini_BoolSet(%1,%2,%3) \
-    dini_IntSet(%1,%2,_:%3)
-
-/*
-native dini_UnSet(const file[], const field[]);
-*/
-stock dini_UnSet(const file[], const field[])
-{
-	new index = dini_GetFileIndex(file);
-	if (index == -1)
-	{
-	    return 0;
-	}
-
-	for (new i; i < diniFile[index][E_DINI_FILE_NUM_FIELDS]; i++)
-	{
- 		if (!strcmp(field, diniFileFields[index][i]))
- 		{
- 		    for (; i < (diniFile[index][E_DINI_FILE_NUM_FIELDS] - 1); i++)
- 		    {
- 		        diniFileFields[index][i] = diniFileFields[index][i + 1];
- 		        diniFileValues[index][i] = diniFileValues[index][i + 1];
- 		    }
-
- 		    diniFile[index][E_DINI_FILE_NUM_FIELDS]--;
-    		diniFile[index][E_DINI_FILE_MODIFIED] = true;
- 		    return 1;
- 		}
-	}
-	return 0;
-}
-
-/*
-native dini_IsSet(const file[], const field[]);
-*/
-stock dini_IsSet(const file[], const field[])
-{
-	new index = dini_GetFileIndex(file);
-	if (index == -1)
-	{
-	    return 0;
-	}
-
-	for (new i; i < diniFile[index][E_DINI_FILE_NUM_FIELDS]; i++)
-	{
- 		if (!strcmp(field, diniFileFields[index][i]))
- 		{
- 		    return 1;
- 		}
-	}
-	return 0;
-}
-
-/*
-native DINI_fcopytextfile(const file[], const newfile[]);
-*/
-stock DINI_fcopytextfile(const file[], const newfile[])
-{
-	new File:handle1 = fopen(file, io_read);
-	if (!handle1)
-	{
-	    return 0;
-	}
-
-	new File:handle2 = fopen(newfile, io_write);
-	if (!handle2)
-	{
-	    fclose(handle1);
-	    return 0;
-	}
-
-	new string[DINI_MAX_FIELD_NAME/*field*/ + 1/*=*/ + DINI_MAX_FIELD_VALUE/*value*/];
-	while (fread(handle1, string))
-	{
-		fwrite(handle2, string);
-	}
-
-	fclose(handle1);
-	fclose(handle2);
-
+	KillTimer(diniFileData[index][E_DINI_TIMER]);
+ 	OnDiniFileTimeout(index);
 	return 1;
 }
 
-/*
-native dini_Timeout(const file[]);
-*/
-stock dini_Timeout(const file[])
-{
-    for (new i; i <= diniFilePoolSize; i++)
-	{
-	    if (diniFile[i][E_DINI_FILE_NAME][0] != EOS && !strcmp(diniFile[i][E_DINI_FILE_NAME], file))
-	    {
-		    KillTimer(diniFile[i][E_DINI_FILE_TIMER]);
-		    dini_OnFileTimeout(i);
-		    return 1;
-	    }
+stock Dini:dini_get_file_poolsize() {
+	return diniFilePoolSize;
+}
+
+stock dini_get_file_name(Dini:index, dest[], maxlength = sizeof(dest)) {
+	if (dini_is_valid(index) != 1) {
+		return 0;
+	}
+
+	format(dest, maxlength, diniFileData[index][E_DINI_FILE_NAME]);
+	return 1;
+}
+
+stock dini_num_fields(Dini:index) {
+	if (dini_is_valid(index) != 1) {
+		return 0;
+	}
+
+	return diniFileData[index][E_DINI_NUM_FIELDS];
+}
+
+stock dini_get_field_id(Dini:index, const field[]) {
+	if (dini_is_valid(index) != 1) {
+		return -1;
+	}
+
+	for (new i; i < diniFileData[index][E_DINI_NUM_FIELDS]; i++) {
+		if (!strcmp(diniFileFields[index][i], field)) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+stock dini_remove_field_id(Dini:index, fieldid) {
+	if (dini_is_valid(index) != 1) {
+		return -1;
+	}
+
+	if (fieldid < 0 || fieldid >= diniFileData[index][E_DINI_NUM_FIELDS]) {
+		return 0;
+	}
+
+	for (new i = fieldid; i < (diniFileData[index][E_DINI_NUM_FIELDS] - 1); i++) {
+		format(diniFileFields[index][i], DINI_MAX_FIELD_NAME, diniFileFields[index][i + 1]);
+		format(diniFileValues[index][i], DINI_MAX_FIELD_VALUE, diniFileValues[index][i + 1]);
+	}
+
+	diniFileData[index][E_DINI_SAVE_FILE] = true;
+	return 1;
+}
+
+stock dini_get_field_name(Dini:index, fieldid, dest[], maxlength = sizeof(dest)) {
+	if (dini_is_valid(index) != 1) {
+		return -1;
+	}
+
+	if (fieldid < 0 || fieldid >= diniFileData[index][E_DINI_NUM_FIELDS]) {
+		return 0;
+	}
+
+	format(dest, maxlength, diniFileFields[index][fieldid]);
+	return 1;
+}
+
+stock dini_set(Dini:index, fieldid, const value[]) {
+	if (dini_is_valid(index) != 1) {
+		return -1;
+	}
+
+	if (fieldid < 0 || fieldid >= diniFileData[index][E_DINI_NUM_FIELDS]) {
+		return 0;
+	}
+
+	format(diniFileValues[index][fieldid], DINI_MAX_FIELD_VALUE, value);
+
+	diniFileData[index][E_DINI_SAVE_FILE] = true;
+	return 1;
+}
+
+stock dini_get(Dini:index, fieldid, dest[], maxlength = sizeof(dest)) {
+	if (dini_is_valid(index) != 1) {
+		return -1;
+	}
+
+	if (fieldid < 0 || fieldid >= diniFileData[index][E_DINI_NUM_FIELDS]) {
+		return 0;
+	}
+
+	format(dest, maxlength, diniFileValues[index][fieldid]);
+	return 1;
+}
+
+stock dini_set_assoc(Dini:index, const field[], const value[]) {
+	if (dini_is_valid(index) != 1) {
+		return 0;
+	}
+
+	for (new i; i < diniFileData[index][E_DINI_NUM_FIELDS]; i++) {
+		if (!strcmp(diniFileFields[index][i], field)) {
+		    format(diniFileValues[index][i], DINI_MAX_FIELD_VALUE, value);
+			return 1;
+		}
+	}
+
+	if (diniFileData[index][E_DINI_NUM_FIELDS] == DINI_MAX_FIELDS) {
+		return -1;
+	}
+
+	new fieldIndex = diniFileData[index][E_DINI_NUM_FIELDS]++;
+	format(diniFileFields[index][fieldIndex], DINI_MAX_FIELD_NAME, field);
+	format(diniFileValues[index][fieldIndex], DINI_MAX_FIELD_VALUE, value);
+
+	diniFileData[index][E_DINI_SAVE_FILE] = true;
+	return 1;
+}
+
+stock dini_get_assoc(Dini:index, const field[], dest[], maxlength = sizeof(dest)) {
+	if (dini_is_valid(index) != 1) {
+		return 0;
+	}
+
+	for (new i; i < diniFileData[index][E_DINI_NUM_FIELDS]; i++) {
+		if (!strcmp(diniFileFields[index][i], field)) {
+		    format(dest, maxlength, diniFileValues[index][i]);
+			return 1;
+		}
+	}
+	return -1;
+}
+
+/**********************************************/
+// DINI's API with new code but same syntax
+/**********************************************/
+
+// functions decelration
+dini_Exists(const filename[]);
+dini_Remove(const filename[]);
+dini_Create(const filename[]);
+dini_Set(const filename[], const key[], const value[]);
+dini_IntSet(const filename[], const key[], value);
+dini_FloatSet(const filename[], const key[], Float:value);
+dini_BoolSet(const filename[], const key[], bool:value);
+dini_Get(const filename[], const key[]);
+dini_Int(const filename[], const key[]);
+Float:dini_Float(const filename[], const key[]);
+bool:dini_Bool(const filename[], const key[]);
+dini_Unset(const filename[], const key[]);
+dini_Isset(const filename[], const key[]);
+DINI_StripNewLine(const string[]);
+DINI_fcopytextfile(const filename[], const newfilename[]);
+
+// definitions
+#define dini_Exists \
+	fexist
+
+#define dini_Remove \
+    fremove
+
+// functions implementation
+static Dini:dini_InternalOpen(const filename[]) {
+	new name[DINI_MAX_FILE_NAME];
+	for (new Dini:i; i <= dini_get_file_poolsize(); i++) {
+		dini_get_file_name(i, name, DINI_MAX_FILE_NAME);
+
+		if (!strcmp(name, filename)) {
+	        return i;
+		}
+	}
+
+	new Dini:index = dini_open(filename);
+	if (index == Dini:-1) {
+		dini_close(Dini:0);
+		
+		index = dini_open(filename);
+		if (index == Dini:0) {
+			return Dini:0;
+		}
+	}
+	return Dini:-1;
+}
+
+stock dini_Create(const filename[]) {
+	if (fexist(filename)) {
+		return 0;
+	}
+
+	new File:h = fopen(filename, io_write);
+	if (!h) {
+		return 0;
+	}
+
+	fclose(h);
+	return 1;
+}
+
+stock dini_Set(const filename[], const key[], const value[]) {
+	return dini_set_assoc(dini_InternalOpen(filename), key, value);
+}
+
+stock dini_IntSet(const filename[], const key[], value) {
+ 	new dest[16];
+	valstr(dest, value);
+	return dini_set_assoc(dini_InternalOpen(filename), key, dest);
+}
+
+stock dini_FloatSet(const filename[], const key[], Float:value) {
+ 	new dest[16];
+	format(dest, sizeof(dest), "%f", value);
+	return dini_set_assoc(dini_InternalOpen(filename), key, dest);
+}
+
+stock dini_BoolSet(const filename[], const key[], bool:value) {
+ 	new dest[2];
+	valstr(dest, _:value);
+	return dini_set_assoc(dini_InternalOpen(filename), key, dest);
+}
+
+stock dini_Get(const filename[], const key[]) {
+	new value[DINI_MAX_FIELD_VALUE];
+	dini_get_assoc(dini_InternalOpen(filename), key, value, DINI_MAX_FIELD_VALUE);
+	return value;
+}
+
+stock dini_Int(const filename[], const key[]) {
+	new value[16];
+	dini_get_assoc(dini_InternalOpen(filename), key, value, sizeof(value));
+	return strval(value);
+}
+
+stock Float:dini_Float(const filename[], const key[]) {
+	new value[16];
+	dini_get_assoc(dini_InternalOpen(filename), key, value, sizeof(value));
+	return floatstr(value);
+}
+
+stock bool:dini_Bool(const filename[], const key[]) {
+	new value[2];
+	dini_get_assoc(dini_InternalOpen(filename), key, value, sizeof(value));
+	return bool:strval(value);
+}
+
+stock dini_Unset(const filename[], const key[]) {
+	new Dini:index = dini_InternalOpen(filename);
+	return dini_remove_field_id(index, dini_get_field_id(index, key));
+}
+
+stock dini_Isset(const filename[], const key[]) {
+	return (dini_get_field_id(dini_InternalOpen(filename), key) == -1) ? (0) : (1);
+}
+
+stock dini_Timeout(const filename[]) {
+	new name[DINI_MAX_FILE_NAME];
+	for (new Dini:i; i <= dini_get_file_poolsize(); i++) {
+		dini_get_file_name(i, name, DINI_MAX_FILE_NAME);
+
+		if (!strcmp(name, filename)) {
+	        return dini_close(i);
+		}
+	}
+
+	return 0;
+}
+
+stock DINI_StripNewLine(const string[]) {
+    new len = strlen(string);
+	if (len >= 2 && string[len - 2] == '\r') {
+ 		string[len - 2] = EOS;
+ 		return 1;
+	}
+ 	else if (len >= 1 && string[len - 1] == '\n') {
+  		string[len - 1] = EOS;
+ 		return 1;
 	}
 	return 0;
 }
 
-/*
-native dini_NumFields(const file[]);
-*/
-stock dini_NumFields(const file[])
-{
-	if (!fexist(file))
-	{
+stock DINI_fcopytextfile(const filename[], const newfilename[]) {
+	new File:h1 = fopen(filename, io_read);
+	if (!h1) {
 	    return 0;
 	}
 
-	new index = dini_GetFileIndex(file);
-	if (index == -1)
-	{
+	new File:h2 = fopen(newfilename, io_write);
+	if (!h2) {
+	    fclose(h1);
 	    return 0;
 	}
 
-    return diniFile[index][E_DINI_FILE_NUM_FIELDS];
-}
-
-/*
-native dini_GetFieldName(const file[], field);
-*/
-stock dini_GetFieldName(const file[], field)
-{
-	new empty[DINI_MAX_FIELD_NAME];
-	if (field < 0)
-	{
-		return empty;
+	new string[DINI_MAX_FIELD_NAME + 1 + DINI_MAX_FIELD_VALUE];
+	while (fread(h1, string)) {
+		fwrite(h2, string);
 	}
 
-	if (!fexist(file))
-	{
-	    return empty;
-	}
-
-	new index = dini_GetFileIndex(file);
-	if (index == -1)
-	{
-	    return empty;
-	}
-
-    if (field >= diniFile[index][E_DINI_FILE_NUM_FIELDS])
-	{
-	    return empty;
-	}
-	
-    return diniFileFields[index][field];
-}
-
-/*
-native dini_GetFieldValue(const file[], field);
-*/
-stock dini_GetFieldValue(const file[], field)
-{
-	new empty[DINI_MAX_FIELD_VALUE];
-	if (field < 0)
-	{
-		return empty;
-	}
-
-	if (!fexist(file))
-	{
-	    return empty;
-	}
-
-	new index = dini_GetFileIndex(file);
-	if (index == -1)
-	{
-	    return empty;
-	}
-
-    if (field >= diniFile[index][E_DINI_FILE_NUM_FIELDS])
-	{
-	    return empty;
-	}
-
-    return diniFileValues[index][field];
+	fclose(h1);
+	fclose(h2);
+	return 1;
 }
