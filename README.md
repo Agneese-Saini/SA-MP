@@ -6,6 +6,7 @@ The libraries mentioned here are supported by me and i may update them in future
 Click on the embedded links to directly goto the following's page.
 
 * filterscripts
+  * <b><a href="https://github.com/Agneese-Saini/SA-MP/tree/master/filterscripts">TDEditor.pwn</a></b> - Textdraw editor by gammix with amazing features!
   * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/filterscripts/attachments.pwn">attachments.pwn</a></b> - player attachment editor with preview model dialogs.
   * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/filterscripts/gban.pwn">gban.pwn</a></b> - SQLite based ban system with CIDR ip range detection.
   * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/filterscripts/inventory.pwn">inventory.pwn</a></b> - Textdraw menu inventory and items script
