@@ -1901,7 +1901,7 @@ Dialog:NEW_PROJECT(playerid, response, listitem, inputtext[]) {
 	
 	new Dini:h = dini_open(PATH_RECORD_FILE, 0);
 	
-	if (dini_get_field_id(h, name) || fexist(name)) {
+	if (dini_get_field_id(h, name) != -1 || fexist(name)) {
 	    dini_close(h);
 		return Dialog_Show(playerid, NEW_PROJECT, DIALOG_STYLE_INPUT, "TDEditor: New project", ""COL_WHITE"Insert a "COL_GREEN"PROJECT-NAME"COL_WHITE" below to create.\n\n"COL_GREY"The project will be saved as a \".db\" file. Each project gets its\n"COL_GREY"own database file so its easy to manage and even share!\n\n"COL_RED"Error: "COL_GREY"The project name already exists. Try something else or you can continue your work by loading that project instead!", "Create", "Back");
 	}
