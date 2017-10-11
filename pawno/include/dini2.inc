@@ -245,6 +245,7 @@ stock dini_remove_field_id(Dini:index, fieldid) {
 		format(diniFileFields[index][i], DINI_MAX_FIELD_NAME, diniFileFields[index][i + 1]);
 		format(diniFileValues[index][i], DINI_MAX_FIELD_VALUE, diniFileValues[index][i + 1]);
 	}
+	diniFileData[index][E_DINI_NUM_FIELDS]--;
 
 	diniFileData[index][E_DINI_SAVE_FILE] = true;
 	return 1;
