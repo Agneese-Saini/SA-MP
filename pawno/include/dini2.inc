@@ -358,7 +358,7 @@ DINI_fcopytextfile(const filename[], const newfilename[]);
     fremove
 
 // functions implementation
-static Dini:dini_InternalOpen(const filename[]) {
+static stock Dini:dini_InternalOpen(const filename[]) {
 	new name[DINI_MAX_FILE_NAME];
 	for (new Dini:i; i <= dini_get_file_poolsize(); i++) {
 		dini_get_file_name(i, name, DINI_MAX_FILE_NAME);
