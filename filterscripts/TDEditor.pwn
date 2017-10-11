@@ -944,6 +944,56 @@ public OnPlayerDisconnect(playerid, reason) {
     playerEditing[playerid] = EDITING_NONE;
     KillTimer(playerEditingTimer[playerid]);
     playerEditingTimer[playerid] = -1;
+    
+    if (projectDB) {
+	    new string[1024];
+	    new groupid = playerCurrentGroup[playerid];
+	    
+	    for (new x; x < groupData[groupid][E_GROUP_TEXTDRAWS_COUNT]; x++) {
+	    	string = "UPDATE %s SET \
+				text = '%q', \
+				x = '%f', y = '%f', \
+				letter_x = '%f', letter_y = '%f', \
+				text_x = '%f', text_y = '%f', \
+				alignment = '%i', \
+				color = '%i', \
+				usebox = '%i', \
+				box_color = '%i', \
+				shadow = '%i', \
+				outline = '%i', \
+				background_color = '%i', \
+				font = '%i', \
+				proportional = '%i', \
+				selectable = '%i', \
+				preview_model = '%i', \
+				rot_x = '%f', rot_y = '%f', rot_z = '%f', rot_zoom = '%f', \
+				veh_color1 = '%i', veh_color2 = '%i', \
+				type_player = '%i' \
+			WHERE id = '%i'";
+			format(string, sizeof (string), string,
+   				groupData[groupid][E_GROUP_NAME],
+			    groupTextDrawData[groupid][x][E_TEXTDRAW_TEXT],
+			    groupTextDrawData[groupid][x][E_TEXTDRAW_X], groupTextDrawData[groupid][x][E_TEXTDRAW_Y],
+			    groupTextDrawData[groupid][x][E_TEXTDRAW_LETTERSIZE_X], groupTextDrawData[groupid][x][E_TEXTDRAW_LETTERSIZE_Y],
+			    groupTextDrawData[groupid][x][E_TEXTDRAW_TEXTSIZE_X], groupTextDrawData[groupid][x][E_TEXTDRAW_TEXTSIZE_Y],
+			    groupTextDrawData[groupid][x][E_TEXTDRAW_ALIGNMENT],
+			    groupTextDrawData[groupid][x][E_TEXTDRAW_COLOR],
+			    groupTextDrawData[groupid][x][E_TEXTDRAW_USE_BOX],
+				groupTextDrawData[groupid][x][E_TEXTDRAW_BOX_COLOR],
+				groupTextDrawData[groupid][x][E_TEXTDRAW_SHADOW],
+				groupTextDrawData[groupid][x][E_TEXTDRAW_OUTLINE],
+				groupTextDrawData[groupid][x][E_TEXTDRAW_BACKGROUND_COLOR],
+				groupTextDrawData[groupid][x][E_TEXTDRAW_FONT],
+				groupTextDrawData[groupid][x][E_TEXTDRAW_PROPORTIONAL],
+				groupTextDrawData[groupid][x][E_TEXTDRAW_SELECTABLE],
+				groupTextDrawData[groupid][x][E_TEXTDRAW_PREVIEW_MODEL],
+				groupTextDrawData[groupid][x][E_TEXTDRAW_PREVIEW_ROT_X], groupTextDrawData[groupid][x][E_TEXTDRAW_PREVIEW_ROT_Y], groupTextDrawData[groupid][x][E_TEXTDRAW_PREVIEW_ROT_Z], groupTextDrawData[groupid][x][E_TEXTDRAW_PREVIEW_ROT_ZOOM],
+				groupTextDrawData[groupid][x][E_TEXTDRAW_PREVIEW_VEH_COLOR1], groupTextDrawData[groupid][x][E_TEXTDRAW_PREVIEW_VEH_COLOR2],
+				groupTextDrawData[groupid][x][E_TEXTDRAW_TYPE_PLAYER],
+				groupTextDrawData[groupid][x][E_TEXTDRAW_SQLID]);
+			db_query(projectDB, string);
+		}
+	}
 	return 1;
 }
 
