@@ -2727,7 +2727,7 @@ Dialog:TEXTDRAW_MENU(playerid, response, listitem, inputtext[]) {
 		}
 		
 		case 13: {
-			Dialog_Show(playerid, PREVIEW_MODEL_OPTIONS, DIALOG_STYLE_LIST, "TDEditor: Preview model options", "Modelid\nChange Rotation: Keyboard(X,Y only)\nChange Rotation: Mouse(X,Y only)\nChange Rotation: Input", "Select", "Back");
+			Dialog_Show(playerid, PREVIEW_MODEL_OPTIONS, DIALOG_STYLE_LIST, "TDEditor: Preview model options", "Modelid\nChange Rotation From Keyboard(X,Y only)\nInput Rotation (X,Y,Z,Zoom)", "Select", "Back");
 		}
 
 		case 14: {
@@ -3277,7 +3277,7 @@ Dialog:PREVIEW_MODEL_OPTIONS(playerid, response, listitem, inputtext[]) {
 		    Dialog_Show(playerid, SEARCH_PREVIEW_MODEL, DIALOG_STYLE_INPUT, "TDEditor: Change preview model", ""COL_WHITE"Insert exact "COL_GREEN"MODELID"COL_WHITE" or a "COL_GREEN"OBJECT NAME"COL_WHITE" or a hint so we can find all relative object models and give you a list!", "Search", "Back");
 		}
 		
-		case 1, 2: {
+		case 1: {
 			playerEditing[playerid] = EDITING_PREVIEW_ROT;
 		    playerEditingTimer[playerid] = SetTimerEx("OnPlayerTimerUpdate", 200, true, "i", playerid);
 		    if (showTextDrawCmds) {
@@ -3288,7 +3288,7 @@ Dialog:PREVIEW_MODEL_OPTIONS(playerid, response, listitem, inputtext[]) {
 			TogglePlayerControllable(playerid, false);
 		}
 
-		case 3: {
+		case 2: {
 			new groupid = playerCurrentGroup[playerid];
 			new textdrawid = playerCurrentTextDraw[playerid];
 
