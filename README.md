@@ -18,6 +18,7 @@ Click on the embedded links to directly goto the following's page.
      * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/gamemodes/base/sqlite.pwn">sqlite.pwn</a></b> - an advance SQLite base gamemode
 * includes
   * include
+    * <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/arraylist.inc">arraylist.inc</a></b> - arraylist based on Java's class with C++ like functions/syntax
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/attachments.inc">attachments.inc</a></b> - player attachments auto remove while aiming with scope weapons (e.g. snipers)
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/dialogs.inc">dialogs.inc</a></b> - Adds in new dialog styles "DIALOG_STYLE_PREVMODEL" and "DIALOG_STYLE_PREVMODEL_LIST"
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/dini2.inc">dini2.inc</a></b> - Improved dini processor with multi file processing and fast! *you can use this really)
