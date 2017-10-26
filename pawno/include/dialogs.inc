@@ -1105,8 +1105,8 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 			valstr(inputtext, playerDialogModel[playerid][listitem]);
 
             Dialog_HidePlayerDialog(playerid);
-			CallLocalFunction("OnDialogResponse", "iiiis", playerid, dialogid, 1, listitem, inputtext);
-	    	return CancelSelectTextDraw(playerid);
+	    	CancelSelectTextDraw(playerid);
+	    	return CallLocalFunction("OnDialogResponse", "iiiis", playerid, dialogid, 1, listitem, inputtext);
 	    }
 
 	    if (playertextid == playerDialogTextDraw[playerid][playerDialogTextDrawID[playerid][DIALOG_TEXTDRAW_RIGHT_BUTTON]])
@@ -1127,8 +1127,8 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 			valstr(inputtext, playerDialogModel[playerid][listitem]);
 
             Dialog_HidePlayerDialog(playerid);
-			CallLocalFunction("OnDialogResponse", "iiiis", playerid, dialogid, 0, listitem, inputtext);
-	    	return CancelSelectTextDraw(playerid);
+	    	CancelSelectTextDraw(playerid);
+	    	return CallLocalFunction("OnDialogResponse", "iiiis", playerid, dialogid, 0, listitem, inputtext);
 	    }
 
 	    for (new i, j = (playerDialogTotalListitems[playerid] <= (MAX_SMALL_DIALOG_LIST_ROWS * MAX_SMALL_DIALOG_LIST_COLUMNS)) ? (MAX_SMALL_DIALOG_LIST_ROWS * MAX_SMALL_DIALOG_LIST_COLUMNS) : (MAX_DIALOG_LIST_ROWS * MAX_DIALOG_LIST_COLUMNS); i < j; i++)
