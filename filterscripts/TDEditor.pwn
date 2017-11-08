@@ -1,3 +1,5 @@
+// TDEditor.pwn by Gammix
+// v1.2 - Last updated: 0 Nov, 2017
 #define FILTERSCRIPT
 
 #include <a_samp>
@@ -257,8 +259,7 @@ new groupData[MAX_GROUPS][E_GROUP];
 new groupTextDrawData[MAX_GROUPS][MAX_GROUP_TEXTDRAWS][E_TEXTDRAW];
 new groupsCount;
 
-ReturnDate(timestamp)
-{
+ReturnDate(timestamp) {
 	new year, month, day, unused;
 	TimestampToDate(timestamp, year, month, day, unused, unused, unused, 0);
 	#pragma unused unused
@@ -840,7 +841,7 @@ public OnFilterScriptInit() {
 		printf("[TDEditor.pwn] - Warning: Path \"%s\" doesn't exists. You cannot search object models in Preview Model Option; only modelids accepted.", PATH_OBJECTS_FILE);
 	}
 
-	printf("[TDEditor.pwn] - Loaded v1.0 - By Gammix");
+	printf("[TDEditor.pwn] - Loaded v1.2 - By Gammix");
 	
 	printf("\n==========================================\n");
 
@@ -1496,16 +1497,16 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
 			
 		    TogglePlayerControllable(playerid, true);
 
-			playerEditing[playerid] = EDITING_NONE;
-			KillTimer(playerEditingTimer[playerid]);
-			playerEditingTimer[playerid] = -1;
-
             if (playerEditing[playerid] == EDITING_GROUP_POS) {
 				SetTimerEx("ShowPlayerGroupDialog", 150, false, "ii", playerid, playerCurrentGroup[playerid]);
 			}
 			else {
 				SetTimerEx("ShowPlayerTextDrawDialog", 150, false, "ii", playerid, playerCurrentTextDraw[playerid]);
 			}
+
+			playerEditing[playerid] = EDITING_NONE;
+			KillTimer(playerEditingTimer[playerid]);
+			playerEditingTimer[playerid] = -1;
 		}
 	}
 	return 1;
@@ -2383,7 +2384,29 @@ Dialog:GROUP_MENU(playerid, response, listitem, inputtext[]) {
 			}
 
 		    groupData[groupsCount] = groupData[groupid];
-		    format(groupData[groupsCount][E_GROUP_NAME], MAX_GROUP_NAME, "%s_copy", groupData[groupid][E_GROUP_NAME]);
+
+			new bool:nameExist;
+			new newName[MAX_GROUP_NAME];
+			new groupName[MAX_GROUP_NAME];
+			strmid(groupName, groupData[groupid][E_GROUP_NAME], 0, (MAX_GROUP_NAME - 3));
+
+		    for (new x = 1; ; x++) {
+				format(newName, MAX_GROUP_NAME, "%s_%i", groupName, x);
+                nameExist = false;
+                
+				for (new i; i < groupsCount; i++) {
+			        if (!strcmp(groupData[i][E_GROUP_NAME], newName, true)) {
+			            nameExist = true;
+						break;
+					}
+				}
+				
+				if (!nameExist) {
+					break;
+				}
+		    }
+		    
+		    format(groupData[groupsCount][E_GROUP_NAME], MAX_GROUP_NAME, newName);
 		    
 			new string[1024] = "CREATE TABLE IF NOT EXISTS ";
 			strcat(string, groupData[groupsCount][E_GROUP_NAME]);
@@ -2514,17 +2537,25 @@ Dialog:CHANGE_GROUP_NAME(playerid, response, listitem, inputtext[]) {
 			format(string, sizeof (string), ""COL_WHITE"Insert a new textdraw "COL_GREEN"GROUP-NAME"COL_WHITE" you want to call this group as!\n\n"COL_YELLOW"Current Name:\t"COL_WHITE"%s\n\n"COL_RED"Error: "COL_GREY"The group name cannot be empty or spaces.", groupData[playerCurrentGroup[playerid]][E_GROUP_NAME]);
 			return Dialog_Show(playerid, CHANGE_GROUP_NAME, DIALOG_STYLE_INPUT, "TDEditor: New project", string, "Change", "Back");
 		}
-
+		
+		for (new i; i < groupsCount; i++) {
+		    if (!strcmp(name, groupData[i][E_GROUP_NAME], true)) {
+		    	new string[512];
+				format(string, sizeof (string), ""COL_WHITE"Insert a new textdraw "COL_GREEN"GROUP-NAME"COL_WHITE" you want to call this group as!\n\n"COL_YELLOW"Current Name:\t"COL_WHITE"%s\n\n"COL_RED"Error: "COL_GREY"The group name already exists, please choose a unique name which doesn't conflict.", groupData[playerCurrentGroup[playerid]][E_GROUP_NAME]);
+				return Dialog_Show(playerid, CHANGE_GROUP_NAME, DIALOG_STYLE_INPUT, "TDEditor: New project", string, "Change", "Back");
+			}
+		}
+		
 		new groupid = playerCurrentGroup[playerid];
 
 		new string[150];
 		format(string, sizeof (string), "ALTER TABLE %s RENAME TO %s", groupData[groupid][E_GROUP_NAME], name);
 		db_query(projectDB, string);
 	
-		format(string, sizeof (string), "TDEditor: Group name changed to \"%s\" from \"%s\".", inputtext, groupData[groupid][E_GROUP_NAME]);
+		format(string, sizeof (string), "TDEditor: Group name changed to \"%s\" from \"%s\".", name, groupData[groupid][E_GROUP_NAME]);
 		SendClientMessage(playerid, MESSAGE_COLOR, string);
 
-		format(groupData[groupid][E_GROUP_NAME], MAX_GROUP_NAME, inputtext);
+		format(groupData[groupid][E_GROUP_NAME], MAX_GROUP_NAME, name);
 	}
 
 	return ShowPlayerGroupDialog(playerid, playerCurrentGroup[playerid]);
