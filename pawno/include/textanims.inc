@@ -1,7 +1,7 @@
-#if defined fader_included
+#if defined textanims_included
 	#endinput
 #endif
-#define fader_included
+#define textanims_included
 
 #if !defined MAX_TEXT_DRAW_ANIMATIONS
 	#define MAX_TEXT_DRAW_ANIMATIONS \
