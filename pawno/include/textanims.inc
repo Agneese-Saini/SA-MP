@@ -370,26 +370,6 @@ public __OnTextDrawAnimate(index, update_rate) {
 		TextDrawSetShadow(text, textDrawAnimation[index][E_ANIMATION_FROM_SHADOWSIZE]);
 	}
 
-	if (textDrawAnimation[index][E_ANIMATION_FROM_SHADOWSIZE] != textDrawAnimation[index][E_ANIMATION_TO_SHADOWSIZE]) {
-		//
-		savechanges = true;
- 		//
-
-	    #if defined OnTextDrawAnimate
-  			OnTextDrawAnimate(index, E_ANIMATION_FROM_SHADOWSIZE, update_rate);
-		#endif
-
-		if (textDrawAnimation[index][E_ANIMATION_FROM_SHADOWSIZE] < textDrawAnimation[index][E_ANIMATION_TO_SHADOWSIZE]) {
-        	textDrawAnimation[index][E_ANIMATION_FROM_SHADOWSIZE] += update_rate;
-
-			if (textDrawAnimation[index][E_ANIMATION_FROM_SHADOWSIZE] >= textDrawAnimation[index][E_ANIMATION_TO_SHADOWSIZE]) {
-	        	textDrawAnimation[index][E_ANIMATION_FROM_SHADOWSIZE] = textDrawAnimation[index][E_ANIMATION_TO_SHADOWSIZE];
-			}
-		}
-
-		TextDrawSetShadow(text, textDrawAnimation[index][E_ANIMATION_FROM_SHADOWSIZE]);
-	}
-
 	newrot[0] = textDrawAnimation[index][E_ANIMATION_FROM_ROT_X];
 	newrot[1] = textDrawAnimation[index][E_ANIMATION_FROM_ROT_Y];
 	newrot[2] = textDrawAnimation[index][E_ANIMATION_FROM_ROT_Z];
