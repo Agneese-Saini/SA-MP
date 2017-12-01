@@ -6,31 +6,48 @@
 // PreviewModelDialog.inc - v3.0.2
 // By Gammix
 
+#define DIALOG_STYLE_PREVIEW_MODEL \
+	6
+#define DIALOG_STYLE_PREVMODEL \
+	DIALOG_STYLE_PREVIEW_MODEL
+	
+#define MAX_DIALOG_PLAYER_TEXT_DRAWS \
+	100
+
+#define MAX_DIALOG_LIST_ROWS \
+	4
+
+#define MAX_DIALOG_LIST_COLUMNS \
+	8
+	
+#define MAX_SMALL_DIALOG_LIST_ROWS \
+	3
+	
+#define MAX_SMALL_DIALOG_LIST_COLUMNS \
+	4
+
+#if !defined MAX_DIALOG_LIST_ITEMS
+	#define MAX_DIALOG_LIST_ITEMS \
+		256 // number of listitems a DIALOG_STYLE_PREVMODEL can have
+#endif
+
+#if !defined MAX_DIALOG_LIST_ITEM_SIZE
+	#define MAX_DIALOG_LIST_ITEM_SIZE \
+		64 // each listitem label string size (-6 bytes for model id and '\n')
+#endif
+
+#if !defined DIALOG_LIST_ITEM_COLOR
+	#define DIALOG_LIST_ITEM_COLOR \
+		5864548 // each preview model listitem background color (unselected)
+#endif
+
+#if !defined DIALOG_SELECTED_LIST_ITEM_COLOR
+	#define DIALOG_SELECTED_LIST_ITEM_COLOR \
+		5864548 // color of selected(clicked) preview model listitem background
+#endif
+
 #define NumOfPages(%0,%1) \
 	(((%0) - 1) / (%1) + 1)
-
-enum
-{
-    DIALOG_STYLE_PREVIEW_MODEL = 6,
-    DIALOG_STYLE_PREVMODEL = DIALOG_STYLE_PREVIEW_MODEL
-};
-
-enum
-{
-	MAX_DIALOG_PLAYER_TEXT_DRAWS = 100,
-	MAX_DIALOG_LIST_ROWS = 4,
-	MAX_DIALOG_LIST_COLUMNS = 8,
-	MAX_SMALL_DIALOG_LIST_ROWS = 3,
-	MAX_SMALL_DIALOG_LIST_COLUMNS = 4,
-	MAX_DIALOG_LIST_ITEMS = 256, // number of listitems a DIALOG_STYLE_PREVMODEL can have
-	MAX_DIALOG_LIST_ITEM_SIZE = 64 // each listitem label string size (-6 bits for model id and '\n')
-};
-
-enum
-{
-	DIALOG_LIST_ITEM_COLOR = 5864548,
-	DIALOG_SELECTED_LIST_ITEM_COLOR = -1608903836
-};
 
 enum DIALOG_TEXTDRAW
 {
