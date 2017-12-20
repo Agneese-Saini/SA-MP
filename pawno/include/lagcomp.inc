@@ -526,7 +526,7 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
 	if (newkeys & KEY_FIRE) {
 	    new weaponid = GetPlayerWeapon(playerid);
-		switch (GetPlayerWeapon(playerid)) {
+		switch (weaponid) {
 		    case WEAPON_MOLTOV,
 				 WEAPON_FLAMETHROWER:
 	 		{
