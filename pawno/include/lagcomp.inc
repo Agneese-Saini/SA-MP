@@ -4,7 +4,7 @@
 #define lagcomp_included
 
 /******************************************************/
-// lagcomp.inc | v2.0 | Last Updated: 20 Dec, 2017 | By Gammix
+// lagcomp.inc | v2.1 | Last Updated: 22 Dec, 2017 | By Gammix
 /******************************************************/
 
 #define HasSameTeam(%0,%1) \
