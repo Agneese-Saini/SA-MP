@@ -21,9 +21,9 @@ enum {
     WEAPON_UNKNOWN = 55
 };
 
-enum {
-	EXPLOSIVE_TYPE_FLAMEABLE,
-	EXPLOSIVE_TYPE_DESTUCTABLE
+enum E_WEAPON_DATA {
+	E_WEAPON_DATA_WEAPON,
+	E_WEAPON_DATA_TIMESTAMP
 };
 
 enum E_PLAYER_DEATH {
@@ -32,7 +32,8 @@ enum E_PLAYER_DEATH {
     E_PLAYER_DEATH_REASON
 };
 
-static playerLastExplosive[MAX_PLAYERS][2];
+static playerWeaponData[MAX_PLAYERS][15][E_WEAPON_DATA];
+static playerWeaponDataArraySize[MAX_PLAYERS];
 static playerDeath[MAX_PLAYERS][E_PLAYER_DEATH];
 static playerTeamID[MAX_PLAYERS];
 static Float:playerWeaponDamage[MAX_PLAYERS][55];
@@ -264,13 +265,16 @@ static ProcessDamage(issuerid, &Float:amount, &weaponid, &bodypart) {
 }
 
 public OnPlayerConnect(playerid) {
-    playerLastExplosive[playerid][EXPLOSIVE_TYPE_FLAMEABLE] = WEAPON_UNKNOWN;
-    playerLastExplosive[playerid][EXPLOSIVE_TYPE_DESTUCTABLE] = WEAPON_UNKNOWN;
-
+	for (new i = 0; i < sizeof playerWeaponData[]; i++) {
+		playerWeaponData[playerid][i][E_WEAPON_DATA_WEAPON] = WEAPON_UNKNOWN;
+		playerWeaponData[playerid][i][E_WEAPON_DATA_TIMESTAMP] = 0;
+	}
+	playerWeaponDataArraySize[playerid] = 0;
+	
     playerDeath[playerid][E_PLAYER_DEATH_VALID] = false;
     playerDeath[playerid][E_PLAYER_DEATH_KILLERID] = INVALID_PLAYER_ID;
     playerDeath[playerid][E_PLAYER_DEATH_REASON] = WEAPON_UNKNOWN;
-    
+
 	playerTeamID[playerid] = NO_TEAM;
 	SetPlayerTeam(playerid, 655);
 
@@ -356,7 +360,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 			case WEAPON_RIFLE: maxrange = 100.0; // 33 - Cuntgun
 			case WEAPON_SNIPER: maxrange = 320.0; // 34 - Sniper
 			case WEAPON_MINIGUN: maxrange = 75.0; // 38 - Minigun
-			
+
 			default: { // Invalid weapon
 				return 0;
 			}
@@ -369,7 +373,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 			return 0;
 		}
 	}
-	
+
 	#if defined LC_OnPlayerWeaponShot
 	    return LC_OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, fX, fY, fZ);
 	#else
@@ -397,11 +401,44 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart) 
 			 WEAPON_CARPARK,
 			 WEAPON_EXPLOSION:
 		{
-    	    if (weaponid == WEAPON_FLAMETHROWER) {
-    	        weaponid = playerLastExplosive[playerid][EXPLOSIVE_TYPE_FLAMEABLE];
-			}
-			else if (weaponid == WEAPON_EXPLOSION) {
-    	        weaponid = playerLastExplosive[playerid][EXPLOSIVE_TYPE_DESTUCTABLE];
+    	    if (weaponid == WEAPON_EXPLOSION) {
+    	        for (new i = (playerWeaponDataArraySize[playerid] - 1); i != -1; i--) {
+					switch (playerWeaponData[playerid][i][E_WEAPON_DATA_WEAPON]) {
+						case WEAPON_ROCKETLAUNCHER,
+							 WEAPON_HEATSEEKER,
+							 WEAPON_SATCHEL,
+							 WEAPON_BOMB:
+						{
+						    if ((gettime() - playerWeaponData[playerid][i][E_WEAPON_DATA_TIMESTAMP]) <= 5000) {
+						        weaponid = playerWeaponData[playerid][i][E_WEAPON_DATA_WEAPON];
+						        break;
+						    }
+				        }
+					}
+				}
+    	    }
+    	    else if (weaponid == WEAPON_FLAMETHROWER) {
+    	        new bool:hasFlamethrower = false;
+    	        for (new i = (playerWeaponDataArraySize[playerid] - 1); i != -1; i--) {
+					if (playerWeaponData[playerid][i][E_WEAPON_DATA_WEAPON] == WEAPON_FLAMETHROWER) {
+					    hasFlamethrower = true;
+						break;
+					}
+				}
+				
+				if (!hasFlamethrower) {
+					weaponid = WEAPON_MOLTOV;
+				}
+				else {
+	    	        for (new i = (playerWeaponDataArraySize[playerid] - 1); i != -1; i--) {
+						if (playerWeaponData[playerid][i][E_WEAPON_DATA_WEAPON] == WEAPON_FLAMETHROWER) {
+						    if ((gettime() - playerWeaponData[playerid][i][E_WEAPON_DATA_TIMESTAMP]) <= 10000) {
+								weaponid = WEAPON_FLAMETHROWER;
+								break;
+					        }
+						}
+					}
+				}
     	    }
 
     	    new Float:health;
@@ -409,7 +446,7 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart) 
 			GetPlayerHealth(playerid, health);
 			GetPlayerArmour(playerid, armour);
     	    new bool:death = bool:(((armour + health) - amount) <= 0.0);
-    	    
+
 			#if defined OnPlayerDamage
 			    OnPlayerDamage(playerid, INVALID_PLAYER_ID, weaponid, amount, bodypart, death);
 			#endif
@@ -431,7 +468,7 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart) 
 			#if defined OnPlayerDamage
 			    OnPlayerDamage(playerid, INVALID_PLAYER_ID, weaponid, amount, bodypart, death);
 			#endif
-			
+
 			if (death) {
 			    playerDeath[playerid][E_PLAYER_DEATH_VALID] = true;
 				playerDeath[playerid][E_PLAYER_DEATH_KILLERID] = INVALID_PLAYER_ID;
@@ -467,12 +504,12 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
 	if (!ProcessDamage(playerid, amount, weaponid, bodypart)) {
 		return 1;
 	}
-	
+
     new Float:health;
     new Float:armour;
 	GetPlayerHealth(damagedid, health);
 	GetPlayerArmour(damagedid, armour);
-	
+
 	if (armour > 0.0) {
 		armour -= amount;
 
@@ -487,7 +524,7 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
 			health = 0.0;
 		}
 	}
-	
+
 	new bool:death = bool:(health <= 0.0);
 
     new bool:ret = false;
@@ -525,18 +562,27 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
 	    new weaponid = GetPlayerWeapon(playerid);
 		switch (weaponid) {
 		    case WEAPON_MOLTOV,
-				 WEAPON_FLAMETHROWER:
-	 		{
-			    playerLastExplosive[playerid][EXPLOSIVE_TYPE_FLAMEABLE] = weaponid;
-			}
-			
-		    case WEAPON_GRENADE,
+				 WEAPON_FLAMETHROWER,
+				 WEAPON_GRENADE,
 				 WEAPON_ROCKETLAUNCHER,
 				 WEAPON_HEATSEEKER,
 				 WEAPON_SATCHEL,
 				 WEAPON_BOMB:
 	    	{
-			    playerLastExplosive[playerid][EXPLOSIVE_TYPE_DESTUCTABLE] = weaponid;
+	    	    new index;
+	    	    if (playerWeaponDataArraySize[playerid] == sizeof playerWeaponData[]) {
+					for (new i = 0; i < (playerWeaponDataArraySize[playerid] - 1); i++) {
+                        playerWeaponData[playerid][i] = playerWeaponData[playerid][i + 1];
+					}
+
+					index = (sizeof playerWeaponData[] - 1);
+				}
+				else {
+	    	    	index = playerWeaponDataArraySize[playerid]++;
+	    	   	}
+
+				playerWeaponData[playerid][index][E_WEAPON_DATA_WEAPON] = weaponid;
+				playerWeaponData[playerid][index][E_WEAPON_DATA_TIMESTAMP] = gettime();
 			}
 		}
 	}
@@ -563,7 +609,7 @@ public OnPlayerDeath(playerid, killerid, reason) {
 	}
 
 	playerDeath[playerid][E_PLAYER_DEATH_VALID] = false;
-	
+
 	killerid = playerDeath[playerid][E_PLAYER_DEATH_KILLERID];
 	reason = playerDeath[playerid][E_PLAYER_DEATH_REASON];
 
@@ -582,55 +628,6 @@ public OnPlayerDeath(playerid, killerid, reason) {
 #if defined LC_OnPlayerDeath
 	forward LC_OnPlayerDeath(playerid, killerid, reason);
 #endif
-
-stock LC_SetPlayerTeam(playerid, team) {
-	if (playerid < 0 || playerid >= MAX_PLAYERS) {
-	    return 0;
-	}
-	
-	playerTeamID[playerid] = team;
-	return 1;
-}
-#if defined _ALS_SetPlayerTeam
-    #undef SetPlayerTeam
-#else
-    #define _ALS_SetPlayerTeam
-#endif
-#define SetPlayerTeam LC_SetPlayerTeam
-
-stock LC_GetPlayerTeam(playerid) {
-	if (playerid < 0 || playerid >= MAX_PLAYERS) {
-	    return 0;
-	}
-	
-	return playerTeamID[playerid];
-}
-#if defined _ALS_GetPlayerTeam
-    #undef GetPlayerTeam
-#else
-    #define _ALS_GetPlayerTeam
-#endif
-#define GetPlayerTeam LC_GetPlayerTeam
-
-stock LC_SetPlayerHealth(playerid, Float:health) {
-	if (playerid < 0 || playerid >= MAX_PLAYERS) {
-	    return 0;
-	}
-
-	if (health <= 0.0) {
-        playerDeath[playerid][E_PLAYER_DEATH_VALID] = true;
-		playerDeath[playerid][E_PLAYER_DEATH_KILLERID] = INVALID_PLAYER_ID;
-		playerDeath[playerid][E_PLAYER_DEATH_REASON] = WEAPON_UNKNOWN;
-	}
-	
-	return SetPlayerHealth(playerid, health);
-}
-#if defined _ALS_SetPlayerHealth
-    #undef SetPlayerHealth
-#else
-    #define _ALS_SetPlayerHealth
-#endif
-#define SetPlayerHealth LC_SetPlayerHealth
 
 stock SetPlayerWeaponDamage(playerid, weaponid, Float:damage) {
 	if (playerid < 0 || playerid >= MAX_PLAYERS) {
@@ -656,3 +653,69 @@ stock Float:GetPlayerWeaponDamage(playerid, weaponid) {
 
     return playerWeaponDamage[playerid][weaponid];
 }
+
+stock PlayerDeath(playerid, killerid, reason) {
+	if (playerid < 0 || playerid >= MAX_PLAYERS) {
+	    return 0;
+	}
+
+	if (killerid != INVALID_PLAYER_ID || killerid < 0 || killerid >= MAX_PLAYERS) {
+	    killerid = INVALID_PLAYER_ID;
+	}
+
+	SetPlayerHealth(playerid, 0.0);
+
+	playerDeath[playerid][E_PLAYER_DEATH_VALID] = true;
+	playerDeath[playerid][E_PLAYER_DEATH_KILLERID] = killerid;
+	playerDeath[playerid][E_PLAYER_DEATH_REASON] = reason;
+	return 1;
+}
+
+stock LC_SetPlayerTeam(playerid, team) {
+	if (playerid < 0 || playerid >= MAX_PLAYERS) {
+	    return 0;
+	}
+
+	playerTeamID[playerid] = team;
+	return 1;
+}
+#if defined _ALS_SetPlayerTeam
+    #undef SetPlayerTeam
+#else
+    #define _ALS_SetPlayerTeam
+#endif
+#define SetPlayerTeam LC_SetPlayerTeam
+
+stock LC_GetPlayerTeam(playerid) {
+	if (playerid < 0 || playerid >= MAX_PLAYERS) {
+	    return 0;
+	}
+
+	return playerTeamID[playerid];
+}
+#if defined _ALS_GetPlayerTeam
+    #undef GetPlayerTeam
+#else
+    #define _ALS_GetPlayerTeam
+#endif
+#define GetPlayerTeam LC_GetPlayerTeam
+
+stock LC_SetPlayerHealth(playerid, Float:health) {
+	if (playerid < 0 || playerid >= MAX_PLAYERS) {
+	    return 0;
+	}
+
+	if (health <= 0.0) {
+        playerDeath[playerid][E_PLAYER_DEATH_VALID] = true;
+		playerDeath[playerid][E_PLAYER_DEATH_KILLERID] = INVALID_PLAYER_ID;
+		playerDeath[playerid][E_PLAYER_DEATH_REASON] = WEAPON_UNKNOWN;
+	}
+
+	return SetPlayerHealth(playerid, health);
+}
+#if defined _ALS_SetPlayerHealth
+    #undef SetPlayerHealth
+#else
+    #define _ALS_SetPlayerHealth
+#endif
+#define SetPlayerHealth LC_SetPlayerHealth
