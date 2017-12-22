@@ -393,11 +393,8 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart) 
 
 	switch (weaponid) {
  		case WEAPON_FLAMETHROWER,
-			 WEAPON_SPRAYCAN,
-			 WEAPON_FIREEXTINGUISHER,
 			 WEAPON_VEHICLE,
 			 WEAPON_CARPARK,
-			 WEAPON_HELIBLADES,
 			 WEAPON_EXPLOSION:
 		{
     	    if (weaponid == WEAPON_FLAMETHROWER) {
