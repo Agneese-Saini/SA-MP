@@ -115,7 +115,7 @@ static ProcessDamage(issuerid, &Float:amount, &weaponid, &bodypart) {
 		}
 	}
 
-	if (issuerid == INVALID_PLAYER_ID || IsPlayerInAnyVehicle(issuerid)) {
+	if (IsPlayerInAnyVehicle(issuerid)) {
 	    switch (weaponid) {
 	        case WEAPON_UNARMED..WEAPON_CANE,
 			  	 WEAPON_COLT45..WEAPON_SNIPER,
@@ -617,7 +617,7 @@ stock LC_SetPlayerHealth(playerid, Float:health) {
 	    return 0;
 	}
 
-	if (health < 0.0) {
+	if (health <= 0.0) {
         playerDeath[playerid][E_PLAYER_DEATH_VALID] = true;
 		playerDeath[playerid][E_PLAYER_DEATH_KILLERID] = INVALID_PLAYER_ID;
 		playerDeath[playerid][E_PLAYER_DEATH_REASON] = WEAPON_UNKNOWN;
