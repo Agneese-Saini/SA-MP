@@ -500,6 +500,47 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
 	if (IsPlayerInAnyVehicle(playerid) && GetPlayerVehicleSeat(playerid) == 0 && (weaponid == WEAPON_M4 || weaponid == WEAPON_MINIGUN)) {
 	    weaponid = ((weaponid == WEAPON_MINIGUN) ? (WEAPON_VEHICLE_MINIGUN) : (WEAPON_VEHICLE_M4));
 	}
+	else {
+	    if (weaponid == WEAPON_EXPLOSION) {
+   	        for (new i = (playerWeaponDataArraySize[playerid] - 1); i != -1; i--) {
+				switch (playerWeaponData[playerid][i][E_WEAPON_DATA_WEAPON]) {
+					case WEAPON_ROCKETLAUNCHER,
+						 WEAPON_HEATSEEKER,
+						 WEAPON_SATCHEL,
+						 WEAPON_BOMB:
+					{
+					    if ((gettime() - playerWeaponData[playerid][i][E_WEAPON_DATA_TIMESTAMP]) <= 5000) {
+					        weaponid = playerWeaponData[playerid][i][E_WEAPON_DATA_WEAPON];
+					        break;
+					    }
+			        }
+				}
+			}
+   	    }
+   	    else if (weaponid == WEAPON_FLAMETHROWER) {
+   	        new bool:hasFlamethrower = false;
+   	        for (new i = (playerWeaponDataArraySize[playerid] - 1); i != -1; i--) {
+				if (playerWeaponData[playerid][i][E_WEAPON_DATA_WEAPON] == WEAPON_FLAMETHROWER) {
+				    hasFlamethrower = true;
+					break;
+				}
+			}
+
+			if (!hasFlamethrower) {
+				weaponid = WEAPON_MOLTOV;
+			}
+			else {
+    	        for (new i = (playerWeaponDataArraySize[playerid] - 1); i != -1; i--) {
+					if (playerWeaponData[playerid][i][E_WEAPON_DATA_WEAPON] == WEAPON_FLAMETHROWER) {
+					    if ((gettime() - playerWeaponData[playerid][i][E_WEAPON_DATA_TIMESTAMP]) <= 10000) {
+							weaponid = WEAPON_FLAMETHROWER;
+							break;
+				        }
+					}
+				}
+			}
+   	    }
+	}
 
 	if (!ProcessDamage(playerid, amount, weaponid, bodypart)) {
 		return 1;
