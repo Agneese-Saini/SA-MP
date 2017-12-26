@@ -132,7 +132,7 @@ public OnGameModeInit() {
 	#if defined VM_OnGameModeInit
 		return VM_OnGameModeInit();
 	#else
-		return 0;
+		return 1;
 	#endif
 }
 #if defined _ALS_OnGameModeInit
@@ -158,7 +158,7 @@ public OnGameModeExit() {
 	#if defined VM_OnGameModeExit
 		return VM_OnGameModeExit();
 	#else
-		return 0;
+		return 1;
 	#endif
 }
 #if defined _ALS_OnGameModeExit
@@ -169,6 +169,28 @@ public OnGameModeExit() {
 #define OnGameModeExit VM_OnGameModeExit
 #if defined VM_OnGameModeExit
 	forward VM_OnGameModeExit();
+#endif
+
+public OnPlayerConnect(playerid) {
+	for (new i = 0; i < sizeof VENDING_MACHINES; i++) {
+        RemoveBuildingForPlayer(playerid, VENDING_MACHINES[i][E_VENDING_MACHINE_MODEL], VENDING_MACHINES[i][E_VENDING_MACHINE_X], VENDING_MACHINES[i][E_VENDING_MACHINE_Y], VENDING_MACHINES[i][E_VENDING_MACHINE_Z], 0.25);
+	}
+	
+	#if defined VM_OnPlayerConnect
+		return VM_OnPlayerConnect(playerid);
+	#else
+		return 1;
+	#endif
+}
+#if defined _ALS_OnPlayerConnect
+	#undef OnPlayerConnect
+#else
+	#define _ALS_OnPlayerConnect
+#endif
+
+#define OnPlayerConnect VM_OnPlayerConnect
+#if defined VM_OnPlayerConnect
+	forward VM_OnPlayerConnect(playerid);
 #endif
 
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
@@ -221,7 +243,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
 	#if defined VM_OnPlayerKeyStateChange
 		return VM_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
 	#else
-		return 0;
+		return 1;
 	#endif
 }
 #if defined _ALS_OnPlayerKeyStateChange
