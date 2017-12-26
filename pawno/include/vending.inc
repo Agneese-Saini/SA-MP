@@ -218,7 +218,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
 
 			new bool:ret = true;
 			#if defined OnPlayerUseVendingMachine
-			    ret = bool:OnPlayerUseVendingMachine(playerid, machineid);
+			    ret = bool:OnPlayerUseVendingMachine(playerid, i);
 			#endif
 
 			if (!ret) {
