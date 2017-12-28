@@ -901,7 +901,7 @@ stock LC_SetPlayerAmmo(playerid, weaponid, ammo) {
 	else {
 		playerWeaponData[playerid][slot][E_PLAYER_WEAPON_AMMO] = ammo;
 	}
-	return SetPlayerAmmo(playerid, weapon, ammo);
+	return SetPlayerAmmo(playerid, weaponid, ammo);
 }
 #if defined _ALS_SetPlayerAmmo
     #undef SetPlayerAmmo
