@@ -31,4 +31,5 @@ Click on the embedded links to directly goto the following's page.
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/projectile.inc">projectile.inc</a></b> - Lets you create object physics simulation
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/script_init.inc">script_init.inc</a></b> - callback called when script inits and exits with two macros for depicting if the script is a GAMEMODE or FILTERSCRIPT
     * <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/fader.inc">fader.inc</a></b> - global and player textdraw color fader (support box and text)
+    * <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/textanims.inc">textanims.inc</a></b> - textdraw animations processor
     * <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/vending.inc">vending.inc</a></b> - include to detect usage of vending machines, the include destroys the client vending machines and make them server sided
