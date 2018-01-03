@@ -1,5 +1,5 @@
 // TDEditor.pwn by Gammix
-// v1.2 - Last updated: 0 Nov, 2017
+// v1.3 - Last updated: 3 Jan, 2018
 #define FILTERSCRIPT
 
 #include <a_samp>
@@ -18,8 +18,8 @@
 #define MAX_PROJECT_NAME 		64
 
 #define MAX_GROUPS 				32
-#define MAX_GROUP_NAME 			16
-#define MAX_GROUP_TEXTDRAWS 	25
+#define MAX_GROUP_NAME 			32
+#define MAX_GROUP_TEXTDRAWS 	64
 #define MAX_GROUP_TEXTDRAW_TEXT 256
 
 #define MAX_GROUP_TEXTDRAW_PREVIEW_CHARS 16
@@ -531,6 +531,14 @@ ExportProject(const filename[]) {
     	playerTextdrawsCount = 0;
 	    for (new x; x < groupData[i][E_GROUP_TEXTDRAWS_COUNT]; x++) {
 	        if (!groupTextDrawData[i][x][E_TEXTDRAW_TYPE_PLAYER]) {
+	            new pos = -1;
+	            new len = strlen(groupTextDrawData[i][x][E_TEXTDRAW_TEXT]);
+	            
+				while ((pos = strfind(groupTextDrawData[i][x][E_TEXTDRAW_TEXT], "\"")) != -1) {
+					strdel(groupTextDrawData[i][x][E_TEXTDRAW_TEXT], pos, (pos + 1));
+					strins(groupTextDrawData[i][x][E_TEXTDRAW_TEXT], "''", pos, len);
+				}
+	            
    				globalTextdrawsCount++;
 
    				isThereAnyGlobalTextDraws = true;
@@ -1218,10 +1226,10 @@ public OnPlayerTimerUpdate(playerid) {
 
 				case EDITING_LETTER_SIZE: {
 				    if (keys == KEY_SPRINT) {
-				  	  	groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_LETTERSIZE_X] -= 1.0;
+				  	  	groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_LETTERSIZE_X] -= 0.05;
 					}
 					else {
-				  	  	groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_LETTERSIZE_X] -= 0.1;
+				  	  	groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_LETTERSIZE_X] -= 0.01;
 					}
 
 					TextDrawLetterSize(groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_ID], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_LETTERSIZE_X], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_LETTERSIZE_Y]);
@@ -1288,10 +1296,10 @@ public OnPlayerTimerUpdate(playerid) {
 
 				case EDITING_LETTER_SIZE: {
 				    if (keys == KEY_SPRINT) {
-				  	  	groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_LETTERSIZE_X] += 1.0;
+				  	  	groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_LETTERSIZE_X] += 0.05;
 					}
 					else {
-				  	  	groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_LETTERSIZE_X] += 0.1;
+				  	  	groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_LETTERSIZE_X] += 0.01;
 					}
 
 					TextDrawLetterSize(groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_ID], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_LETTERSIZE_X], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_LETTERSIZE_Y]);
@@ -1882,11 +1890,8 @@ Dialog:MAIN_MENU(playerid, response, listitem, inputtext[]) {
 		}
 
 		case 1, 2: {
-		    new Dini:h = dini_open(PATH_RECORD_FILE, 0);
-		    new numFields = dini_num_fields(h);
-		    
-		    if (numFields == 0) {
-		    	dini_close(h);
+		    if (dini_NumKeys(PATH_RECORD_FILE) == 0) {
+		    	dini_Timeout(PATH_RECORD_FILE);
 		    	
 		        if (listitem == 1) {
 					return Dialog_Show(playerid, LOAD_PROJECT, DIALOG_STYLE_TABLIST_HEADERS, "TDEditor: Load project", "File\tDate created\n"COL_RED"null\t"COL_RED"null", "Load", "Back");
@@ -1899,21 +1904,19 @@ Dialog:MAIN_MENU(playerid, response, listitem, inputtext[]) {
 			new count;
 			static string[MAX_PROJECTS * (MAX_PROJECT_NAME + 16 + 2)];
 		    new field[DINI_MAX_FIELD_NAME];
-			new value[DINI_MAX_FIELD_VALUE];
 			
 			string = "File\tDate Created\n";
-		    for (new i; i < numFields; i++) {
+		    for (new i, j = dini_NumKeys(PATH_RECORD_FILE); i < j; i++) {
 				if (++count == MAX_PROJECTS) {
 					SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: Maximum projects limit is set to "#MAX_PROJECTS", and the limit has reached. There might be more projects which are not listed in the dialog.");
 					break;
 				}
 
-				dini_get_field_name(h, i, field);
-				dini_get(h, i, value);
-				format(string, sizeof (string), "%s%s\t%s\n", string, field, value);
+				field =  dini_GetKeyName(PATH_RECORD_FILE, i);
+				format(string, sizeof (string), "%s%s\t%s\n", string, field, dini_Get(PATH_RECORD_FILE, field));
 			}
 
-			dini_close(h);
+			dini_Timeout(PATH_RECORD_FILE);
 
 			if (count == 0) {
 		        if (listitem == 1) {
@@ -1949,16 +1952,14 @@ Dialog:NEW_PROJECT(playerid, response, listitem, inputtext[]) {
 	if (pos == -1) {
 		strcat(name, ".db");
 	}
-	
-	new Dini:h = dini_open(PATH_RECORD_FILE, 0);
-	
-	if (dini_get_field_id(h, name) != -1 || fexist(name)) {
-	    dini_close(h);
+
+	if (dini_Isset(PATH_RECORD_FILE, name) || fexist(name)) {
+	    dini_Timeout(PATH_RECORD_FILE);
 		return Dialog_Show(playerid, NEW_PROJECT, DIALOG_STYLE_INPUT, "TDEditor: New project", ""COL_WHITE"Insert a "COL_GREEN"PROJECT-NAME"COL_WHITE" below to create.\n\n"COL_GREY"The project will be saved as a \".db\" file. Each project gets its\n"COL_GREY"own database file so its easy to manage and even share!\n\n"COL_RED"Error: "COL_GREY"The project name already exists. Try something else or you can continue your work by loading that project instead!", "Create", "Back");
 	}
 
 	if (!strcmp(inputtext, "null", true)) {
-	    dini_close(h);
+	    dini_Timeout(PATH_RECORD_FILE);
 		return Dialog_Show(playerid, NEW_PROJECT, DIALOG_STYLE_INPUT, "TDEditor: New project", ""COL_WHITE"Insert a "COL_GREEN"PROJECT-NAME"COL_WHITE" below to create.\n\n"COL_GREY"The project will be saved as a \".db\" file. Each project gets its\n"COL_GREY"own database file so its easy to manage and even share!\n\n"COL_RED"Error: "COL_GREY"The project name cannot be \"null\"!", "Create", "Back");
 	}
 
@@ -1980,11 +1981,11 @@ Dialog:NEW_PROJECT(playerid, response, listitem, inputtext[]) {
 	format(string, sizeof (string), "TDEditor: A new project has been created \"%s\". Start editing!", name);
 	SendClientMessage(playerid, MESSAGE_COLOR, string);
 
-	if (!dini_set_assoc(h, name, ReturnDate(gettime()))) {
+	if (!dini_Set(PATH_RECORD_FILE, name, ReturnDate(gettime()))) {
 		SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: System couldn't open record file so your project name might not arrive on Loading dialog, but you project database is fine!");
 	}
 
-	dini_close(h);
+	dini_Timeout(PATH_RECORD_FILE);
 	
 	return cmd_text(playerid);
 }
@@ -2108,13 +2109,13 @@ Dialog:CONFIRM_DELETE_PROJECT(playerid, response, listitem, inputtext[]) {
 		return dialog_MAIN_MENU(playerid, 1, 2, "\1");
 	}
 
+	db_close(projectDB);
 	fremove(projectName);
 	
-	new Dini:h = dini_open(PATH_RECORD_FILE, 0);
-	if (!dini_remove_field_id(h, dini_get_field_id(h, projectName))) {
+	if (!dini_Unset(PATH_RECORD_FILE, projectName)) {
 	    SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: System couldn't open record file so your project name might still be there in loading/deleteing dialog, but you project database has been deleted!");
 	}
-	dini_close(h);
+	dini_Timeout(PATH_RECORD_FILE);
 
 	new string[150];
 	format(string, sizeof (string), "TDEditor: Deleted project \"%s\".", projectName);
