@@ -4,7 +4,7 @@
 #define dini2_included
 
 /**********************************************/
-// Dini2.inc | v2.9 | Updated: 17 Dec, 2017 | By Gammix
+// Dini2.inc | v3.0 | Updated: 3 Jan, 2018 | By Gammix
 /**********************************************/
 
 #if !defined DINI_MAX_FILES
@@ -66,7 +66,7 @@ static Dini:dini_ParseFile(const filename[], timeout = 150) {
 		OnDiniFileTimeout(Dini:0);
 		file = Dini:0;
 	}
-	
+
 	diniFile[file][E_DINI_NUM_FIELDS] = 0;
 
 	if (fexist(filename)) {
@@ -107,7 +107,7 @@ static Dini:dini_ParseFile(const filename[], timeout = 150) {
 
 	format(diniFile[file][E_DINI_FILENAME], DINI_MAX_FILE_NAME, filename);
 	diniFile[file][E_DINI_FILE_MODIFIED] = false;
-	
+
 	if (timeout > 0) {
 		diniFile[file][E_DINI_TIMER] = SetTimerEx("OnDiniFileTimeout", timeout, false, "i", _:file);
 	}
@@ -148,7 +148,7 @@ stock dini_Create(const filename[]) {
 	if (!h) {
 		return 0;
 	}
-	
+
 	fclose(h);
 	return 1;
 }
@@ -198,7 +198,7 @@ stock dini_BoolSet(const filename[], const key[], bool:value) {
 
 stock dini_Get(const filename[], const key[]) {
 	static const NULL[DINI_MAX_FIELD_VALUE] = "\0";
-	
+
 	new Dini:file = INVALID_DINI_FILE;
 	for (new Dini:i = Dini:0; i < Dini:DINI_MAX_FILES; i++) {
 		if (diniFile[i][E_DINI_FILENAME][0] && !strcmp(diniFile[i][E_DINI_FILENAME], filename)) {
@@ -206,18 +206,18 @@ stock dini_Get(const filename[], const key[]) {
 			break;
 		}
 	}
-	
+
 	if (file == INVALID_DINI_FILE) {
 		if (!fexist(filename)) {
 			return NULL;
 		}
-		
+
 		file = dini_ParseFile(filename);
 		if (file == INVALID_DINI_FILE) {
 	 		return NULL;
 		}
 	}
-	
+
 
 	for (new i = 0; i < diniFile[file][E_DINI_NUM_FIELDS]; i++) {
 		if (!strcmp(diniFileFields[file][i], key)) {
@@ -268,6 +268,7 @@ stock dini_Unset(const filename[], const key[]) {
 		        diniFileValues[file][i] = diniFileValues[file][i + 1];
 		    }
 		    diniFile[file][E_DINI_NUM_FIELDS]--;
+		    diniFile[file][E_DINI_FILE_MODIFIED] = true;
 			return 1;
 		}
 	}
@@ -315,6 +316,59 @@ stock dini_Timeout(const filename[]) {
 	}
 
 	return 0;
+}
+
+stock dini_NumKeys(const filename[]) {
+	new Dini:file = INVALID_DINI_FILE;
+	for (new Dini:i = Dini:0; i < Dini:DINI_MAX_FILES; i++) {
+		if (diniFile[i][E_DINI_FILENAME][0] && !strcmp(diniFile[i][E_DINI_FILENAME], filename)) {
+			file = i;
+			break;
+		}
+	}
+
+	if (file == INVALID_DINI_FILE) {
+		if (!fexist(filename)) {
+			return 0;
+		}
+
+		file = dini_ParseFile(filename);
+		if (file == INVALID_DINI_FILE) {
+	 		return 0;
+		}
+	}
+
+
+	return diniFile[file][E_DINI_NUM_FIELDS];
+}
+
+stock dini_GetKeyName(const filename[], keyid) {
+	static const NULL[DINI_MAX_FIELD_NAME] = "\0";
+
+	new Dini:file = INVALID_DINI_FILE;
+	for (new Dini:i = Dini:0; i < Dini:DINI_MAX_FILES; i++) {
+		if (diniFile[i][E_DINI_FILENAME][0] && !strcmp(diniFile[i][E_DINI_FILENAME], filename)) {
+			file = i;
+			break;
+		}
+	}
+
+	if (file == INVALID_DINI_FILE) {
+		if (!fexist(filename)) {
+			return NULL;
+		}
+
+		file = dini_ParseFile(filename);
+		if (file == INVALID_DINI_FILE) {
+	 		return NULL;
+		}
+	}
+
+	if (keyid < 0 || keyid >= diniFile[file][E_DINI_NUM_FIELDS]) {
+		return NULL;
+	}
+	
+	return diniFileFields[file][keyid];
 }
 
 stock DINI_StripNewLine(const string[]) {
