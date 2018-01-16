@@ -1,5 +1,5 @@
 // TDEditor.pwn by Gammix
-// v1.3 - Last updated: 3 Jan, 2018
+// v1.3.1 - Last updated: 16 Jan, 2018
 #define FILTERSCRIPT
 
 #include <a_samp>
@@ -849,7 +849,7 @@ public OnFilterScriptInit() {
 		printf("[TDEditor.pwn] - Warning: Path \"%s\" doesn't exists. You cannot search object models in Preview Model Option; only modelids accepted.", PATH_OBJECTS_FILE);
 	}
 
-	printf("[TDEditor.pwn] - Loaded v1.2 - By Gammix");
+	printf("[TDEditor.pwn] - Loaded v1.3.1 (updated: 16 Jan, 2018) - By Gammix");
 	
 	printf("\n==========================================\n");
 
@@ -1526,7 +1526,7 @@ CMD:x(playerid, params[]) {
 	}
 
     new Float:value;
-	if (sscanf(params, "%f", value)) {
+	if (sscanf(params, "f", value)) {
 	    return SendClientMessage(playerid, MESSAGE_COLOR, "Usage: /x [value]");
 	}
 
@@ -1551,7 +1551,7 @@ CMD:y(playerid, params[]) {
 	}
 
     new Float:value;
-	if (sscanf(params, "%f", value)) {
+	if (sscanf(params, "f", value)) {
 	    return SendClientMessage(playerid, MESSAGE_COLOR, "Usage: /y [value]");
 	}
 
@@ -1576,7 +1576,7 @@ CMD:lx(playerid, params[]) {
 	}
 
     new Float:value;
-	if (sscanf(params, "%f", value)) {
+	if (sscanf(params, "f", value)) {
 	    return SendClientMessage(playerid, MESSAGE_COLOR, "Usage: /lx [value]");
 	}
 
@@ -1597,7 +1597,7 @@ CMD:ly(playerid, params[]) {
 	}
 
     new Float:value;
-	if (sscanf(params, "%f", value)) {
+	if (sscanf(params, "f", value)) {
 	    return SendClientMessage(playerid, MESSAGE_COLOR, "Usage: /ly [value]");
 	}
 
@@ -1618,7 +1618,7 @@ CMD:tx(playerid, params[]) {
 	}
 
     new Float:value;
-	if (sscanf(params, "%f", value)) {
+	if (sscanf(params, "f", value)) {
 	    return SendClientMessage(playerid, MESSAGE_COLOR, "Usage: /tx [value]");
 	}
 
@@ -1639,7 +1639,7 @@ CMD:ty(playerid, params[]) {
 	}
 
     new Float:value;
-	if (sscanf(params, "%f", value)) {
+	if (sscanf(params, "f", value)) {
 	    return SendClientMessage(playerid, MESSAGE_COLOR, "Usage: /ty [value]");
 	}
 
@@ -1660,7 +1660,7 @@ CMD:rx(playerid, params[]) {
 	}
 
     new Float:value;
-	if (sscanf(params, "%f", value)) {
+	if (sscanf(params, "f", value)) {
 	    return SendClientMessage(playerid, MESSAGE_COLOR, "Usage: /rx [value]");
 	}
 
@@ -1681,7 +1681,7 @@ CMD:ry(playerid, params[]) {
 	}
 
     new Float:value;
-	if (sscanf(params, "%f", value)) {
+	if (sscanf(params, "f", value)) {
 	    return SendClientMessage(playerid, MESSAGE_COLOR, "Usage: /ry [value]");
 	}
 
@@ -1702,7 +1702,7 @@ CMD:rz(playerid, params[]) {
 	}
 
     new Float:value;
-	if (sscanf(params, "%f", value)) {
+	if (sscanf(params, "f", value)) {
 	    return SendClientMessage(playerid, MESSAGE_COLOR, "Usage: /rz [value]");
 	}
 
@@ -1723,7 +1723,7 @@ CMD:zoom(playerid, params[]) {
 	}
 
     new Float:value;
-	if (sscanf(params, "%f", value)) {
+	if (sscanf(params, "f", value)) {
 	    return SendClientMessage(playerid, MESSAGE_COLOR, "Usage: /zoom [value]");
 	}
 
@@ -1822,7 +1822,7 @@ CMD:string(playerid, params[]) {
 	}
 
     new string[MAX_GROUP_TEXTDRAW_TEXT];
-	if (sscanf(params, "%s["#MAX_GROUP_TEXTDRAW_TEXT"]", string)) {
+	if (sscanf(params, "s["#MAX_GROUP_TEXTDRAW_TEXT"]", string)) {
 	    return SendClientMessage(playerid, MESSAGE_COLOR, "Usage: /string [text]");
 	}
 
