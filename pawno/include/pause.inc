@@ -75,7 +75,7 @@ forward __OnPlayerTimerUpdate(playerid);
 public __OnPlayerTimerUpdate(playerid) {
 	new tick = GetTickCount();
 
-	if ((tick - playerPauseData[playerid][E_PLAYER_PAUSED_LAST_TICKCOUNT]) >= 2000) { // if player hasn't updated in 2 seconds
+	if ((tick - playerPauseData[playerid][E_PLAYER_PAUSED_LAST_TICKCOUNT]) >= 5000) { // if player hasn't updated in 5 seconds
 	    playerPauseData[playerid][E_PLAYER_PAUSED_TOGGLE] = true;
 
 		#if defined OnPlayerPause
