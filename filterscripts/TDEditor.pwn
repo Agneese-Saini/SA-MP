@@ -1,5 +1,5 @@
 // TDEditor.pwn by Gammix
-// v1.3.1 - Last updated: 16 Jan, 2018
+// v1.3.2 - Last updated: 18 Jan, 2018
 #define FILTERSCRIPT
 
 #include <a_samp>
@@ -374,11 +374,11 @@ public ShowPlayerGroupDialog(playerid, groupid) {
 			}
 
 			case 4: {
-			    format(string, sizeof (string), "%sSprite #%i: '%s'\n", string, i, previewChars);
+			    format(string, sizeof (string), "%sText #%i: '%s' (Sprite)\n", string, i, previewChars);
 			}
 
 			case 5: {
-			    format(string, sizeof (string), "%sPreviewModel #%i: '%s'\n", string, i, previewChars);
+			    format(string, sizeof (string), "%sText #%i: '%s' (PreviewModel)\n", string, i, previewChars);
 			}
 		}
 	}
@@ -518,35 +518,38 @@ ExportProject(const filename[]) {
 	new playerTextdrawsCount;
 	new bool:isThereAnyGlobalTextDraws;
 	new bool:isThereAnyPlayerTextDraws;
-
-	fwrite(h, "// TextDraw(s) developed using Gammix's TextDraw editor 1.0\r\n\r\n");
+	new pos;
+	new len;
+	new varname[41];
+	new idx;
+	
+	fwrite(h, "// TextDraw(s) developed using Gammix's TextDraw editor\r\n");
    	fwrite(h, "#include <a_samp>\r\n\r\n");
 
-   	fwrite(h, "// Variable decleration on top of script\r\n");
+   	fwrite(h, "// variable decleration on top of script\r\n");
     for (new i; i < groupsCount; i++) {
-		format(string, sizeof (string), "// TextDraw Group: '%s'\r\n", groupData[i][E_GROUP_NAME]);
+		format(string, sizeof (string), "/*\r\n** textdarw group: \"%s\"\r\n*/\r\n", groupData[i][E_GROUP_NAME]);
 		fwrite(h, string);
 
 	    globalTextdrawsCount = 0;
     	playerTextdrawsCount = 0;
 	    for (new x; x < groupData[i][E_GROUP_TEXTDRAWS_COUNT]; x++) {
-	        if (!groupTextDrawData[i][x][E_TEXTDRAW_TYPE_PLAYER]) {
-	            new pos = -1;
-	            new len = strlen(groupTextDrawData[i][x][E_TEXTDRAW_TEXT]);
-	            
-				while ((pos = strfind(groupTextDrawData[i][x][E_TEXTDRAW_TEXT], "\"")) != -1) {
-					strdel(groupTextDrawData[i][x][E_TEXTDRAW_TEXT], pos, (pos + 1));
-					strins(groupTextDrawData[i][x][E_TEXTDRAW_TEXT], "''", pos, len);
-				}
-	            
-   				globalTextdrawsCount++;
-
-   				isThereAnyGlobalTextDraws = true;
+	    
+     		len = strlen(groupTextDrawData[i][x][E_TEXTDRAW_TEXT]);
+			while ((pos = strfind(groupTextDrawData[i][x][E_TEXTDRAW_TEXT], "\"")) != -1) {
+				strdel(groupTextDrawData[i][x][E_TEXTDRAW_TEXT], pos, (pos + 1));
+				strins(groupTextDrawData[i][x][E_TEXTDRAW_TEXT], "''", pos, len);
 			}
-			else {
+				
+	        if (groupTextDrawData[i][x][E_TEXTDRAW_TYPE_PLAYER]) {
        			playerTextdrawsCount++;
 
    				isThereAnyPlayerTextDraws = true;
+			}
+			else {
+   				globalTextdrawsCount++;
+   				
+   				isThereAnyGlobalTextDraws = true;
 			}
 	    }
 
@@ -572,134 +575,104 @@ ExportProject(const filename[]) {
 	fwrite(h, "\r\n");
 
 	if (isThereAnyGlobalTextDraws) {
-		fwrite(h, "// Creating global textdraw(s) under \"OnGameModeInit\" preferably\r\n");
-		fwrite(h, "public OnGameModeInit()\r\n");
-		fwrite(h, "{\r\n");
-		
+		fwrite(h, "// creating global textdraw(s) under \"OnGameModeInit\" preferably\r\n");
+		fwrite(h, "public OnGameModeInit() {\r\n");
+
 		for (new i; i < groupsCount; i++) {
 		    globalTextdrawsCount = 0;
 		    for (new x; x < groupData[i][E_GROUP_TEXTDRAWS_COUNT]; x++) {
 		        if (!groupTextDrawData[i][x][E_TEXTDRAW_TYPE_PLAYER]) {
-	   				globalTextdrawsCount++;
+		            globalTextdrawsCount++;
 				}
 		    }
-		    
+
 		    if (globalTextdrawsCount == 0) {
 				continue;
 			}
 
-			format(string, sizeof (string), "\t// TextDraw Group: '%s'\r\n", groupData[i][E_GROUP_NAME]);
+			format(string, sizeof (string), "\t/*\r\n\t** player textdarw group: \"%s\"\r\n\t*/\r\n", groupData[i][E_GROUP_NAME]);
 			fwrite(h, string);
 			
-		    if (globalTextdrawsCount == 1) {
-		        format(string, sizeof (string), "\t%sTD = TextDrawCreate(%0.4f, %0.4f, \"%s\");\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_X], groupTextDrawData[i][0][E_TEXTDRAW_Y], groupTextDrawData[i][0][E_TEXTDRAW_TEXT]);
+			idx = 0;
+			for (new x; x < groupData[i][E_GROUP_TEXTDRAWS_COUNT]; x++) {
+		        if (groupTextDrawData[i][x][E_TEXTDRAW_TYPE_PLAYER]) {
+					continue;
+				}
+		        
+			    if (globalTextdrawsCount == 1) {
+					format(varname, sizeof (varname), "%sTD", groupData[i][E_GROUP_NAME]);
+				}
+				else {
+					format(varname, sizeof (varname), "%sTD[%i]", groupData[i][E_GROUP_NAME], idx++);
+				}
+
+				format(string, sizeof (string), "\t%s = TextDrawCreate(%0.4f, %0.4f, \"%s\");\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_X], groupTextDrawData[i][x][E_TEXTDRAW_Y], groupTextDrawData[i][x][E_TEXTDRAW_TEXT]);
 				fwrite(h, string);
-				format(string, sizeof (string), "\tTextDrawFont(%sTD, %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_FONT]);
+				
+				format(string, sizeof (string), "\tTextDrawFont(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_FONT]);
 				fwrite(h, string);
-		        format(string, sizeof (string), "\tTextDrawLetterSize(%sTD, %0.4f, %0.4f);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_LETTERSIZE_X], groupTextDrawData[i][0][E_TEXTDRAW_LETTERSIZE_Y]);
+				
+		        format(string, sizeof (string), "\tTextDrawLetterSize(%s, %0.4f, %0.4f);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_LETTERSIZE_X], groupTextDrawData[i][x][E_TEXTDRAW_LETTERSIZE_Y]);
 				fwrite(h, string);
-				if (groupTextDrawData[i][0][E_TEXTDRAW_ALIGNMENT] != 1) {
-			        format(string, sizeof (string), "\tTextDrawAlignment(%sTD, %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_ALIGNMENT]);
+				
+				if (groupTextDrawData[i][x][E_TEXTDRAW_ALIGNMENT] != 1) {
+			        format(string, sizeof (string), "\tTextDrawAlignment(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_ALIGNMENT]);
 					fwrite(h, string);
 				}
-				format(string, sizeof (string), "\tTextDrawColor(%sTD, %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_COLOR]);
+				
+				format(string, sizeof (string), "\tTextDrawColor(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_COLOR]);
 				fwrite(h, string);
-				if (groupTextDrawData[i][0][E_TEXTDRAW_SHADOW] != 0) {
-			        format(string, sizeof (string), "\tTextDrawSetShadow(%sTD, %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_SHADOW]);
+				
+				if (groupTextDrawData[i][x][E_TEXTDRAW_SHADOW] != 0) {
+			        format(string, sizeof (string), "\tTextDrawSetShadow(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_SHADOW]);
 					fwrite(h, string);
 				}
-				if (groupTextDrawData[i][0][E_TEXTDRAW_OUTLINE] != 0) {
-			        format(string, sizeof (string), "\tTextDrawSetOutline(%sTD, %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_OUTLINE]);
+
+				if (groupTextDrawData[i][x][E_TEXTDRAW_OUTLINE] != 0) {
+			        format(string, sizeof (string), "\tTextDrawSetOutline(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_OUTLINE]);
 					fwrite(h, string);
 				}
-				format(string, sizeof (string), "\tTextDrawBackgroundColor(%sTD, %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_BACKGROUND_COLOR]);
+				
+				format(string, sizeof (string), "\tTextDrawBackgroundColor(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_BACKGROUND_COLOR]);
 				fwrite(h, string);
-				format(string, sizeof (string), "\tTextDrawSetProportional(%sTD, %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_PROPORTIONAL]);
+				
+				format(string, sizeof (string), "\tTextDrawSetProportional(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_PROPORTIONAL]);
 				fwrite(h, string);
-				format(string, sizeof (string), "\tTextDrawSetProportional(%sTD, %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_PROPORTIONAL]);
-				fwrite(h, string);
-				if (groupTextDrawData[i][0][E_TEXTDRAW_USE_BOX]) {
-			        format(string, sizeof (string), "\tTextDrawUseBox(%sTD, 1);\r\n", groupData[i][E_GROUP_NAME]);
+				
+				if (groupTextDrawData[i][x][E_TEXTDRAW_USE_BOX]) {
+			        format(string, sizeof (string), "\tTextDrawUseBox(%s, 1);\r\n", varname);
 					fwrite(h, string);
-			        format(string, sizeof (string), "\tTextDrawBoxColor(%sTD, %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_BOX_COLOR]);
-					fwrite(h, string);
-			        format(string, sizeof (string), "\tTextDrawTextSize(%sTD, %0.4f, %0.4f);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_TEXTSIZE_X], groupTextDrawData[i][0][E_TEXTDRAW_TEXTSIZE_Y]);
+			        format(string, sizeof (string), "\tTextDrawBoxColor(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_BOX_COLOR]);
 					fwrite(h, string);
 				}
-				if (groupTextDrawData[i][0][E_TEXTDRAW_FONT] == 5) {
-			        format(string, sizeof (string), "\tTextDrawSetPreviewModel(%sTD, %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_PREVIEW_MODEL]);
+
+    			format(string, sizeof (string), "\tTextDrawTextSize(%s, %0.4f, %0.4f);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_TEXTSIZE_X], groupTextDrawData[i][x][E_TEXTDRAW_TEXTSIZE_Y]);
+				fwrite(h, string);
+				
+				if (groupTextDrawData[i][x][E_TEXTDRAW_FONT] == 5) {
+			        format(string, sizeof (string), "\tTextDrawSetPreviewModel(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_MODEL]);
 					fwrite(h, string);
-			        format(string, sizeof (string), "\tTextDrawSetPreviewRot(%sTD, %0.4f, %0.4f, %0.4f, %0.4f);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_PREVIEW_ROT_X], groupTextDrawData[i][0][E_TEXTDRAW_PREVIEW_ROT_Y], groupTextDrawData[i][0][E_TEXTDRAW_PREVIEW_ROT_Z], groupTextDrawData[i][0][E_TEXTDRAW_PREVIEW_ROT_ZOOM]);
+			        format(string, sizeof (string), "\tTextDrawSetPreviewRot(%s, %0.4f, %0.4f, %0.4f, %0.4f);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_X], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_Y], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_Z], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_ZOOM]);
 					fwrite(h, string);
 				}
-				if (groupTextDrawData[i][0][E_TEXTDRAW_SELECTABLE]) {
-			        format(string, sizeof (string), "\tTextDrawSetSelectable(%sTD, 1);\r\n", groupData[i][E_GROUP_NAME]);
+				
+				if (groupTextDrawData[i][x][E_TEXTDRAW_SELECTABLE]) {
+			        format(string, sizeof (string), "\tTextDrawSetSelectable(%s, 1);\r\n", varname);
 					fwrite(h, string);
 				}
 				
 				fwrite(h, "\r\n");
-			}
-			else if (globalTextdrawsCount > 1) {
-			    for (new x; x < globalTextdrawsCount; x++) {
-			        format(string, sizeof (string), "\t%sTD[%i] = TextDrawCreate(%0.4f, %0.4f, \"%s\");\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_X], groupTextDrawData[i][x][E_TEXTDRAW_Y], groupTextDrawData[i][x][E_TEXTDRAW_TEXT]);
-					fwrite(h, string);
-					format(string, sizeof (string), "\tTextDrawFont(%sTD[%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_FONT]);
-					fwrite(h, string);
-			        format(string, sizeof (string), "\tTextDrawLetterSize(%sTD[%i], %0.4f, %0.4f);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_LETTERSIZE_X], groupTextDrawData[i][x][E_TEXTDRAW_LETTERSIZE_Y]);
-					fwrite(h, string);
-					if (groupTextDrawData[i][0][E_TEXTDRAW_ALIGNMENT] != 1) {
-				        format(string, sizeof (string), "\tTextDrawAlignment(%sTD[%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_ALIGNMENT]);
-						fwrite(h, string);
-					}
-					format(string, sizeof (string), "\tTextDrawColor(%sTD[%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_COLOR]);
-					fwrite(h, string);
-					if (groupTextDrawData[i][0][E_TEXTDRAW_SHADOW] != 0) {
-				        format(string, sizeof (string), "\tTextDrawSetShadow(%sTD[%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_SHADOW]);
-						fwrite(h, string);
-					}
-					if (groupTextDrawData[i][0][E_TEXTDRAW_OUTLINE] != 0) {
-				        format(string, sizeof (string), "\tTextDrawSetOutline(%sTD[%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_OUTLINE]);
-						fwrite(h, string);
-					}
-					format(string, sizeof (string), "\tTextDrawBackgroundColor(%sTD[%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_BACKGROUND_COLOR]);
-					fwrite(h, string);
-					format(string, sizeof (string), "\tTextDrawSetProportional(%sTD[%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_PROPORTIONAL]);
-					fwrite(h, string);
-					format(string, sizeof (string), "\tTextDrawSetProportional(%sTD[%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_PROPORTIONAL]);
-					fwrite(h, string);
-					if (groupTextDrawData[i][0][E_TEXTDRAW_USE_BOX]) {
-				        format(string, sizeof (string), "\tTextDrawUseBox(%sTD[%i], 1);\r\n", groupData[i][E_GROUP_NAME], x);
-						fwrite(h, string);
-				        format(string, sizeof (string), "\tTextDrawBoxColor(%sTD[%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_BOX_COLOR]);
-						fwrite(h, string);
-				        format(string, sizeof (string), "\tTextDrawTextSize(%sTD[%i], %0.4f, %0.4f);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_TEXTSIZE_X], groupTextDrawData[i][x][E_TEXTDRAW_TEXTSIZE_Y]);
-						fwrite(h, string);
-					}
-					if (groupTextDrawData[i][0][E_TEXTDRAW_FONT] == 5) {
-				        format(string, sizeof (string), "\tTextDrawSetPreviewModel(%sTD[%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_MODEL]);
-						fwrite(h, string);
-				        format(string, sizeof (string), "\tTextDrawSetPreviewRot(%sTD[%i], %0.4f, %0.4f, %0.4f, %0.4f);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_X], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_Y], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_Z], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_ZOOM]);
-						fwrite(h, string);
-					}
-					if (groupTextDrawData[i][0][E_TEXTDRAW_SELECTABLE]) {
-				        format(string, sizeof (string), "\tTextDrawSetSelectable(%sTD[%i], 1);\r\n", groupData[i][E_GROUP_NAME], x);
-						fwrite(h, string);
-					}
-					
-					fwrite(h, "\r\n");
-			    }
-			}
+		    }
 		}
 		
 		fwrite(h, "\treturn 1;\r\n");
 		fwrite(h, "}\r\n\r\n");
 	}
-	
+
 	if (isThereAnyPlayerTextDraws) {
-		fwrite(h, "// Creating player textdraw(s) under \"OnPlayerConnect\" preferably\r\n");
-		fwrite(h, "public OnPlayerConnect(playerid)\r\n");
-		fwrite(h, "{\r\n");
-		
+		fwrite(h, "// creating player textdraw(s) under \"OnPlayerConnect\" preferably\r\n");
+		fwrite(h, "public OnPlayerConnect(playerid) {\r\n");
+
 		for (new i; i < groupsCount; i++) {
 		    playerTextdrawsCount = 0;
 		    for (new x; x < groupData[i][E_GROUP_TEXTDRAWS_COUNT]; x++) {
@@ -707,130 +680,163 @@ ExportProject(const filename[]) {
 	       			playerTextdrawsCount++;
 				}
 		    }
-		    
+
 		    if (playerTextdrawsCount == 0) {
 		        continue;
 			}
 
-			format(string, sizeof (string), "\t// TextDraw Group: '%s'\r\n", groupData[i][E_GROUP_NAME]);
+			format(string, sizeof (string), "\t/*\r\n\t** player textdarw group: \"%s\"\r\n\t*/\r\n", groupData[i][E_GROUP_NAME]);
 			fwrite(h, string);
 
-		    if (playerTextdrawsCount == 1) {
-		        format(string, sizeof (string), "\t%sPTD[playerid] = CreatePlayerTextDraw(playerid, %0.4f, %0.4f, \"%s\");\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_X], groupTextDrawData[i][0][E_TEXTDRAW_Y], groupTextDrawData[i][0][E_TEXTDRAW_TEXT]);
-				fwrite(h, string);
-				format(string, sizeof (string), "\tPlayerTextDrawFont(playerid, %sPTD[playerid], %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_FONT]);
-				fwrite(h, string);
-		        format(string, sizeof (string), "\tPlayerTextDrawLetterSize(playerid, %sPTD[playerid], %0.4f, %0.4f);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_LETTERSIZE_X], groupTextDrawData[i][0][E_TEXTDRAW_LETTERSIZE_Y]);
-				fwrite(h, string);
-				if (groupTextDrawData[i][0][E_TEXTDRAW_ALIGNMENT] != 1) {
-			        format(string, sizeof (string), "\tPlayerTextDrawAlignment(playerid, %sPTD[playerid], %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_ALIGNMENT]);
-					fwrite(h, string);
-				}
-				format(string, sizeof (string), "\tPlayerTextDrawColor(playerid, %sPTD[playerid], %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_COLOR]);
-				fwrite(h, string);
-				if (groupTextDrawData[i][0][E_TEXTDRAW_SHADOW] != 0) {
-			        format(string, sizeof (string), "\tPlayerTextDrawSetShadow(playerid, %sPTD[playerid], %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_SHADOW]);
-					fwrite(h, string);
-				}
-				if (groupTextDrawData[i][0][E_TEXTDRAW_OUTLINE] != 0) {
-			        format(string, sizeof (string), "\tPlayerTextDrawSetOutline(playerid, %sPTD[playerid], %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_OUTLINE]);
-					fwrite(h, string);
-				}
-				format(string, sizeof (string), "\tPlayerTextDrawBackgroundColor(playerid, %sPTD[playerid], %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_BACKGROUND_COLOR]);
-				fwrite(h, string);
-				format(string, sizeof (string), "\tPlayerTextDrawSetProportional(playerid, %sPTD[playerid], %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_PROPORTIONAL]);
-				fwrite(h, string);
-				format(string, sizeof (string), "\tPlayerTextDrawSetProportional(playerid, %sPTD[playerid], %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_PROPORTIONAL]);
-				fwrite(h, string);
-				if (groupTextDrawData[i][0][E_TEXTDRAW_USE_BOX]) {
-			        format(string, sizeof (string), "\tPlayerTextDrawUseBox(playerid, %sPTD[playerid], 1);\r\n", groupData[i][E_GROUP_NAME]);
-					fwrite(h, string);
-			        format(string, sizeof (string), "\tPlayerTextDrawBoxColor(playerid, %sPTD[playerid], %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_BOX_COLOR]);
-					fwrite(h, string);
-			        format(string, sizeof (string), "\tPlayerTextDrawTextSize(playerid, %sPTD[playerid], %0.4f, %0.4f);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_TEXTSIZE_X], groupTextDrawData[i][0][E_TEXTDRAW_TEXTSIZE_Y]);
-					fwrite(h, string);
-				}
-				if (groupTextDrawData[i][0][E_TEXTDRAW_FONT] == 5) {
-			        format(string, sizeof (string), "\tPlayerTextDrawSetPreviewModel(playerid, %sPTD[playerid], %i);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_PREVIEW_MODEL]);
-					fwrite(h, string);
-			        format(string, sizeof (string), "\tPlayerTextDrawSetPreviewRot(playerid, %sPTD[playerid], %0.4f, %0.4f, %0.4f, %0.4f);\r\n", groupData[i][E_GROUP_NAME], groupTextDrawData[i][0][E_TEXTDRAW_PREVIEW_ROT_X], groupTextDrawData[i][0][E_TEXTDRAW_PREVIEW_ROT_Y], groupTextDrawData[i][0][E_TEXTDRAW_PREVIEW_ROT_Z], groupTextDrawData[i][0][E_TEXTDRAW_PREVIEW_ROT_ZOOM]);
-					fwrite(h, string);
-				}
-				if (groupTextDrawData[i][0][E_TEXTDRAW_SELECTABLE]) {
-			        format(string, sizeof (string), "\tPlayerTextDrawSetSelectable(playerid, %sPTD[playerid], 1);\r\n", groupData[i][E_GROUP_NAME]);
-					fwrite(h, string);
+            idx = 0;
+			for (new x; x < groupData[i][E_GROUP_TEXTDRAWS_COUNT]; x++) {
+		        if (!groupTextDrawData[i][x][E_TEXTDRAW_TYPE_PLAYER]) {
+					continue;
 				}
 				
+			    if (playerTextdrawsCount == 1) {
+					format(varname, sizeof (varname), "%sPTD[playerid]", groupData[i][E_GROUP_NAME]);
+				}
+				else {
+					format(varname, sizeof (varname), "%sPTD[playerid][%i]", groupData[i][E_GROUP_NAME], idx++);
+				}
+
+				format(string, sizeof (string), "\t%s = CreatePlayerTextDraw(playerid, %0.4f, %0.4f, \"%s\");\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_X], groupTextDrawData[i][x][E_TEXTDRAW_Y], groupTextDrawData[i][x][E_TEXTDRAW_TEXT]);
+				fwrite(h, string);
+
+				format(string, sizeof (string), "\tPlayerTextDrawFont(playerid, %s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_FONT]);
+				fwrite(h, string);
+
+		        format(string, sizeof (string), "\tPlayerTextDrawLetterSize(playerid, %s, %0.4f, %0.4f);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_LETTERSIZE_X], groupTextDrawData[i][x][E_TEXTDRAW_LETTERSIZE_Y]);
+				fwrite(h, string);
+
+				if (groupTextDrawData[i][x][E_TEXTDRAW_ALIGNMENT] != 1) {
+			        format(string, sizeof (string), "\tPlayerTextDrawAlignment(playerid, %s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_ALIGNMENT]);
+					fwrite(h, string);
+				}
+
+				format(string, sizeof (string), "\tPlayerTextDrawColor(playerid, %s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_COLOR]);
+				fwrite(h, string);
+
+				if (groupTextDrawData[i][x][E_TEXTDRAW_SHADOW] != 0) {
+			        format(string, sizeof (string), "\tPlayerTextDrawSetShadow(playerid, %s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_SHADOW]);
+					fwrite(h, string);
+				}
+
+				if (groupTextDrawData[i][x][E_TEXTDRAW_OUTLINE] != 0) {
+			        format(string, sizeof (string), "\tPlayerTextDrawSetOutline(playerid, %s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_OUTLINE]);
+					fwrite(h, string);
+				}
+
+				format(string, sizeof (string), "\tPlayerTextDrawBackgroundColor(playerid, %s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_BACKGROUND_COLOR]);
+				fwrite(h, string);
+
+				format(string, sizeof (string), "\tPlayerTextDrawSetProportional(playerid, %s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_PROPORTIONAL]);
+				fwrite(h, string);
+
+				if (groupTextDrawData[i][x][E_TEXTDRAW_USE_BOX]) {
+			        format(string, sizeof (string), "\tPlayerTextDrawUseBox(playerid, %s, 1);\r\n", varname);
+					fwrite(h, string);
+			        format(string, sizeof (string), "\tPlayerTextDrawBoxColor(playerid, %s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_BOX_COLOR]);
+					fwrite(h, string);
+				}
+
+    			format(string, sizeof (string), "\tPlayerTextDrawTextSize(playerid, %s, %0.4f, %0.4f);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_TEXTSIZE_X], groupTextDrawData[i][x][E_TEXTDRAW_TEXTSIZE_Y]);
+				fwrite(h, string);
+
+				if (groupTextDrawData[i][x][E_TEXTDRAW_FONT] == 5) {
+			        format(string, sizeof (string), "\tPlayerTextDrawSetPreviewModel(playerid, %s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_MODEL]);
+					fwrite(h, string);
+			        format(string, sizeof (string), "\tPlayerTextDrawSetPreviewRot(playerid, %s, %0.4f, %0.4f, %0.4f, %0.4f);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_X], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_Y], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_Z], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_ZOOM]);
+					fwrite(h, string);
+				}
+
+				if (groupTextDrawData[i][x][E_TEXTDRAW_SELECTABLE]) {
+			        format(string, sizeof (string), "\tPlayerTextDrawSetSelectable(playerid, %s, 1);\r\n", varname);
+					fwrite(h, string);
+				}
+
 				fwrite(h, "\r\n");
-			}
-			else if (playerTextdrawsCount > 1) {
-			    for (new x; x < playerTextdrawsCount; x++) {
-			        format(string, sizeof (string), "\t%sPTD[playerid][%i] = CreatePlayerTextDraw(playerid, %0.4f, %0.4f, \"%s\");\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_X], groupTextDrawData[i][x][E_TEXTDRAW_Y], groupTextDrawData[i][x][E_TEXTDRAW_TEXT]);
-					fwrite(h, string);
-					format(string, sizeof (string), "\tPlayerTextDrawFont(playerid, %sPTD[playerid][%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][0][E_TEXTDRAW_FONT]);
-					fwrite(h, string);
-			        format(string, sizeof (string), "\tPlayerTextDrawLetterSize(playerid, %sPTD[playerid][%i], %0.4f, %0.4f);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_LETTERSIZE_X], groupTextDrawData[i][x][E_TEXTDRAW_LETTERSIZE_Y]);
-					fwrite(h, string);
-					if (groupTextDrawData[i][0][E_TEXTDRAW_ALIGNMENT] != 1) {
-				        format(string, sizeof (string), "\tPlayerTextDrawAlignment(playerid, %sPTD[playerid][%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_ALIGNMENT]);
-						fwrite(h, string);
-					}
-					format(string, sizeof (string), "\tPlayerTextDrawColor(playerid, %sPTD[playerid][%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_COLOR]);
-					fwrite(h, string);
-					if (groupTextDrawData[i][0][E_TEXTDRAW_SHADOW] != 0) {
-				        format(string, sizeof (string), "\tPlayerTextDrawSetShadow(playerid, %sPTD[playerid][%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_SHADOW]);
-						fwrite(h, string);
-					}
-					if (groupTextDrawData[i][0][E_TEXTDRAW_OUTLINE] != 0) {
-				        format(string, sizeof (string), "\tPlayerTextDrawSetOutline(playerid, %sPTD[playerid][%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_OUTLINE]);
-						fwrite(h, string);
-					}
-					format(string, sizeof (string), "\tPlayerTextDrawBackgroundColor(playerid, %sPTD[playerid][%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_BACKGROUND_COLOR]);
-					fwrite(h, string);
-					format(string, sizeof (string), "\tPlayerTextDrawSetProportional(playerid, %sPTD[playerid][%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_PROPORTIONAL]);
-					fwrite(h, string);
-					format(string, sizeof (string), "\tPlayerTextDrawSetProportional(playerid, %sPTD[playerid][%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_PROPORTIONAL]);
-					fwrite(h, string);
-					if (groupTextDrawData[i][0][E_TEXTDRAW_USE_BOX]) {
-				        format(string, sizeof (string), "\tPlayerTextDrawUseBox(playerid, %sPTD[playerid][%i], 1);\r\n", groupData[i][E_GROUP_NAME], x);
-						fwrite(h, string);
-				        format(string, sizeof (string), "\tPlayerTextDrawBoxColor(playerid, %sPTD[playerid][%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_BOX_COLOR]);
-						fwrite(h, string);
-				        format(string, sizeof (string), "\tPlayerTextDrawTextSize(playerid, %sPTD[playerid][%i], %0.4f, %0.4f);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_TEXTSIZE_X], groupTextDrawData[i][x][E_TEXTDRAW_TEXTSIZE_Y]);
-						fwrite(h, string);
-					}
-					if (groupTextDrawData[i][0][E_TEXTDRAW_FONT] == 5) {
-				        format(string, sizeof (string), "\tPlayerTextDrawSetPreviewModel(playerid, %sPTD[playerid][%i], %i);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_MODEL]);
-						fwrite(h, string);
-				        format(string, sizeof (string), "\tPlayerTextDrawSetPreviewRot(playerid, %sPTD[playerid][%i], %0.4f, %0.4f, %0.4f, %0.4f);\r\n", groupData[i][E_GROUP_NAME], x, groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_X], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_Y], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_Z], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_ZOOM]);
-						fwrite(h, string);
-					}
-					if (groupTextDrawData[i][0][E_TEXTDRAW_SELECTABLE]) {
-				        format(string, sizeof (string), "\tPlayerTextDrawSetSelectable(playerid, %sPTD[playerid][%i], 1);\r\n", groupData[i][E_GROUP_NAME], x);
-						fwrite(h, string);
-					}
-					
-					fwrite(h, "\r\n");
-			    }
 			}
 		}
 
 		fwrite(h, "\treturn 1;\r\n");
 		fwrite(h, "}\r\n\r\n");
 	}
-
-	fwrite(h, "// End of export!");
+	
 	fclose(h);
 	return 1;
 }
 
+SaveProjectGroupTextDraw(groupid, textdrawid) {
+    new string[1024];
+    string = "UPDATE %s SET \
+		text = '%q', \
+		x = '%f', y = '%f', \
+		letter_x = '%f', letter_y = '%f', \
+		text_x = '%f', text_y = '%f', \
+		alignment = '%i', \
+		color = '%i', \
+		usebox = '%i', \
+		box_color = '%i', \
+		shadow = '%i', \
+		outline = '%i', \
+		background_color = '%i', \
+		font = '%i', \
+		proportional = '%i', \
+		selectable = '%i', \
+		preview_model = '%i', \
+		rot_x = '%f', rot_y = '%f', rot_z = '%f', rot_zoom = '%f', \
+		veh_color1 = '%i', veh_color2 = '%i', \
+		type_player = '%i' \
+		WHERE id = '%i'";
+	format(string, sizeof (string), string,
+		groupData[groupid][E_GROUP_NAME],
+	 	groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_TEXT],
+	    groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_X], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_Y],
+	    groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_LETTERSIZE_X], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_LETTERSIZE_Y],
+	    groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_TEXTSIZE_X], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_TEXTSIZE_Y],
+	    groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_ALIGNMENT],
+	    groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_COLOR],
+	    groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_USE_BOX],
+		groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_BOX_COLOR],
+		groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_SHADOW],
+		groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_OUTLINE],
+		groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_BACKGROUND_COLOR],
+		groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_FONT],
+		groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PROPORTIONAL],
+		groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_SELECTABLE],
+		groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_MODEL],
+		groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_ROT_X], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_ROT_Y], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_ROT_Z], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_ROT_ZOOM],
+		groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_VEH_COLOR1], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_VEH_COLOR2],
+		groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_TYPE_PLAYER],
+		groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_SQLID]);
+	db_query(projectDB, string);
+}
+
+SaveProjectGroup(groupid) {
+	for (new i; i < groupData[groupid][E_GROUP_TEXTDRAWS_COUNT]; i++) {
+	    SaveProjectGroupTextDraw(groupid, i);
+	}
+
+	new string[256] = "UPDATE group_settings SET visibility = %i WHERE groupname = '%s'";
+	format(string, sizeof (string), string, groupData[groupid][E_GROUP_VISIBLE], groupData[groupid][E_GROUP_NAME]);
+    db_query(projectDB, string);
+}
+
+SaveProject() {
+	for (new i; i < groupsCount; i++) {
+	    SaveProjectGroup(i);
+	}
+}
+
 public OnFilterScriptInit() {
 	printf("\n==========================================\n");
-	
+
 	if (!fexist(PATH_PROJECT_FILES)) {
 		printf("[TDEditor.pwn] - Error: Path \"%s\" doesn't exists. Your projects won't be saved/loaded.", PATH_PROJECT_FILES);
 	}
-	
+
 	if (!fexist(PATH_EXPORT_FILES)) {
 		printf("[TDEditor.pwn] - Error: Path \"%s\" doesn't exists. Your projects won't be exported.", PATH_EXPORT_FILES);
 	}
@@ -850,7 +856,7 @@ public OnFilterScriptInit() {
 	}
 
 	printf("[TDEditor.pwn] - Loaded v1.3.1 (updated: 16 Jan, 2018) - By Gammix");
-	
+
 	printf("\n==========================================\n");
 
     projectDB = DB:0;
@@ -874,53 +880,7 @@ public OnFilterScriptInit() {
 
 public OnFilterScriptExit() {
 	if (projectDB) {
-	    new string[1024];
-	    for (new i; i < groupsCount; i++) {
-		    for (new x; x < groupData[i][E_GROUP_TEXTDRAWS_COUNT]; x++) {
-			    string = "UPDATE %s SET \
-						text = '%q', \
-						x = '%f', y = '%f', \
-						letter_x = '%f', letter_y = '%f', \
-						text_x = '%f', text_y = '%f', \
-						alignment = '%i', \
-						color = '%i', \
-						usebox = '%i', \
-						box_color = '%i', \
-						shadow = '%i', \
-						outline = '%i', \
-						background_color = '%i', \
-						font = '%i', \
-						proportional = '%i', \
-						selectable = '%i', \
-						preview_model = '%i', \
-						rot_x = '%f', rot_y = '%f', rot_z = '%f', rot_zoom = '%f', \
-						veh_color1 = '%i', veh_color2 = '%i', \
-						type_player = '%i' \
-					WHERE id = '%i'";
-				format(string, sizeof (string), string,
-				    groupData[i][E_GROUP_NAME],
-				    groupTextDrawData[i][x][E_TEXTDRAW_TEXT],
-				    groupTextDrawData[i][x][E_TEXTDRAW_X], groupTextDrawData[i][x][E_TEXTDRAW_Y],
-				    groupTextDrawData[i][x][E_TEXTDRAW_LETTERSIZE_X], groupTextDrawData[i][x][E_TEXTDRAW_LETTERSIZE_Y],
-				    groupTextDrawData[i][x][E_TEXTDRAW_TEXTSIZE_X], groupTextDrawData[i][x][E_TEXTDRAW_TEXTSIZE_Y],
-				    groupTextDrawData[i][x][E_TEXTDRAW_ALIGNMENT],
-				    groupTextDrawData[i][x][E_TEXTDRAW_COLOR],
-				    groupTextDrawData[i][x][E_TEXTDRAW_USE_BOX],
-					groupTextDrawData[i][x][E_TEXTDRAW_BOX_COLOR],
-					groupTextDrawData[i][x][E_TEXTDRAW_SHADOW],
-					groupTextDrawData[i][x][E_TEXTDRAW_OUTLINE],
-					groupTextDrawData[i][x][E_TEXTDRAW_BACKGROUND_COLOR],
-					groupTextDrawData[i][x][E_TEXTDRAW_FONT],
-					groupTextDrawData[i][x][E_TEXTDRAW_PROPORTIONAL],
-					groupTextDrawData[i][x][E_TEXTDRAW_SELECTABLE],
-					groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_MODEL],
-					groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_X], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_Y], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_Z], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_ZOOM],
-					groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_VEH_COLOR1], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_VEH_COLOR2],
-					groupTextDrawData[i][x][E_TEXTDRAW_TYPE_PLAYER],
-					groupTextDrawData[i][x][E_TEXTDRAW_SQLID]);
-				db_query(projectDB, string);
-		    }
-		}
+	    SaveProject();
 		db_close(projectDB);
 		projectDB = DB:0;
 	}
@@ -929,7 +889,7 @@ public OnFilterScriptExit() {
 		ResetGroupData(i);
 	}
 	groupsCount = 0;
-	
+
 	for (new i; i < MAX_PLAYERS; i++) {
     	playerEditing[i] = EDITING_NONE;
     	playerEditingTimer[i] = -1;
@@ -940,7 +900,7 @@ public OnFilterScriptExit() {
 public OnPlayerConnect(playerid) {
     playerEditingTextDraw[playerid] = CreatePlayerTextDraw(playerid, 7.0, 170.0, "-");
 	PlayerTextDrawBackgroundColor(playerid, playerEditingTextDraw[playerid], 255);
-	PlayerTextDrawFont(playerid, playerEditingTextDraw[playerid], 1);
+	PlayerTextDrawFont(playerid, playerEditingTextDraw[playerid], 2);
 	PlayerTextDrawLetterSize(playerid, playerEditingTextDraw[playerid], 0.2, 1.0);
 	PlayerTextDrawColor(playerid, playerEditingTextDraw[playerid], -1);
 	PlayerTextDrawSetOutline(playerid, playerEditingTextDraw[playerid], 1);
@@ -953,55 +913,9 @@ public OnPlayerDisconnect(playerid, reason) {
     playerEditing[playerid] = EDITING_NONE;
     KillTimer(playerEditingTimer[playerid]);
     playerEditingTimer[playerid] = -1;
-    
+
     if (projectDB) {
-	    new string[1024];
-	    new groupid = playerCurrentGroup[playerid];
-	    
-	    for (new x; x < groupData[groupid][E_GROUP_TEXTDRAWS_COUNT]; x++) {
-	    	string = "UPDATE %s SET \
-				text = '%q', \
-				x = '%f', y = '%f', \
-				letter_x = '%f', letter_y = '%f', \
-				text_x = '%f', text_y = '%f', \
-				alignment = '%i', \
-				color = '%i', \
-				usebox = '%i', \
-				box_color = '%i', \
-				shadow = '%i', \
-				outline = '%i', \
-				background_color = '%i', \
-				font = '%i', \
-				proportional = '%i', \
-				selectable = '%i', \
-				preview_model = '%i', \
-				rot_x = '%f', rot_y = '%f', rot_z = '%f', rot_zoom = '%f', \
-				veh_color1 = '%i', veh_color2 = '%i', \
-				type_player = '%i' \
-			WHERE id = '%i'";
-			format(string, sizeof (string), string,
-   				groupData[groupid][E_GROUP_NAME],
-			    groupTextDrawData[groupid][x][E_TEXTDRAW_TEXT],
-			    groupTextDrawData[groupid][x][E_TEXTDRAW_X], groupTextDrawData[groupid][x][E_TEXTDRAW_Y],
-			    groupTextDrawData[groupid][x][E_TEXTDRAW_LETTERSIZE_X], groupTextDrawData[groupid][x][E_TEXTDRAW_LETTERSIZE_Y],
-			    groupTextDrawData[groupid][x][E_TEXTDRAW_TEXTSIZE_X], groupTextDrawData[groupid][x][E_TEXTDRAW_TEXTSIZE_Y],
-			    groupTextDrawData[groupid][x][E_TEXTDRAW_ALIGNMENT],
-			    groupTextDrawData[groupid][x][E_TEXTDRAW_COLOR],
-			    groupTextDrawData[groupid][x][E_TEXTDRAW_USE_BOX],
-				groupTextDrawData[groupid][x][E_TEXTDRAW_BOX_COLOR],
-				groupTextDrawData[groupid][x][E_TEXTDRAW_SHADOW],
-				groupTextDrawData[groupid][x][E_TEXTDRAW_OUTLINE],
-				groupTextDrawData[groupid][x][E_TEXTDRAW_BACKGROUND_COLOR],
-				groupTextDrawData[groupid][x][E_TEXTDRAW_FONT],
-				groupTextDrawData[groupid][x][E_TEXTDRAW_PROPORTIONAL],
-				groupTextDrawData[groupid][x][E_TEXTDRAW_SELECTABLE],
-				groupTextDrawData[groupid][x][E_TEXTDRAW_PREVIEW_MODEL],
-				groupTextDrawData[groupid][x][E_TEXTDRAW_PREVIEW_ROT_X], groupTextDrawData[groupid][x][E_TEXTDRAW_PREVIEW_ROT_Y], groupTextDrawData[groupid][x][E_TEXTDRAW_PREVIEW_ROT_Z], groupTextDrawData[groupid][x][E_TEXTDRAW_PREVIEW_ROT_ZOOM],
-				groupTextDrawData[groupid][x][E_TEXTDRAW_PREVIEW_VEH_COLOR1], groupTextDrawData[groupid][x][E_TEXTDRAW_PREVIEW_VEH_COLOR2],
-				groupTextDrawData[groupid][x][E_TEXTDRAW_TYPE_PLAYER],
-				groupTextDrawData[groupid][x][E_TEXTDRAW_SQLID]);
-			db_query(projectDB, string);
-		}
+        SaveProjectGroup(playerCurrentGroup[playerid]);
 	}
 	return 1;
 }
@@ -1016,7 +930,7 @@ public OnPlayerTimerUpdate(playerid) {
     if (playerEditing[playerid] != EDITING_NONE) {
 		new groupid = playerCurrentGroup[playerid];
 		new textdrawid = playerCurrentTextDraw[playerid];
-	
+
         new keys, updown, leftright;
 		GetPlayerKeys(playerid, keys, updown, leftright);
 
@@ -1036,7 +950,7 @@ public OnPlayerTimerUpdate(playerid) {
 						}
 					}
 				}
-				
+
 				case EDITING_POS: {
 				    if (keys == KEY_SPRINT) {
 				  	  	groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_Y] -= 10.0;
@@ -1086,7 +1000,7 @@ public OnPlayerTimerUpdate(playerid) {
 
 				case EDITING_OUTLINE_SIZE: {
 				    groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_OUTLINE] += 1;
-	
+
 					TextDrawSetOutline(groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_ID], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_OUTLINE]);
                     if (groupData[groupid][E_GROUP_VISIBLE]) {
 						TextDrawShowForAll(groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_ID]);
@@ -1124,7 +1038,7 @@ public OnPlayerTimerUpdate(playerid) {
 						}
 					}
 				}
-				
+
 				case EDITING_POS: {
 				    if (keys == KEY_SPRINT) {
 				  	  	groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_Y] += 10.0;
@@ -1213,7 +1127,7 @@ public OnPlayerTimerUpdate(playerid) {
 						}
 					}
 				}
-				
+
 				case EDITING_POS: {
 				    if (keys == KEY_SPRINT) {
 				  	  	groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_X] -= 10.0;
@@ -1337,7 +1251,7 @@ public OnPlayerTimerUpdate(playerid) {
 				}
 			}
 		}
-		
+
 		if (showTextDrawCmds) {
 			if (playerEditing[playerid] == EDITING_GROUP_POS) {
 				PlayerTextDrawSetString(playerid, playerEditingTextDraw[playerid],
@@ -1376,7 +1290,7 @@ public OnPlayerTimerUpdate(playerid) {
 						~w~/shadow: %i~n~\
 						~w~/outline: %i";
 			    }
-			    
+
 			    case EDITING_LETTER_SIZE: {
 					string = "~w~EDITOR MODE COMMANDS: (/show)~n~\
 						~w~/string: \"%s\"~n~\
@@ -1397,7 +1311,7 @@ public OnPlayerTimerUpdate(playerid) {
 						~w~/shadow: %i~n~\
 						~w~/outline: %i";
 			    }
-			    
+
 			    case EDITING_TEXT_SIZE: {
 					string = "~w~EDITOR MODE COMMANDS: (/show)~n~\
 						~w~/string: \"%s\"~n~\
@@ -1418,7 +1332,7 @@ public OnPlayerTimerUpdate(playerid) {
 						~w~/shadow: %i~n~\
 						~w~/outline: %i";
 			    }
-			    
+
 			    case EDITING_PREVIEW_ROT: {
 					string = "~w~EDITOR MODE COMMANDS: (/show)~n~\
 						~w~/string: \"%s\"~n~\
@@ -1439,7 +1353,7 @@ public OnPlayerTimerUpdate(playerid) {
 						~w~/shadow: %i~n~\
 						~w~/outline: %i";
 			    }
-			    
+
 			    case EDITING_SHADOW_SIZE: {
 					string = "~w~EDITOR MODE COMMANDS: (/show)~n~\
 						~w~/string: \"%s\"~n~\
@@ -1460,7 +1374,7 @@ public OnPlayerTimerUpdate(playerid) {
 						~r~~h~~h~/shadow: ~h~%i~n~\
 						~w~/outline: %i";
 			    }
-			    
+
 			    case EDITING_OUTLINE_SIZE: {
 					string = "~w~EDITOR MODE COMMANDS: (/show)~n~\
 						~w~/string: \"%s\"~n~\
@@ -1482,7 +1396,7 @@ public OnPlayerTimerUpdate(playerid) {
 						~r~~h~~h~/outline: ~h~%i";
 			    }
 			}
-			
+
 			format(string, sizeof (string), string,
 	        previewChars,
 			groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_X], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_Y],
@@ -1502,7 +1416,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
     if (playerEditing[playerid] != EDITING_NONE) {
 		if (newkeys == KEY_SECONDARY_ATTACK) {
 		    PlayerTextDrawHide(playerid, playerEditingTextDraw[playerid]);
-			
+
 		    TogglePlayerControllable(playerid, true);
 
             if (playerEditing[playerid] == EDITING_GROUP_POS) {
@@ -1828,7 +1742,7 @@ CMD:string(playerid, params[]) {
 
     new groupid = playerCurrentGroup[playerid];
 	new textdrawid = playerCurrentTextDraw[playerid];
-	
+
 	format(groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_TEXT], MAX_GROUP_TEXTDRAW_TEXT, string);
 
 	TextDrawSetString(groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_ID], string);
@@ -1842,7 +1756,7 @@ CMD:show(playerid) {
 	if (playerEditing[playerid] == EDITING_NONE) {
 	    return 1;
 	}
-	
+
 	if (showTextDrawCmds) {
 		PlayerTextDrawHide(playerid, playerEditingTextDraw[playerid]);
 	}
@@ -1857,7 +1771,7 @@ CMD:text(playerid) {
 	if (playerEditing[playerid] != EDITING_NONE) {
 		return SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: You can't open editor menu while editing.");
 	}
-	
+
 	if (!projectDB) {
 		return Dialog_Show(playerid, MAIN_MENU, DIALOG_STYLE_TABLIST, "TDEditor: Main menu",
 			""COL_GREEN"New Project\t"COL_GREY"Create an empty GUI project\n\
@@ -1892,7 +1806,7 @@ Dialog:MAIN_MENU(playerid, response, listitem, inputtext[]) {
 		case 1, 2: {
 		    if (dini_NumKeys(PATH_RECORD_FILE) == 0) {
 		    	dini_Timeout(PATH_RECORD_FILE);
-		    	
+
 		        if (listitem == 1) {
 					return Dialog_Show(playerid, LOAD_PROJECT, DIALOG_STYLE_TABLIST_HEADERS, "TDEditor: Load project", "File\tDate created\n"COL_RED"null\t"COL_RED"null", "Load", "Back");
 				}
@@ -1904,7 +1818,7 @@ Dialog:MAIN_MENU(playerid, response, listitem, inputtext[]) {
 			new count;
 			static string[MAX_PROJECTS * (MAX_PROJECT_NAME + 16 + 2)];
 		    new field[DINI_MAX_FIELD_NAME];
-			
+
 			string = "File\tDate Created\n";
 		    for (new i, j = dini_NumKeys(PATH_RECORD_FILE); i < j; i++) {
 				if (++count == MAX_PROJECTS) {
@@ -1977,6 +1891,7 @@ Dialog:NEW_PROJECT(playerid, response, listitem, inputtext[]) {
 	}
 	db_query(projectDB, "PRAGMA synchronous = NORMAL");
  	db_query(projectDB, "PRAGMA journal_mode = WAL");
+ 	db_query(projectDB, "CREATE TABLE IF NOT EXISTS `group_settings` (`groupname` VARCHAR("#MAX_GROUP_NAME"), `visibility` INTEGER)");
 
 	format(string, sizeof (string), "TDEditor: A new project has been created \"%s\". Start editing!", name);
 	SendClientMessage(playerid, MESSAGE_COLOR, string);
@@ -1986,7 +1901,7 @@ Dialog:NEW_PROJECT(playerid, response, listitem, inputtext[]) {
 	}
 
 	dini_Timeout(PATH_RECORD_FILE);
-	
+
 	return cmd_text(playerid);
 }
 
@@ -1999,7 +1914,7 @@ Dialog:LOAD_PROJECT(playerid, response, listitem, inputtext[]) {
 		return dialog_MAIN_MENU(playerid, 1, 1, "\1");
 	}
 
-	new string[256] = PATH_PROJECT_FILES;
+	new string[512] = PATH_PROJECT_FILES;
 	strcat(string, inputtext);
 	projectDB = db_open(string);
 	if (!projectDB) {
@@ -2008,27 +1923,55 @@ Dialog:LOAD_PROJECT(playerid, response, listitem, inputtext[]) {
 	}
 	db_query(projectDB, "PRAGMA synchronous = NORMAL");
  	db_query(projectDB, "PRAGMA journal_mode = WAL");
+ 	db_query(projectDB, "CREATE TABLE IF NOT EXISTS `group_settings` (`groupname` VARCHAR("#MAX_GROUP_NAME"), `visibility` INTEGER)");
 
 	format(projectName, MAX_PROJECT_NAME, inputtext);
 	new pos = strfind(projectName, ".db", true);
 	strdel(projectName, pos, (pos + strlen(".db")));
-	
+
 	new DBResult:result = db_query(projectDB, "SELECT name FROM sqlite_master WHERE type = 'table'");
 	if (db_num_rows(result) > 0) {
 		new DBResult:result2;
 		new textdrawid;
-		
+		new groupname[MAX_GROUP_NAME];
+
 		do {
+		    db_get_field(result, 0, groupname, MAX_GROUP_NAME);
+			if (!strcmp("group_settings", groupname, true)) {
+				continue;
+			}
+			
 		    if (groupsCount == MAX_GROUPS) {
 		        SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: Only first \""#MAX_GROUPS"\" groups were loaded. If there are more than that in your database, you have to change the limit in script(MAX_GROUPS) and recompile.");
 				break;
 			}
 			
-		    db_get_field(result, 0, groupData[groupsCount][E_GROUP_NAME], MAX_GROUP_NAME);
+			groupData[groupsCount][E_GROUP_NAME] = groupname;
+
+			format(string, sizeof (string), "SELECT `visibility` FROM `group_settings` WHERE `groupname` = '%s' LIMIT 1", groupData[groupsCount][E_GROUP_NAME]);
+			result2 = db_query(projectDB, string);
+			if (result2) {
+   				if (db_num_rows(result2) == 1) {
+					groupData[groupsCount][E_GROUP_VISIBLE] = bool:db_get_field_int(result2, 0);
+			    }
+			    else {
+					groupData[groupsCount][E_GROUP_VISIBLE] = true;
+
+	                format(string, sizeof (string), "INSERT INTO `group_settings` (`groupname`, `visibility`) VALUES ('%s', '1')", groupData[groupsCount][E_GROUP_NAME]);
+					db_query(projectDB, string);
+				}
+				
+				db_free_result(result2);
+			}
+			else {
+				groupData[groupsCount][E_GROUP_VISIBLE] = true;
+				
+                format(string, sizeof (string), "INSERT INTO `group_settings` (`groupname`, `visibility`) VALUES ('%s', '1')", groupData[groupsCount][E_GROUP_NAME]);
+				db_query(projectDB, string);
+			}
 
 			groupData[groupsCount][E_GROUP_TEXTDRAWS_COUNT] = 0;
-			groupData[groupsCount][E_GROUP_VISIBLE] = true;
-			
+
 			format(string, sizeof (string), "SELECT * FROM %s", groupData[groupsCount][E_GROUP_NAME]);
 			result2 = db_query(projectDB, string);
 			if (result2) {
@@ -2068,20 +2011,20 @@ Dialog:LOAD_PROJECT(playerid, response, listitem, inputtext[]) {
 						groupTextDrawData[groupsCount][textdrawid][E_TEXTDRAW_PREVIEW_VEH_COLOR1] = db_get_field_assoc_int(result2, "veh_color1");
 						groupTextDrawData[groupsCount][textdrawid][E_TEXTDRAW_PREVIEW_VEH_COLOR2] = db_get_field_assoc_int(result2, "veh_color2");
 						groupTextDrawData[groupsCount][textdrawid][E_TEXTDRAW_TYPE_PLAYER] = bool:db_get_field_assoc_int(result2, "type_player");
-
+			
 						CreateGroupTextDraw(groupsCount, textdrawid);
 					}
 					while (db_next_row(result2));
 				}
 				db_free_result(result2);
 			}
-			
+
 			groupsCount++;
 	    }
 	    while (db_next_row(result));
 	    db_free_result(result);
 	}
-	
+
 	format(string, sizeof (string), "TDEditor: Loaded project \"%s\". Start editing!", inputtext);
 	SendClientMessage(playerid, MESSAGE_COLOR, string);
 
@@ -2111,7 +2054,7 @@ Dialog:CONFIRM_DELETE_PROJECT(playerid, response, listitem, inputtext[]) {
 
 	db_close(projectDB);
 	fremove(projectName);
-	
+
 	if (!dini_Unset(PATH_RECORD_FILE, projectName)) {
 	    SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: System couldn't open record file so your project name might still be there in loading/deleteing dialog, but you project database has been deleted!");
 	}
@@ -2143,7 +2086,7 @@ Dialog:EDITOR_MENU(playerid, response, listitem, inputtext[]) {
 		    new name[MAX_PROJECT_NAME * 2] = PATH_EXPORT_FILES;
 			strcat(name, projectName);
 			strcat(name, ".pwn");
-			
+
    			if (!ExportProject(name)) {
 				SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: Couldn't create project file. Try again!");
 				return dialog_EDITOR_MENU(playerid, 1, 1, "\1");
@@ -2152,7 +2095,7 @@ Dialog:EDITOR_MENU(playerid, response, listitem, inputtext[]) {
 			new string[150];
 			format(string, sizeof (string), "TDEditor: Project \"%s\" has been exported to file \"%s\".", projectName, name);
 			SendClientMessage(playerid, MESSAGE_COLOR, string);
-			
+
 			return cmd_text(playerid);
 		}
 
@@ -2189,7 +2132,7 @@ Dialog:NEW_GROUP(playerid, response, listitem, inputtext[]) {
 	format(groupData[groupsCount][E_GROUP_NAME], MAX_GROUP_NAME, name);
     groupData[groupsCount][E_GROUP_TEXTDRAWS_COUNT] = 0;
     groupData[groupsCount][E_GROUP_VISIBLE] = true;
-    
+
 	new string[1024] = "CREATE TABLE IF NOT EXISTS ";
 	strcat(string, name);
 	strcat(string, " (`id` INTEGER PRIMARY KEY, \
@@ -2219,6 +2162,11 @@ Dialog:NEW_GROUP(playerid, response, listitem, inputtext[]) {
 		`veh_color2` INTEGER, \
 		`type_player` INTEGER)");
 	db_query(projectDB, string);
+	
+	string = "INSERT INTO `group_settings` (`groupname`, `visibility`) VALUES ('";
+	strcat(string, name);
+	strcat(string, "', '1')");
+	db_query(projectDB, string);
 
 	groupsCount++;
 
@@ -2229,56 +2177,12 @@ Dialog:NEW_GROUP(playerid, response, listitem, inputtext[]) {
 }
 
 Dialog:GROUP_MENU(playerid, response, listitem, inputtext[]) {
-	new groupid = playerCurrentGroup[playerid];
-	
 	if (!response) {
-	    new string[1024];
-	    for (new i; i < groupData[groupid][E_GROUP_TEXTDRAWS_COUNT]; i++) {
-		    string = "UPDATE %s SET \
-					text = '%q', \
-					x = '%f', y = '%f', \
-					letter_x = '%f', letter_y = '%f', \
-					text_x = '%f', text_y = '%f', \
-					alignment = '%i', \
-					color = '%i', \
-					usebox = '%i', \
-					box_color = '%i', \
-					shadow = '%i', \
-					outline = '%i', \
-					background_color = '%i', \
-					font = '%i', \
-					proportional = '%i', \
-					selectable = '%i', \
-					preview_model = '%i', \
-					rot_x = '%f', rot_y = '%f', rot_z = '%f', rot_zoom = '%f', \
-					veh_color1 = '%i', veh_color2 = '%i', \
-					type_player = '%i' \
-				WHERE id = '%i'";
-			format(string, sizeof (string), string,
-				groupData[groupid][E_GROUP_NAME],
-			    groupTextDrawData[groupid][i][E_TEXTDRAW_TEXT],
-			    groupTextDrawData[groupid][i][E_TEXTDRAW_X], groupTextDrawData[groupid][i][E_TEXTDRAW_Y],
-			    groupTextDrawData[groupid][i][E_TEXTDRAW_LETTERSIZE_X], groupTextDrawData[groupid][i][E_TEXTDRAW_LETTERSIZE_Y],
-			    groupTextDrawData[groupid][i][E_TEXTDRAW_TEXTSIZE_X], groupTextDrawData[groupid][i][E_TEXTDRAW_TEXTSIZE_Y],
-			    groupTextDrawData[groupid][i][E_TEXTDRAW_ALIGNMENT],
-			    groupTextDrawData[groupid][i][E_TEXTDRAW_COLOR],
-			    groupTextDrawData[groupid][i][E_TEXTDRAW_USE_BOX],
-				groupTextDrawData[groupid][i][E_TEXTDRAW_BOX_COLOR],
-				groupTextDrawData[groupid][i][E_TEXTDRAW_SHADOW],
-				groupTextDrawData[groupid][i][E_TEXTDRAW_OUTLINE],
-				groupTextDrawData[groupid][i][E_TEXTDRAW_BACKGROUND_COLOR],
-				groupTextDrawData[groupid][i][E_TEXTDRAW_FONT],
-				groupTextDrawData[groupid][i][E_TEXTDRAW_PROPORTIONAL],
-				groupTextDrawData[groupid][i][E_TEXTDRAW_SELECTABLE],
-				groupTextDrawData[groupid][i][E_TEXTDRAW_PREVIEW_MODEL],
-				groupTextDrawData[groupid][i][E_TEXTDRAW_PREVIEW_ROT_X], groupTextDrawData[groupid][i][E_TEXTDRAW_PREVIEW_ROT_Y], groupTextDrawData[groupid][i][E_TEXTDRAW_PREVIEW_ROT_Z], groupTextDrawData[groupid][i][E_TEXTDRAW_PREVIEW_ROT_ZOOM],
-				groupTextDrawData[groupid][i][E_TEXTDRAW_PREVIEW_VEH_COLOR1], groupTextDrawData[groupid][i][E_TEXTDRAW_PREVIEW_VEH_COLOR2],
-				groupTextDrawData[groupid][i][E_TEXTDRAW_TYPE_PLAYER],
-				groupTextDrawData[groupid][i][E_TEXTDRAW_SQLID]);
-			db_query(projectDB, string);
-	    }
+	    SaveProjectGroup(playerCurrentGroup[playerid]);
 		return cmd_text(playerid);
 	}
+
+	new groupid = playerCurrentGroup[playerid];
 	
 	switch (listitem) {
         case 0: {
@@ -2323,12 +2227,12 @@ Dialog:GROUP_MENU(playerid, response, listitem, inputtext[]) {
 			strcat(string, "(text, x, y, letter_x, letter_y, text_x, text_y, alignment, color, usebox, box_color, shadow, outline, background_color, font, proportional, selectable, preview_model, rot_x, rot_y, rot_z, rot_zoom, veh_color1, veh_color2, type_player)");
 			strcat(string, "VALUES ('New TextDraw', '250.0', '10.0', '0.5', '1.0', '0.0', '0.0', '1', '-1', '0', '0xFF', '0', '0', '0xFF', '1', '1', '0', '0', '0.0', '0.0', '0.0', '1.0', '-1', '-1', '0')");
 			db_query(projectDB, string);
-			
+
 			format(string, sizeof (string), "SELECT id FROM %s ORDER BY id DESC LIMIT 1", groupData[groupid][E_GROUP_NAME]);
 			new DBResult:result = db_query(projectDB, string);
 			groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_SQLID] = db_get_field_int(result, 0);
 			db_free_result(result);
-			
+
 			format(string, sizeof (string), "TDEditor: A new textdraw added: Text #%i [Group: %s].", textdrawid, groupData[groupid][E_GROUP_NAME]);
 			SendClientMessage(playerid, MESSAGE_COLOR, string);
 
@@ -2340,14 +2244,14 @@ Dialog:GROUP_MENU(playerid, response, listitem, inputtext[]) {
 		        SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: There are no textdraws in the group!");
 				return ShowPlayerGroupDialog(playerid, groupid);
 			}
-		    
+
 		    playerEditing[playerid] = EDITING_GROUP_POS;
 		    playerEditingTimer[playerid] = SetTimerEx("OnPlayerTimerUpdate", 200, true, "i", playerid);
 		    if (showTextDrawCmds) {
 				PlayerTextDrawSetString(playerid, playerEditingTextDraw[playerid], "~w~Updating...");
 				PlayerTextDrawShow(playerid, playerEditingTextDraw[playerid]);
 			}
-			
+
 			TogglePlayerControllable(playerid, false);
 		}
 
@@ -2394,21 +2298,21 @@ Dialog:GROUP_MENU(playerid, response, listitem, inputtext[]) {
 		    for (new x = 1; ; x++) {
 				format(newName, MAX_GROUP_NAME, "%s_%i", groupName, x);
                 nameExist = false;
-                
+
 				for (new i; i < groupsCount; i++) {
 			        if (!strcmp(groupData[i][E_GROUP_NAME], newName, true)) {
 			            nameExist = true;
 						break;
 					}
 				}
-				
+
 				if (!nameExist) {
 					break;
 				}
 		    }
-		    
+
 		    format(groupData[groupsCount][E_GROUP_NAME], MAX_GROUP_NAME, newName);
-		    
+
 			new string[1024] = "CREATE TABLE IF NOT EXISTS ";
 			strcat(string, groupData[groupsCount][E_GROUP_NAME]);
 			strcat(string, " (`id` INTEGER PRIMARY KEY, \
@@ -2438,17 +2342,17 @@ Dialog:GROUP_MENU(playerid, response, listitem, inputtext[]) {
 				`veh_color2` INTEGER, \
 				`type_player` INTEGER)");
 			db_query(projectDB, string);
-		    
+
 		    new DBResult:result;
 		    for (new i; i < groupData[groupid][E_GROUP_TEXTDRAWS_COUNT]; i++) {
 		        for (new x; E_TEXTDRAW:x < E_TEXTDRAW; x++) {
 		            if (E_TEXTDRAW:x == E_TEXTDRAW_ID || E_TEXTDRAW:x == E_TEXTDRAW_SQLID) {
 		                continue;
 					}
-					
+
 		    		groupTextDrawData[groupsCount][i][E_TEXTDRAW:x] = groupTextDrawData[groupid][i][E_TEXTDRAW:x];
 				}
-				
+
                 string = "INSERT INTO ";
 				strcat(string, groupData[groupsCount][E_GROUP_NAME]);
 				strcat(string, "(text, x, y, letter_x, letter_y, text_x, text_y, alignment, color, usebox, box_color, shadow, outline, background_color, font, proportional, selectable, preview_model, rot_x, rot_y, rot_z, rot_zoom, veh_color1, veh_color2, type_player)");
@@ -2473,17 +2377,17 @@ Dialog:GROUP_MENU(playerid, response, listitem, inputtext[]) {
 					groupTextDrawData[groupsCount][i][E_TEXTDRAW_PREVIEW_VEH_COLOR1], groupTextDrawData[groupsCount][i][E_TEXTDRAW_PREVIEW_VEH_COLOR2],
 					groupTextDrawData[groupsCount][i][E_TEXTDRAW_TYPE_PLAYER]);
 				db_query(projectDB, string);
-				
+
 				format(string, sizeof (string), "SELECT id FROM %s ORDER BY id DESC LIMIT 1", groupData[groupsCount][E_GROUP_NAME]);
 				result = db_query(projectDB, string);
 				groupTextDrawData[groupsCount][i][E_TEXTDRAW_SQLID] = db_get_field_int(result, 0);
 				db_free_result(result);
-				
+
 				groupTextDrawData[groupsCount][i][E_TEXTDRAW_ID] = Text:INVALID_TEXT_DRAW;
 				CreateGroupTextDraw(groupsCount, i);
 			}
 			groupsCount++;
-			
+
 
 			format(string, sizeof (string), "TDEditor: Group '%s' duplicated to '%s_copy'.", groupData[groupid][E_GROUP_NAME], groupData[groupid][E_GROUP_NAME]);
 			SendClientMessage(playerid, MESSAGE_COLOR, string);
@@ -2513,9 +2417,9 @@ Dialog:CONFIRM_DELETE_GROUP(playerid, response, listitem, inputtext[]) {
 	new string[150];
 	format(string, sizeof (string), "DROP TABLE %s", groupData[groupid][E_GROUP_NAME]);
 	db_query(projectDB, string);
-	
+
 	format(string, sizeof (string), "TDEditor: Deleted group \"%s\".", groupData[groupid][E_GROUP_NAME]);
-	
+
 	ResetGroupData(groupid);
 
 	for (new i = groupid; i < (groupsCount - 1); i++) {
@@ -2538,7 +2442,7 @@ Dialog:CHANGE_GROUP_NAME(playerid, response, listitem, inputtext[]) {
 			format(string, sizeof (string), ""COL_WHITE"Insert a new textdraw "COL_GREEN"GROUP-NAME"COL_WHITE" you want to call this group as!\n\n"COL_YELLOW"Current Name:\t"COL_WHITE"%s\n\n"COL_RED"Error: "COL_GREY"The group name cannot be empty or spaces.", groupData[playerCurrentGroup[playerid]][E_GROUP_NAME]);
 			return Dialog_Show(playerid, CHANGE_GROUP_NAME, DIALOG_STYLE_INPUT, "TDEditor: New project", string, "Change", "Back");
 		}
-		
+
 		for (new i; i < groupsCount; i++) {
 		    if (!strcmp(name, groupData[i][E_GROUP_NAME], true)) {
 		    	new string[512];
@@ -2546,13 +2450,13 @@ Dialog:CHANGE_GROUP_NAME(playerid, response, listitem, inputtext[]) {
 				return Dialog_Show(playerid, CHANGE_GROUP_NAME, DIALOG_STYLE_INPUT, "TDEditor: New project", string, "Change", "Back");
 			}
 		}
-		
+
 		new groupid = playerCurrentGroup[playerid];
 
 		new string[150];
 		format(string, sizeof (string), "ALTER TABLE %s RENAME TO %s", groupData[groupid][E_GROUP_NAME], name);
 		db_query(projectDB, string);
-	
+
 		format(string, sizeof (string), "TDEditor: Group name changed to \"%s\" from \"%s\".", name, groupData[groupid][E_GROUP_NAME]);
 		SendClientMessage(playerid, MESSAGE_COLOR, string);
 
@@ -2563,62 +2467,19 @@ Dialog:CHANGE_GROUP_NAME(playerid, response, listitem, inputtext[]) {
 }
 
 Dialog:TEXTDRAW_MENU(playerid, response, listitem, inputtext[]) {
-	new groupid = playerCurrentGroup[playerid];
-	new textdrawid = playerCurrentTextDraw[playerid];
-	
 	if (!response) {
-	    new string[1024];
-	    string = "UPDATE %s SET \
-			text = '%q', \
-			x = '%f', y = '%f', \
-			letter_x = '%f', letter_y = '%f', \
-			text_x = '%f', text_y = '%f', \
-			alignment = '%i', \
-			color = '%i', \
-			usebox = '%i', \
-			box_color = '%i', \
-			shadow = '%i', \
-			outline = '%i', \
-			background_color = '%i', \
-			font = '%i', \
-			proportional = '%i', \
-			selectable = '%i', \
-			preview_model = '%i', \
-			rot_x = '%f', rot_y = '%f', rot_z = '%f', rot_zoom = '%f', \
-			veh_color1 = '%i', veh_color2 = '%i', \
-			type_player = '%i' \
-			WHERE id = '%i'";
-		format(string, sizeof (string), string,
-			groupData[groupid][E_GROUP_NAME],
-		 	groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_TEXT],
-		    groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_X], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_Y],
-		    groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_LETTERSIZE_X], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_LETTERSIZE_Y],
-		    groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_TEXTSIZE_X], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_TEXTSIZE_Y],
-		    groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_ALIGNMENT],
-		    groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_COLOR],
-		    groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_USE_BOX],
-			groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_BOX_COLOR],
-			groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_SHADOW],
-			groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_OUTLINE],
-			groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_BACKGROUND_COLOR],
-			groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_FONT],
-			groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PROPORTIONAL],
-			groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_SELECTABLE],
-			groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_MODEL],
-			groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_ROT_X], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_ROT_Y], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_ROT_Z], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_ROT_ZOOM],
-			groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_VEH_COLOR1], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_VEH_COLOR2],
-			groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_TYPE_PLAYER],
-			groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_SQLID]);
-		db_query(projectDB, string);
-
+	    SaveProjectGroupTextDraw(playerCurrentGroup[playerid], playerCurrentTextDraw[playerid]);
 		return ShowPlayerGroupDialog(playerid, playerCurrentGroup[playerid]);
 	}
+
+	new groupid = playerCurrentGroup[playerid];
+	new textdrawid = playerCurrentTextDraw[playerid];
 	
 	switch (listitem) {
 		case 0: {
 		    return Dialog_Show(playerid, CHANGE_TEXT_OR_POSITION, DIALOG_STYLE_LIST, "TDEditor: Change text/position", "Change Text\nChange Position", "Select", "Back");
 		}
-		
+
 		case 1: {
 		    return Dialog_Show(playerid, CHANGE_FONT, DIALOG_STYLE_LIST, "TDEditor: Change font", "Font 0\nFont 1\nFont 2\nFont 3\nFont 4 (Sprite)\nFont 5 (Preview Model)", "Set", "Back");
 		}
@@ -2757,7 +2618,7 @@ Dialog:TEXTDRAW_MENU(playerid, response, listitem, inputtext[]) {
 
 			return ShowPlayerTextDrawDialog(playerid, textdrawid);
 		}
-		
+
 		case 13: {
 			Dialog_Show(playerid, PREVIEW_MODEL_OPTIONS, DIALOG_STYLE_LIST, "TDEditor: Preview model options", "Modelid\nChange Rotation From Keyboard(X,Y only)\nInput Rotation (X,Y,Z,Zoom)", "Select", "Back");
 		}
@@ -2845,22 +2706,22 @@ Dialog:TEXTDRAW_MENU(playerid, response, listitem, inputtext[]) {
 			if (strlen(groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_TEXT]) > MAX_GROUP_TEXTDRAW_PREVIEW_CHARS) {
 				strcat(previewChars, "...");
 			}
-			
+
 			new fontName[16];
    			switch (groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_FONT]) {
 				case 0, 1, 2, 3: {
                     fontName = "Text";
 				}
-				
+
 				case 4: {
                     fontName = "Sprite";
 				}
-				
+
 				case 5: {
                     fontName = "Preview Model";
 				}
 			}
-			
+
 			new string[256];
 			format(string, sizeof (string), ""COL_WHITE"Are you sure you want the delete "COL_ORANGE"TEXTDRAW: #%i"COL_WHITE"?\n\n"COL_RED"TextDraw Text:\t"COL_WHITE"'%s'\n"COL_RED"TextDraw Font:\t"COL_WHITE"%i (%s)", textdrawid, previewChars, groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_FONT], fontName);
 			return Dialog_Show(playerid, CONFIRM_DELETE_TEXTDRAW, DIALOG_STYLE_MSGBOX, "TDEditor: Confirm delete group", string, "Yes", "No");
@@ -2873,18 +2734,18 @@ Dialog:CHANGE_TEXT_OR_POSITION(playerid, response, listitem, inputtext[]) {
 	if (!response) {
 		return ShowPlayerTextDrawDialog(playerid, playerCurrentTextDraw[playerid]);
 	}
-	
+
 	switch (listitem) {
 	    case 0: {
 			new groupid = playerCurrentGroup[playerid];
 			new textdrawid = playerCurrentTextDraw[playerid];
-			
+
 	        new previewChars[MAX_GROUP_TEXTDRAW_PREVIEW_CHARS + 4];
 			strmid(previewChars, groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_TEXT], 0, MAX_GROUP_TEXTDRAW_PREVIEW_CHARS);
 			if (strlen(groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_TEXT]) > MAX_GROUP_TEXTDRAW_PREVIEW_CHARS) {
 				strcat(previewChars, "...");
 			}
-		
+
 			new string[256];
 		    format(string, sizeof(string), ""COL_WHITE"Insert a string to set as textxdraw "COL_GREEN"TEXT"COL_WHITE".\n\n"COL_YELLOW"Current Text: "COL_WHITE"'%s'", previewChars);
 			Dialog_Show(playerid,  CHANGE_TEXT, DIALOG_STYLE_INPUT, "TDEditor: Change text", string, "Set", "Back");
@@ -2911,26 +2772,26 @@ Dialog:CHANGE_TEXT(playerid, response, listitem, inputtext[]) {
 
 	new groupid = playerCurrentGroup[playerid];
 	new textdrawid = playerCurrentTextDraw[playerid];
-	
+
 	new previewChars[MAX_GROUP_TEXTDRAW_PREVIEW_CHARS + 4];
 	strmid(previewChars, groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_TEXT], 0, MAX_GROUP_TEXTDRAW_PREVIEW_CHARS);
 	if (strlen(groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_TEXT]) > MAX_GROUP_TEXTDRAW_PREVIEW_CHARS) {
 		strcat(previewChars, "...");
 	}
-	
+
     new text[MAX_GROUP_TEXTDRAW_TEXT];
 	if (sscanf(inputtext, "%s["#MAX_GROUP_TEXTDRAW_TEXT"]", text)) {
 		new string[256];
 		format(string, sizeof(string), ""COL_WHITE"Insert a string to set as textxdraw "COL_GREEN"TEXT"COL_WHITE".\n\n"COL_YELLOW"Current Text: "COL_WHITE"'%s'\n\n"COL_RED"Error: "COL_GREY"No text entered.", previewChars);
 		return Dialog_Show(playerid,  CHANGE_TEXT, DIALOG_STYLE_INPUT, "TDEditor: Change text", string, "Set", "Back");
 	}
-	
+
     format(groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_TEXT], MAX_GROUP_TEXTDRAW_TEXT, text);
 	TextDrawSetString(groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_ID], text);
 	if (groupData[groupid][E_GROUP_VISIBLE]) {
 		TextDrawShowForAll(groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_ID]);
 	}
-	
+
 	return dialog_TEXTDRAW_MENU(playerid, 1, 0, "\1");
 }
 
@@ -3011,11 +2872,11 @@ Dialog:CHANGE_COLOR(playerid, response, listitem, inputtext[]) {
 	    case 0: {
 	        return Dialog_Show(playerid, CUSTOM_HEX_COLOR, DIALOG_STYLE_INPUT, "TDEditor: Custom HEX color", ""COL_WHITE"Insert a "COL_GREEN"HEXA-DECIMAL"COL_WHITE" color code below.\n\n"COL_WHITE"(for example: '0xFFFFFFF' is color white)", "Set", "Back");
 		}
-		
+
 		case 1: {
          	return Dialog_Show(playerid, CUSTOM_RGBA_COLOR, DIALOG_STYLE_INPUT, "TDEditor: Custom RGBA color", ""COL_WHITE"Insert color element value for "COL_RED"RED"COL_WHITE" below.\n\n"COL_WHITE"Maximum value of a color componenet can be 255.", "Next", "Back");
 		}
-		
+
 		case 2: {
             static string[sizeof (COLORS) * ((32 * 2) + 1)];
             string[0] = EOS;
@@ -3055,7 +2916,7 @@ Dialog:CUSTOM_HEX_COLOR(playerid, response, listitem, inputtext[]) {
 		format(red, sizeof (red), "%c%c", inputtext[2], inputtext[3]);
   		format(green, sizeof (green), "%c%c", inputtext[4], inputtext[5]);
   		format(blue, sizeof (blue), "%c%c", inputtext[6], inputtext[7]);
-  		
+
    		if (inputtext[8] != '\0') {
 			format(alpha, sizeof (alpha), "%c%c", inputtext[8], inputtext[9]);
 		}
@@ -3095,7 +2956,7 @@ Dialog:CUSTOM_HEX_COLOR(playerid, response, listitem, inputtext[]) {
   			alpha = "FF";
 		}
 	}
-	
+
 	new groupid = playerCurrentGroup[playerid];
 	new textdrawid = playerCurrentTextDraw[playerid];
 
@@ -3122,11 +2983,12 @@ Dialog:CUSTOM_HEX_COLOR(playerid, response, listitem, inputtext[]) {
 			format(string, sizeof (string), "TDEditor: Textdraw #%i outline/shadow color changed to {%06x}Color Preview", textdrawid, (groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_BACKGROUND_COLOR] >>> 8));
 		}
 	}
-	
+
 	if (groupData[groupid][E_GROUP_VISIBLE]) {
 		TextDrawShowForAll(groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_ID]);
 	}
 
+    playerEditing[playerid] = EDITING_NONE;
 	SendClientMessage(playerid, MESSAGE_COLOR, string);
 
 	return ShowPlayerTextDrawDialog(playerid, textdrawid);
@@ -3141,7 +3003,7 @@ Dialog:CUSTOM_RGBA_COLOR(playerid, response, listitem, inputtext[]) {
 			    DeletePVar(playerid, "ColorElement_G");
 			    DeletePVar(playerid, "ColorElement_B");
 			    DeletePVar(playerid, "ColorElement_A");
-			    
+
 			    switch (playerEditing[playerid]) {
 					case EDITING_BACKGROUND_COLOR: {
 					    return dialog_TEXTDRAW_MENU(playerid, 1, 6, "\1");
@@ -3173,7 +3035,7 @@ Dialog:CUSTOM_RGBA_COLOR(playerid, response, listitem, inputtext[]) {
 			}
 		}
 	}
-	
+
 	new val;
 	if (!sscanf(inputtext, "%i", val)) {
 		if (val >= 0 && val <= 255) {
@@ -3183,23 +3045,23 @@ Dialog:CUSTOM_RGBA_COLOR(playerid, response, listitem, inputtext[]) {
 					SetPVarInt(playerid, "ColorElement_R", val);
 					return Dialog_Show(playerid, CUSTOM_RGBA_COLOR, DIALOG_STYLE_INPUT, "TDEditor: Custom RGBA color", ""COL_WHITE"Insert color element value for "COL_GREEN"GREEN"COL_WHITE" below.\n\n"COL_WHITE"Maximum value of a color componenet can be 255.", "Next", "Back");
 				}
-				
+
 				case 1: {
 				    SetPVarInt(playerid, "ColorElement", 2);
 					SetPVarInt(playerid, "ColorElement_G", val);
 					return Dialog_Show(playerid, CUSTOM_RGBA_COLOR, DIALOG_STYLE_INPUT, "TDEditor: Custom RGBA color", ""COL_WHITE"Insert color element value for "COL_BLUE"BLUE"COL_WHITE" below.\n\n"COL_WHITE"Maximum value of a color componenet can be 255.", "Next", "Back");
 				}
-				
+
 				case 2: {
 				    SetPVarInt(playerid, "ColorElement", 3);
 					SetPVarInt(playerid, "ColorElement_B", val);
 					return Dialog_Show(playerid, CUSTOM_RGBA_COLOR, DIALOG_STYLE_INPUT, "TDEditor: Custom RGBA color", ""COL_WHITE"Insert color element value for "COL_GREY"ALPHA"COL_WHITE" below.\n\n"COL_WHITE"Maximum value of a color componenet can be 255.", "Next", "Back");
 				}
-				
+
 				case 3: {
 					new groupid = playerCurrentGroup[playerid];
 					new textdrawid = playerCurrentTextDraw[playerid];
-					
+
 					new string[150];
 					switch (playerEditing[playerid]) {
 						case EDITING_TEXTDRAW_COLOR: {
@@ -3235,6 +3097,7 @@ Dialog:CUSTOM_RGBA_COLOR(playerid, response, listitem, inputtext[]) {
 					}
 
 					SendClientMessage(playerid, MESSAGE_COLOR, string);
+					playerEditing[playerid] = EDITING_NONE;
 
 					return ShowPlayerTextDrawDialog(playerid, textdrawid);
 				}
@@ -3250,11 +3113,11 @@ Dialog:COLOR_MENU(playerid, response, listitem, inputtext[]) {
 			case EDITING_BACKGROUND_COLOR: {
 			    return dialog_TEXTDRAW_MENU(playerid, 1, 6, "\1");
 			}
-			
+
 			case EDITING_TEXTDRAW_COLOR: {
 			    return dialog_TEXTDRAW_MENU(playerid, 1, 8, "\1");
 			}
-			
+
 			case EDITING_BOX_COLOR: {
 			    return dialog_TEXTDRAW_MENU(playerid, 1, 11, "\1");
 			}
@@ -3295,6 +3158,7 @@ Dialog:COLOR_MENU(playerid, response, listitem, inputtext[]) {
 	}
 
 	SendClientMessage(playerid, MESSAGE_COLOR, string);
+	playerEditing[playerid] = EDITING_NONE;
 
 	return ShowPlayerTextDrawDialog(playerid, textdrawid);
 }
@@ -3303,12 +3167,12 @@ Dialog:PREVIEW_MODEL_OPTIONS(playerid, response, listitem, inputtext[]) {
 	if (!response) {
 		return ShowPlayerTextDrawDialog(playerid, playerCurrentTextDraw[playerid]);
 	}
-	
+
 	switch (listitem) {
 		case 0: {
 		    Dialog_Show(playerid, SEARCH_PREVIEW_MODEL, DIALOG_STYLE_INPUT, "TDEditor: Change preview model", ""COL_WHITE"Insert exact "COL_GREEN"MODELID"COL_WHITE" or a "COL_GREEN"OBJECT NAME"COL_WHITE" or a hint so we can find all relative object models and give you a list!", "Search", "Back");
 		}
-		
+
 		case 1: {
 			playerEditing[playerid] = EDITING_PREVIEW_ROT;
 		    playerEditingTimer[playerid] = SetTimerEx("OnPlayerTimerUpdate", 200, true, "i", playerid);
@@ -3343,13 +3207,13 @@ Dialog:SEARCH_PREVIEW_MODEL(playerid, response, listitem, inputtext[]) {
 	if (sscanf(inputtext, "%s[32]", name)) {
 		return Dialog_Show(playerid, SEARCH_PREVIEW_MODEL, DIALOG_STYLE_INPUT, "TDEditor: Search modelid", ""COL_WHITE"Insert exact "COL_GREEN"MODELID"COL_WHITE" or a "COL_GREEN"OBJECT NAME"COL_WHITE" or a hint so we can find all relative object models and give you a list!\n\n"COL_RED"Error: "COL_GREY"Model name not entered.", "Search", "Back");
 	}
-	
+
 	if (!sscanf(name, "{i}")) {
 	    new modelid = strval(name);
 		if (modelid < 0 || modelid >= 44764) {
 	   	 	return Dialog_Show(playerid, SEARCH_PREVIEW_MODEL, DIALOG_STYLE_INPUT, "TDEditor: Search modelid", ""COL_WHITE"Insert exact "COL_GREEN"MODELID"COL_WHITE" or a "COL_GREEN"OBJECT NAME"COL_WHITE" or a hint so we can find all relative object models and give you a list!\n\n"COL_RED"Error: "COL_GREY"Invalid object/modelid, must be between 0 to 44764.", "Search", "Back");
 		}
-		
+
 		return dialog_CHOOSE_PREVIEW_MODEL(playerid, 1, 0, name);
 	}
 	else {
@@ -3418,19 +3282,19 @@ Dialog:CHOOSE_PREVIEW_MODEL(playerid, response, listitem, inputtext[]) {
 Dialog:INPUT_ROTATION(playerid, response, listitem, inputtext[]) {
 	new groupid = playerCurrentGroup[playerid];
 	new textdrawid = playerCurrentTextDraw[playerid];
-	
+
 	if (!response) {
 		new string[256];
 		switch (GetPVarInt(playerid, "RotationType")) {
 		    case 0: {
 		    	DeletePVar(playerid, "RotationType");
-		    
+
 		        return dialog_TEXTDRAW_MENU(playerid, 1, 13, "\1");
 			}
 
 		    case 1: {
     			SetPVarInt(playerid, "RotationType", 0);
-    			
+
 				format(string, sizeof(string), ""COL_WHITE"Insert a floating value for "COL_GREEN"X COORDINATE"COL_WHITE" of preview model rotation.\n\n"COL_YELLOW"Current Rot-X: "COL_WHITE"%0.2f", groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_ROT_X]);
 			}
 
@@ -3446,10 +3310,10 @@ Dialog:INPUT_ROTATION(playerid, response, listitem, inputtext[]) {
 				format(string, sizeof(string), ""COL_WHITE"Insert a floating value for "COL_GREEN"Z COORDINATE"COL_WHITE" of preview model rotation.\n\n"COL_YELLOW"Current Rot-Z: "COL_WHITE"%0.2f", groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_ROT_Z]);
 			}
 		}
-		
+
 		return Dialog_Show(playerid, INPUT_ROTATION, DIALOG_STYLE_INPUT, "TDEditor: Input X,Y,Z,Zoom manuually", string, "Next", "Back");
 	}
-	
+
 	new Float:val = -1.0;
 	if (sscanf(inputtext, "%f", val) || ((GetPVarInt(playerid, "RotationType") == 3) ? (val < 0.0 || val > 100.0) : (val < -360.0 || val > 360.0))) {
 		new string[256];
@@ -3457,15 +3321,15 @@ Dialog:INPUT_ROTATION(playerid, response, listitem, inputtext[]) {
 		    case 0: {
 				format(string, sizeof(string), ""COL_WHITE"Insert a floating value for "COL_GREEN"X COORDINATE"COL_WHITE" of preview model rotation.\n\n"COL_YELLOW"Current Rot-X: "COL_WHITE"%0.2f\n\n"COL_RED"Error: "COL_GREY"No value entered or out of bounds (must be between '-360' - '360')", groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_ROT_X]);
 			}
-			
+
 		    case 1: {
 				format(string, sizeof(string), ""COL_WHITE"Insert a floating value for "COL_GREEN"Y COORDINATE"COL_WHITE" of preview model rotation.\n\n"COL_YELLOW"Current Rot-Y: "COL_WHITE"%0.2f\n\n"COL_RED"Error: "COL_GREY"No value entered or out of bounds (must be between '-360' - '360')", groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_ROT_Y]);
 			}
-			
+
 		    case 2: {
 				format(string, sizeof(string), ""COL_WHITE"Insert a floating value for "COL_GREEN"Z COORDINATE"COL_WHITE" of preview model rotation.\n\n"COL_YELLOW"Current Rot-Z: "COL_WHITE"%0.2f\n\n"COL_RED"Error: "COL_GREY"No value entered or out of bounds (must be between '-360' - '360')", groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_ROT_Z]);
 			}
-			
+
 		    case 3: {
 				format(string, sizeof(string), ""COL_WHITE"Insert a floating value for "COL_GREEN"ZOOM"COL_WHITE" of preview model rotation.\n\n"COL_YELLOW"Current Rot-Zoom: "COL_WHITE"%0.2f\n\n"COL_RED"Error: "COL_GREY"No value entered or out of bounds (must be between '0' - '100')", groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_ROT_ZOOM]);
 				return Dialog_Show(playerid, INPUT_ROTATION, DIALOG_STYLE_INPUT, "TDEditor: Input X,Y,Z,Zoom manuually", string, "Finish", "Back");
@@ -3482,7 +3346,7 @@ Dialog:INPUT_ROTATION(playerid, response, listitem, inputtext[]) {
 			if (groupData[groupid][E_GROUP_VISIBLE]) {
 				TextDrawShowForAll(groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_ID]);
 			}
-			
+
     		SetPVarInt(playerid, "RotationType", 1);
 
 			format(string, sizeof(string), ""COL_WHITE"Insert a floating value for "COL_GREEN"Y COORDINATE"COL_WHITE" of preview model rotation.\n\n"COL_YELLOW"Current Rot-Y: "COL_WHITE"%0.2f", groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_PREVIEW_ROT_Y]);
