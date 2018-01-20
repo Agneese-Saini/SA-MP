@@ -3,21 +3,13 @@
 #endif
 #define vehicle_friendly_fire_included
 
-enum {
-	VEHICLE_FRONT_LEFT_TIRE = 1,
-	VEHICLE_FRONT_RIGHT_TIRE,
-	VEHICLE_BACK_LEFT_TIRE,
-	VEHICLE_BACK_RIGHT_TIRE
-};
-
 enum E_VEHICLE_TIRES {
 	E_VEHICLE_TIRES_STATUS,
-	E_VEHICLE_TIRES_TIREID,
     E_VEHICLE_TIRES_SHOTBY,
 };
 
-static bool:friendlyFireToggled = false;
 static vehicleTiresData[MAX_VEHICLES][E_VEHICLE_TIRES];
+static bool:friendlyFireToggled = false;
 
 #if defined OnPlayerFirendlyFireTires
 	forward OnPlayerFirendlyFireTires(playerid, vehicleid, driverid);
@@ -28,7 +20,6 @@ public OnVehicleSpawn(vehicleid) {
 	GetVehicleDamageStatus(vehicleid, panels, doors, lights, tires);
 
 	vehicleTiresData[vehicleid][E_VEHICLE_TIRES_STATUS] = tires;
-	vehicleTiresData[vehicleid][E_VEHICLE_TIRES_TIREID] = 0;
 	vehicleTiresData[vehicleid][E_VEHICLE_TIRES_SHOTBY] = INVALID_PLAYER_ID;
 
     #if defined VFFire_OnVehicleSpawn
@@ -75,6 +66,8 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 		        return 1;
 		    #endif
 		}
+		
+		new bool:shot = false;
 
     	new Float:offset[3];
 		GetVehicleModelInfo(GetVehicleModel(hitid), VEHICLE_MODEL_INFO_WHEELSFRONT, offset[0], offset[1], offset[2]);
@@ -86,12 +79,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 			fY >= (offset[1] - 0.4) && fY <= (offset[1] + 0.4) &&
 			fZ >= (offset[2] - 0.4) && fZ <= (offset[2] + 0.4))
 		{
-			new panels, doors, lights, tires;
-			GetVehicleDamageStatus(hitid, panels, doors, lights, tires);
-
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_STATUS] = tires;
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_TIREID] = VEHICLE_FRONT_LEFT_TIRE;
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_SHOTBY] = playerid;
+		    shot = true;
 		}
 		/*
         ** FRONT RIGHT WHEEL
@@ -100,12 +88,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 				fY >= offset[1] - 0.4 && fY <= offset[1] + 0.4 &&
 				fZ >= offset[2] - 0.4 && fZ <= offset[2] + 0.4)
 		{
-		    new panels, doors, lights, tires;
-			GetVehicleDamageStatus(hitid, panels, doors, lights, tires);
-
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_STATUS] = tires;
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_TIREID] = VEHICLE_FRONT_RIGHT_TIRE;
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_SHOTBY] = playerid;
+		    shot = true;
 		}
 
 
@@ -118,12 +101,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 			fY >= offset[1] - 0.4 && fY <= offset[1] + 0.4 &&
 			fZ >= offset[2] - 0.4 && fZ <= offset[2] + 0.4)
 		{
-		    new panels, doors, lights, tires;
-			GetVehicleDamageStatus(hitid, panels, doors, lights, tires);
-
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_STATUS] = tires;
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_TIREID] = VEHICLE_BACK_LEFT_TIRE;
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_SHOTBY] = playerid;
+		    shot = true;
 		}
 		/*
         ** BACK RIGHT WHEEL
@@ -132,11 +110,14 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 				fY >= offset[1] - 0.4 && fY <= offset[1] + 0.4 &&
 				fZ >= offset[2] - 0.4 && fZ <= offset[2] + 0.4)
 		{
+		    shot = true;
+		}
+		
+		if (shot) { // if a tire was shot
 		    new panels, doors, lights, tires;
 			GetVehicleDamageStatus(hitid, panels, doors, lights, tires);
 
 			vehicleTiresData[hitid][E_VEHICLE_TIRES_STATUS] = tires;
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_TIREID] = VEHICLE_BACK_RIGHT_TIRE;
 			vehicleTiresData[hitid][E_VEHICLE_TIRES_SHOTBY] = playerid;
 		}
 	}
