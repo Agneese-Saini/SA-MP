@@ -11,13 +11,12 @@ enum {
 };
 
 enum E_VEHICLE_TIRES {
-	E_VEHICLE_TIRES_LAST_STATUS,
-	E_VEHICLE_TIRES_DRIVER,
+	E_VEHICLE_TIRES_STATUS,
 	E_VEHICLE_TIRES_TIREID,
     E_VEHICLE_TIRES_SHOTBY,
 };
 
-static const bool:VEHICLE_FRIENDLY_FIRE_ENABLED;
+static bool:friendlyFireToggled = false;
 static vehicleTiresData[MAX_VEHICLES][E_VEHICLE_TIRES];
 
 #if defined OnPlayerFirendlyFireTires
@@ -28,8 +27,7 @@ public OnVehicleSpawn(vehicleid) {
 	new panels, doors, lights, tires;
 	GetVehicleDamageStatus(vehicleid, panels, doors, lights, tires);
 
-	vehicleTiresData[vehicleid][E_VEHICLE_TIRES_LAST_STATUS] = tires;
-	vehicleTiresData[vehicleid][E_VEHICLE_TIRES_DRIVER] = INVALID_PLAYER_ID;
+	vehicleTiresData[vehicleid][E_VEHICLE_TIRES_STATUS] = tires;
 	vehicleTiresData[vehicleid][E_VEHICLE_TIRES_TIREID] = 0;
 	vehicleTiresData[vehicleid][E_VEHICLE_TIRES_SHOTBY] = INVALID_PLAYER_ID;
 
@@ -91,8 +89,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 			new panels, doors, lights, tires;
 			GetVehicleDamageStatus(hitid, panels, doors, lights, tires);
 
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_LAST_STATUS] = tires;
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_DRIVER] = driver;
+			vehicleTiresData[hitid][E_VEHICLE_TIRES_STATUS] = tires;
 			vehicleTiresData[hitid][E_VEHICLE_TIRES_TIREID] = VEHICLE_FRONT_LEFT_TIRE;
 			vehicleTiresData[hitid][E_VEHICLE_TIRES_SHOTBY] = playerid;
 		}
@@ -106,8 +103,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 		    new panels, doors, lights, tires;
 			GetVehicleDamageStatus(hitid, panels, doors, lights, tires);
 
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_LAST_STATUS] = tires;
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_DRIVER] = driver;
+			vehicleTiresData[hitid][E_VEHICLE_TIRES_STATUS] = tires;
 			vehicleTiresData[hitid][E_VEHICLE_TIRES_TIREID] = VEHICLE_FRONT_RIGHT_TIRE;
 			vehicleTiresData[hitid][E_VEHICLE_TIRES_SHOTBY] = playerid;
 		}
@@ -125,8 +121,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 		    new panels, doors, lights, tires;
 			GetVehicleDamageStatus(hitid, panels, doors, lights, tires);
 
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_LAST_STATUS] = tires;
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_DRIVER] = driver;
+			vehicleTiresData[hitid][E_VEHICLE_TIRES_STATUS] = tires;
 			vehicleTiresData[hitid][E_VEHICLE_TIRES_TIREID] = VEHICLE_BACK_LEFT_TIRE;
 			vehicleTiresData[hitid][E_VEHICLE_TIRES_SHOTBY] = playerid;
 		}
@@ -140,8 +135,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 		    new panels, doors, lights, tires;
 			GetVehicleDamageStatus(hitid, panels, doors, lights, tires);
 
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_LAST_STATUS] = tires;
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_DRIVER] = driver;
+			vehicleTiresData[hitid][E_VEHICLE_TIRES_STATUS] = tires;
 			vehicleTiresData[hitid][E_VEHICLE_TIRES_TIREID] = VEHICLE_BACK_RIGHT_TIRE;
 			vehicleTiresData[hitid][E_VEHICLE_TIRES_SHOTBY] = playerid;
 		}
@@ -167,20 +161,17 @@ public OnVehicleDamageStatusUpdate(vehicleid, playerid) {
 	new panels, doors, lights, tires;
 	GetVehicleDamageStatus(vehicleid, panels, doors, lights, tires);
 
-	if (vehicleTiresData[vehicleid][E_VEHICLE_TIRES_DRIVER] == playerid) {
-		if (tires != vehicleTiresData[vehicleid][E_VEHICLE_TIRES_LAST_STATUS]) {
-			#if defined OnPlayerFirendlyFireTires
-			    OnPlayerFirendlyFireTires(vehicleTiresData[hitid][E_VEHICLE_TIRES_SHOTBY], vehicleid, vehicleTiresData[vehicleid][E_VEHICLE_TIRES_DRIVER]);
-			#endif
+	if (tires != vehicleTiresData[vehicleid][E_VEHICLE_TIRES_STATUS]) {
+		#if defined OnPlayerFirendlyFireTires
+  			OnPlayerFirendlyFireTires(vehicleTiresData[vehicleid][E_VEHICLE_TIRES_SHOTBY], vehicleid, playerid);
+		#endif
 
-			if (VEHICLE_FRIENDLY_FIRE_ENABLED) { // reset tires to previous state if friendly fire is enabled
-				tires = vehicleTiresData[vehicleid][E_VEHICLE_TIRES_LAST_STATUS];
-				UpdateVehicleDamageStatus(vehicleid, panels, doors, lights, tires);
-			}
-
-			vehicleTiresData[vehicleid][E_VEHICLE_TIRES_DRIVER] = INVALID_PLAYER_ID;
-			vehicleTiresData[vehicleid][E_VEHICLE_TIRES_SHOTBY] = INVALID_PLAYER_ID;
+		if (friendlyFireToggled) { // reset tires to previous state if friendly fire is enabled
+			tires = vehicleTiresData[vehicleid][E_VEHICLE_TIRES_STATUS];
+			UpdateVehicleDamageStatus(vehicleid, panels, doors, lights, tires);
 		}
+
+		vehicleTiresData[vehicleid][E_VEHICLE_TIRES_SHOTBY] = INVALID_PLAYER_ID;
 	}
 
 	#if defined VFFire_OnVehicleDamageStatusUpd
@@ -200,7 +191,7 @@ public OnVehicleDamageStatusUpdate(vehicleid, playerid) {
 #endif
 
 stock VFFire_EnableVFFire() {
-    VEHICLE_FRIENDLY_FIRE_ENABLED = true;
+    friendlyFireToggled = true;
 
 	return EnableVehicleFriendlyFire();
 }
