@@ -142,7 +142,7 @@ public OnVehicleDamageStatusUpdate(vehicleid, playerid) {
 	new panels, doors, lights, tires;
 	GetVehicleDamageStatus(vehicleid, panels, doors, lights, tires);
 
-	if (tires != vehicleTiresData[vehicleid][E_VEHICLE_TIRES_STATUS]) {
+	if (vehicleTiresData[vehicleid][E_VEHICLE_TIRES_SHOTBY] != INVALID_PLAYER_ID && tires != vehicleTiresData[vehicleid][E_VEHICLE_TIRES_STATUS]) {
 		#if defined OnPlayerFirendlyFireTires
   			OnPlayerFirendlyFireTires(vehicleTiresData[vehicleid][E_VEHICLE_TIRES_SHOTBY], vehicleid, playerid);
 		#endif
@@ -170,7 +170,7 @@ public OnVehicleDamageStatusUpdate(vehicleid, playerid) {
 #if defined VFFire_OnVehicleDamageStatusUpd
     forward VFFire_OnVehicleDamageStatusUpd(vehicleid, playerid);
 #endif
-
+1y8
 stock VFFire_EnableVFFire() {
     friendlyFireToggled = true;
 
