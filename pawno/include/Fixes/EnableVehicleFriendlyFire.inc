@@ -59,14 +59,6 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 			}
 		}
 
-		if (driver == INVALID_PLAYER_ID || GetPlayerTeam(driver) == NO_TEAM || GetPlayerTeam(driver) != GetPlayerTeam(playerid)) { // if vehicle is not occupied by a teammate or not occupied at all; then don't continue
-            #if defined VFFire_OnPlayerWeaponShot
-		        return VFFire_OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY, Float:fZ);
-		    #else
-		        return 1;
-		    #endif
-		}
-		
 		new bool:shot = false;
 
     	new Float:offset[3];
@@ -112,13 +104,18 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 		{
 		    shot = true;
 		}
-		
-		if (shot) { // if a tire was shot
-		    new panels, doors, lights, tires;
-			GetVehicleDamageStatus(hitid, panels, doors, lights, tires);
 
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_STATUS] = tires;
-			vehicleTiresData[hitid][E_VEHICLE_TIRES_SHOTBY] = playerid;
+		if (shot) { // if a tire was shot
+
+			if (driver == INVALID_PLAYER_ID || GetPlayerTeam(driver) == NO_TEAM || GetPlayerTeam(driver) != GetPlayerTeam(playerid)) { // if vehicle is not occupied by a teammate or not occupied at all
+	            vehicleTiresData[hitid][E_VEHICLE_TIRES_SHOTBY] = INVALID_PLAYER_ID;
+			} else {
+			    new panels, doors, lights, tires;
+				GetVehicleDamageStatus(hitid, panels, doors, lights, tires);
+				
+				vehicleTiresData[hitid][E_VEHICLE_TIRES_STATUS] = tires;
+				vehicleTiresData[hitid][E_VEHICLE_TIRES_SHOTBY] = playerid;
+			}
 		}
 	}
 
@@ -170,7 +167,7 @@ public OnVehicleDamageStatusUpdate(vehicleid, playerid) {
 #if defined VFFire_OnVehicleDamageStatusUpd
     forward VFFire_OnVehicleDamageStatusUpd(vehicleid, playerid);
 #endif
-1y8
+
 stock VFFire_EnableVFFire() {
     friendlyFireToggled = true;
 
