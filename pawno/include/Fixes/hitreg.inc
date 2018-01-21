@@ -156,7 +156,7 @@ static bool:HitReg_ProcessDamage(playerid, issuerid, &Float:amount, &weaponid, &
 			weaponid = HitReg@playerLastExplosive[issuerid];
 		}
 	}
-	
+
 	// detect vehicle weapons
 	if (IsPlayerInAnyVehicle(playerid) && GetPlayerVehicleSeat(playerid) == 0) {
 	    weaponid = (weaponid == WEAPON_M4) ? (WEAPON_VEHICLE_M4) : (WEAPON_VEHICLE_MINIGUN);
@@ -249,7 +249,7 @@ static bool:HitReg_ProcessDamage(playerid, issuerid, &Float:amount, &weaponid, &
 	}
 
 	new Float:bullets;
-	
+
 	switch (weaponid) {
 		// The spas shotguns shoot 8 bullets, each inflicting 4.95 damage
 		case WEAPON_SHOTGSPA: {
@@ -390,7 +390,7 @@ public OnPlayerConnect(playerid) {
     HitReg@playerDeath[playerid][E_PLAYER_DEATH_VALID] = false;
     HitReg@playerDeath[playerid][E_PLAYER_DEATH_KILLERID] = INVALID_PLAYER_ID;
     HitReg@playerDeath[playerid][E_PLAYER_DEATH_REASON] = WEAPON_UNKNOWN;
-    
+
     HitReg@playerLastExplosive[playerid] = WEAPON_UNARMED;
 
 	HitReg@playerWeaponDamage[playerid][0] = 1.0; // 0 - Fist
@@ -413,6 +413,7 @@ public OnPlayerConnect(playerid) {
 	HitReg@playerWeaponDamage[playerid][18] = 1.0; // 18 - Molotov
 	HitReg@playerWeaponDamage[playerid][19] = 9.9; // 19 - Vehicle M4 (custom)
 	HitReg@playerWeaponDamage[playerid][20] = 46.2; // 20 - Vehicle minigun (custom)
+	HitReg@playerWeaponDamage[playerid][21] = 82.5; // 21 - Vehicle rocket (custom)
 	HitReg@playerWeaponDamage[playerid][22] = 8.25; // 22 - Colt 45
 	HitReg@playerWeaponDamage[playerid][23] = 13.2; // 23 - Silenced
 	HitReg@playerWeaponDamage[playerid][24] = 46.2; // 24 - Deagle
@@ -489,7 +490,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
 public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY, Float:fZ) {
 	if (hittype != BULLET_HIT_TYPE_NONE) {
 	    new Float:maxrange = 0.0;
-	    
+
 	    switch (weaponid) {
 	        case WEAPON_VEHICLE_M4: maxrange = 90.0; // 19 - Vehicle M4 (custom)
 	        case WEAPON_VEHICLE_MINIGUN: maxrange = 75.0; // 20 - Vehicle minigun (custom)
@@ -508,7 +509,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 			case WEAPON_SNIPER: maxrange = 320.0; // 34 - Sniper
 			case WEAPON_MINIGUN: maxrange = 75.0; // 38 - Minigun
 	    }
-	    
+
 	    if (_:maxrange == _:0.0) { // Invalid weapon
 			return 0;
 		}
@@ -516,7 +517,7 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 		// Weapon range check
 		new Float:ox, Float:oy, Float:oz, Float:hx, Float:hy, Float:hz;
 		GetPlayerLastShotVectors(playerid, ox, oy, oz, hx, hy, hz);
-		
+
 		if (VectorSize((ox - hx), (oy - hy), (oz - hz)) > maxrange) {
 			return 0;
 		}
@@ -550,16 +551,16 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart) 
 			 WEAPON_VEHICLE,
 			 WEAPON_CARPARK,
 			 WEAPON_EXPLOSION: {
-			 
+
 			// Detect the original explosive weapon used
 		    if (weaponid == WEAPON_EXPLOSION && HitReg@playerLastExplosive[issuerid] != WEAPON_UNARMED) {
 				weaponid = HitReg@playerLastExplosive[issuerid];
 			}
-			
+
     	    new Float:health, Float:armour;
 			GetPlayerHealth(playerid, health);
 			GetPlayerArmour(playerid, armour);
-			
+
     	    new bool:death = (((armour + health) - amount) <= 0.0);
 
 			#if defined OnPlayerDamage
@@ -577,10 +578,10 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart) 
 
     	case WEAPON_DROWN,
 			 WEAPON_COLLISION: { // This weapon/reason of damage only affects player health (not armour)
-			 
+
     	    new Float:health;
 			GetPlayerHealth(playerid, health);
-			
+
 			new bool:death = ((health - amount) <= 0.0);
 
 			#if defined OnPlayerDamage
@@ -592,11 +593,11 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart) 
 				HitReg@playerDeath[playerid][E_PLAYER_DEATH_KILLERID] = INVALID_PLAYER_ID;
 				HitReg@playerDeath[playerid][E_PLAYER_DEATH_REASON] = WEAPON_DROWN;
 			}
-			
+
    		 	return 0;
     	}
 	}
-	
+
     return 1;
 }
 #if defined _ALS_OnPlayerTakeDamage
@@ -654,7 +655,7 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
 	if (HitReg@playerTeamID[playerid] != NO_TEAM && HitReg@playerTeamID[damagedid] != NO_TEAM && HitReg@playerTeamID[playerid] == HitReg@playerTeamID[damagedid]) {
 	    return 1;
 	}
-	
+
 	SetPlayerArmour(damagedid, armour);
 	SetPlayerHealth(damagedid, health);
 
