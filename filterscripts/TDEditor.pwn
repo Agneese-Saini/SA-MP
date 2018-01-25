@@ -1,5 +1,4 @@
 // TDEditor.pwn by Gammix
-// v1.3.2 - Last updated: 18 Jan, 2018
 #define FILTERSCRIPT
 
 #include <a_samp>
@@ -8,6 +7,11 @@
 #include <timestamptodate>
 #include <dini2>
 #include <sscanf2>
+
+// Editor info.
+#define VERSION                 "v1.3.3"
+#define DATE                 	"24 Jan, 2018"
+//
 
 #define PATH_PROJECT_FILES		"TDEditor/Projects/"
 #define PATH_EXPORT_FILES		"TDEditor/Exports/"
@@ -522,7 +526,7 @@ ExportProject(const filename[]) {
 	new len;
 	new varname[41];
 	new idx;
-	
+
 	fwrite(h, "// TextDraw(s) developed using Gammix's TextDraw editor\r\n");
    	fwrite(h, "#include <a_samp>\r\n\r\n");
 
@@ -534,13 +538,13 @@ ExportProject(const filename[]) {
 	    globalTextdrawsCount = 0;
     	playerTextdrawsCount = 0;
 	    for (new x; x < groupData[i][E_GROUP_TEXTDRAWS_COUNT]; x++) {
-	    
+
      		len = strlen(groupTextDrawData[i][x][E_TEXTDRAW_TEXT]);
 			while ((pos = strfind(groupTextDrawData[i][x][E_TEXTDRAW_TEXT], "\"")) != -1) {
 				strdel(groupTextDrawData[i][x][E_TEXTDRAW_TEXT], pos, (pos + 1));
 				strins(groupTextDrawData[i][x][E_TEXTDRAW_TEXT], "''", pos, len);
 			}
-				
+
 	        if (groupTextDrawData[i][x][E_TEXTDRAW_TYPE_PLAYER]) {
        			playerTextdrawsCount++;
 
@@ -548,7 +552,7 @@ ExportProject(const filename[]) {
 			}
 			else {
    				globalTextdrawsCount++;
-   				
+
    				isThereAnyGlobalTextDraws = true;
 			}
 	    }
@@ -590,15 +594,15 @@ ExportProject(const filename[]) {
 				continue;
 			}
 
-			format(string, sizeof (string), "\t/*\r\n\t** player textdarw group: \"%s\"\r\n\t*/\r\n", groupData[i][E_GROUP_NAME]);
+			format(string, sizeof (string), "\t/*\r\n\t** textdarw group: \"%s\"\r\n\t*/\r\n", groupData[i][E_GROUP_NAME]);
 			fwrite(h, string);
-			
+
 			idx = 0;
 			for (new x; x < groupData[i][E_GROUP_TEXTDRAWS_COUNT]; x++) {
 		        if (groupTextDrawData[i][x][E_TEXTDRAW_TYPE_PLAYER]) {
 					continue;
 				}
-		        
+
 			    if (globalTextdrawsCount == 1) {
 					format(varname, sizeof (varname), "%sTD", groupData[i][E_GROUP_NAME]);
 				}
@@ -608,37 +612,33 @@ ExportProject(const filename[]) {
 
 				format(string, sizeof (string), "\t%s = TextDrawCreate(%0.4f, %0.4f, \"%s\");\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_X], groupTextDrawData[i][x][E_TEXTDRAW_Y], groupTextDrawData[i][x][E_TEXTDRAW_TEXT]);
 				fwrite(h, string);
-				
+
 				format(string, sizeof (string), "\tTextDrawFont(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_FONT]);
 				fwrite(h, string);
-				
+
 		        format(string, sizeof (string), "\tTextDrawLetterSize(%s, %0.4f, %0.4f);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_LETTERSIZE_X], groupTextDrawData[i][x][E_TEXTDRAW_LETTERSIZE_Y]);
 				fwrite(h, string);
-				
+
 				if (groupTextDrawData[i][x][E_TEXTDRAW_ALIGNMENT] != 1) {
 			        format(string, sizeof (string), "\tTextDrawAlignment(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_ALIGNMENT]);
 					fwrite(h, string);
 				}
-				
+
 				format(string, sizeof (string), "\tTextDrawColor(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_COLOR]);
 				fwrite(h, string);
-				
-				if (groupTextDrawData[i][x][E_TEXTDRAW_SHADOW] != 0) {
-			        format(string, sizeof (string), "\tTextDrawSetShadow(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_SHADOW]);
-					fwrite(h, string);
-				}
 
-				if (groupTextDrawData[i][x][E_TEXTDRAW_OUTLINE] != 0) {
-			        format(string, sizeof (string), "\tTextDrawSetOutline(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_OUTLINE]);
-					fwrite(h, string);
-				}
-				
+				format(string, sizeof (string), "\tTextDrawSetShadow(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_SHADOW]);
+				fwrite(h, string);
+
+				format(string, sizeof (string), "\tTextDrawSetOutline(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_OUTLINE]);
+				fwrite(h, string);
+
 				format(string, sizeof (string), "\tTextDrawBackgroundColor(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_BACKGROUND_COLOR]);
 				fwrite(h, string);
-				
+
 				format(string, sizeof (string), "\tTextDrawSetProportional(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_PROPORTIONAL]);
 				fwrite(h, string);
-				
+
 				if (groupTextDrawData[i][x][E_TEXTDRAW_USE_BOX]) {
 			        format(string, sizeof (string), "\tTextDrawUseBox(%s, 1);\r\n", varname);
 					fwrite(h, string);
@@ -648,23 +648,23 @@ ExportProject(const filename[]) {
 
     			format(string, sizeof (string), "\tTextDrawTextSize(%s, %0.4f, %0.4f);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_TEXTSIZE_X], groupTextDrawData[i][x][E_TEXTDRAW_TEXTSIZE_Y]);
 				fwrite(h, string);
-				
+
 				if (groupTextDrawData[i][x][E_TEXTDRAW_FONT] == 5) {
 			        format(string, sizeof (string), "\tTextDrawSetPreviewModel(%s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_MODEL]);
 					fwrite(h, string);
 			        format(string, sizeof (string), "\tTextDrawSetPreviewRot(%s, %0.4f, %0.4f, %0.4f, %0.4f);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_X], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_Y], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_Z], groupTextDrawData[i][x][E_TEXTDRAW_PREVIEW_ROT_ZOOM]);
 					fwrite(h, string);
 				}
-				
+
 				if (groupTextDrawData[i][x][E_TEXTDRAW_SELECTABLE]) {
 			        format(string, sizeof (string), "\tTextDrawSetSelectable(%s, 1);\r\n", varname);
 					fwrite(h, string);
 				}
-				
+
 				fwrite(h, "\r\n");
 		    }
 		}
-		
+
 		fwrite(h, "\treturn 1;\r\n");
 		fwrite(h, "}\r\n\r\n");
 	}
@@ -693,7 +693,7 @@ ExportProject(const filename[]) {
 		        if (!groupTextDrawData[i][x][E_TEXTDRAW_TYPE_PLAYER]) {
 					continue;
 				}
-				
+
 			    if (playerTextdrawsCount == 1) {
 					format(varname, sizeof (varname), "%sPTD[playerid]", groupData[i][E_GROUP_NAME]);
 				}
@@ -718,15 +718,11 @@ ExportProject(const filename[]) {
 				format(string, sizeof (string), "\tPlayerTextDrawColor(playerid, %s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_COLOR]);
 				fwrite(h, string);
 
-				if (groupTextDrawData[i][x][E_TEXTDRAW_SHADOW] != 0) {
-			        format(string, sizeof (string), "\tPlayerTextDrawSetShadow(playerid, %s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_SHADOW]);
-					fwrite(h, string);
-				}
+				format(string, sizeof (string), "\tPlayerTextDrawSetShadow(playerid, %s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_SHADOW]);
+				fwrite(h, string);
 
-				if (groupTextDrawData[i][x][E_TEXTDRAW_OUTLINE] != 0) {
-			        format(string, sizeof (string), "\tPlayerTextDrawSetOutline(playerid, %s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_OUTLINE]);
-					fwrite(h, string);
-				}
+				format(string, sizeof (string), "\tPlayerTextDrawSetOutline(playerid, %s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_OUTLINE]);
+				fwrite(h, string);
 
 				format(string, sizeof (string), "\tPlayerTextDrawBackgroundColor(playerid, %s, %i);\r\n", varname, groupTextDrawData[i][x][E_TEXTDRAW_BACKGROUND_COLOR]);
 				fwrite(h, string);
@@ -763,7 +759,7 @@ ExportProject(const filename[]) {
 		fwrite(h, "\treturn 1;\r\n");
 		fwrite(h, "}\r\n\r\n");
 	}
-	
+
 	fclose(h);
 	return 1;
 }
@@ -819,7 +815,7 @@ SaveProjectGroup(groupid) {
 	    SaveProjectGroupTextDraw(groupid, i);
 	}
 
-	new string[256] = "UPDATE group_settings SET visibility = %i WHERE groupname = '%s'";
+	new string[256] = "UPDATE GROUP_SETTINGS SET visibility = %i WHERE groupname = '%s'";
 	format(string, sizeof (string), string, groupData[groupid][E_GROUP_VISIBLE], groupData[groupid][E_GROUP_NAME]);
     db_query(projectDB, string);
 }
@@ -855,7 +851,7 @@ public OnFilterScriptInit() {
 		printf("[TDEditor.pwn] - Warning: Path \"%s\" doesn't exists. You cannot search object models in Preview Model Option; only modelids accepted.", PATH_OBJECTS_FILE);
 	}
 
-	printf("[TDEditor.pwn] - Loaded v1.3.1 (updated: 16 Jan, 2018) - By Gammix");
+	printf("[TDEditor.pwn] - Loaded "#VERSION" (updated: "#DATE") - By Gammix");
 
 	printf("\n==========================================\n");
 
@@ -1441,13 +1437,14 @@ CMD:x(playerid, params[]) {
 
     new Float:value;
 	if (sscanf(params, "f", value)) {
-	    return SendClientMessage(playerid, MESSAGE_COLOR, "Usage: /x [value]");
+	    SendClientMessage(playerid, MESSAGE_COLOR, "Usage: /x [value]");
+	    return SendClientMessage(playerid, MESSAGE_COLOR, "This command will increment the value to X of all textdraws when using in GroupMovement mode.");
 	}
 
     new groupid = playerCurrentGroup[playerid];
 	if (playerEditing[playerid] == EDITING_GROUP_POS) {
         for (new i; i < groupData[groupid][E_GROUP_TEXTDRAWS_COUNT]; i++) {
-			groupTextDrawData[groupid][i][E_TEXTDRAW_X] = value;
+			groupTextDrawData[groupid][i][E_TEXTDRAW_X] += value;
 			CreateGroupTextDraw(groupid, i);
 		}
 		return 1;
@@ -1466,13 +1463,14 @@ CMD:y(playerid, params[]) {
 
     new Float:value;
 	if (sscanf(params, "f", value)) {
-	    return SendClientMessage(playerid, MESSAGE_COLOR, "Usage: /y [value]");
+	    SendClientMessage(playerid, MESSAGE_COLOR, "Usage: /y [value]");
+	    return SendClientMessage(playerid, MESSAGE_COLOR, "This command will increment the value to Y of all textdraws when using in GroupMovement mode.");
 	}
 
     new groupid = playerCurrentGroup[playerid];
 	if (playerEditing[playerid] == EDITING_GROUP_POS) {
         for (new i; i < groupData[groupid][E_GROUP_TEXTDRAWS_COUNT]; i++) {
-			groupTextDrawData[groupid][i][E_TEXTDRAW_Y] = value;
+			groupTextDrawData[groupid][i][E_TEXTDRAW_Y] += value;
 			CreateGroupTextDraw(groupid, i);
 		}
 		return 1;
@@ -1858,7 +1856,7 @@ Dialog:NEW_PROJECT(playerid, response, listitem, inputtext[]) {
 	}
 
 	new name[MAX_PROJECT_NAME + 3];
-	if (sscanf(inputtext, "%s["#MAX_PROJECT_NAME"]", name)) {
+	if (sscanf(inputtext, "s["#MAX_PROJECT_NAME"]", name)) {
 		return Dialog_Show(playerid, NEW_PROJECT, DIALOG_STYLE_INPUT, "TDEditor: New project", ""COL_WHITE"Insert a "COL_GREEN"PROJECT-NAME"COL_WHITE" below to create.\n\n"COL_GREY"The project will be saved as a \".db\" file. Each project gets its\n"COL_GREY"own database file so its easy to manage and even share!\n\n"COL_RED"Error: "COL_GREY"The project name cannot be empty or spaces.", "Create", "Back");
 	}
 
@@ -1891,7 +1889,7 @@ Dialog:NEW_PROJECT(playerid, response, listitem, inputtext[]) {
 	}
 	db_query(projectDB, "PRAGMA synchronous = NORMAL");
  	db_query(projectDB, "PRAGMA journal_mode = WAL");
- 	db_query(projectDB, "CREATE TABLE IF NOT EXISTS `group_settings` (`groupname` VARCHAR("#MAX_GROUP_NAME"), `visibility` INTEGER)");
+ 	db_query(projectDB, "CREATE TABLE IF NOT EXISTS `GROUP_SETTINGS` (`groupname` VARCHAR("#MAX_GROUP_NAME"), `visibility` INTEGER)");
 
 	format(string, sizeof (string), "TDEditor: A new project has been created \"%s\". Start editing!", name);
 	SendClientMessage(playerid, MESSAGE_COLOR, string);
@@ -1923,7 +1921,7 @@ Dialog:LOAD_PROJECT(playerid, response, listitem, inputtext[]) {
 	}
 	db_query(projectDB, "PRAGMA synchronous = NORMAL");
  	db_query(projectDB, "PRAGMA journal_mode = WAL");
- 	db_query(projectDB, "CREATE TABLE IF NOT EXISTS `group_settings` (`groupname` VARCHAR("#MAX_GROUP_NAME"), `visibility` INTEGER)");
+ 	db_query(projectDB, "CREATE TABLE IF NOT EXISTS `GROUP_SETTINGS` (`groupname` VARCHAR("#MAX_GROUP_NAME"), `visibility` INTEGER)");
 
 	format(projectName, MAX_PROJECT_NAME, inputtext);
 	new pos = strfind(projectName, ".db", true);
@@ -1937,18 +1935,18 @@ Dialog:LOAD_PROJECT(playerid, response, listitem, inputtext[]) {
 
 		do {
 		    db_get_field(result, 0, groupname, MAX_GROUP_NAME);
-			if (!strcmp("group_settings", groupname, true)) {
+			if (!strcmp("GROUP_SETTINGS", groupname, true)) {
 				continue;
 			}
-			
+
 		    if (groupsCount == MAX_GROUPS) {
 		        SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: Only first \""#MAX_GROUPS"\" groups were loaded. If there are more than that in your database, you have to change the limit in script(MAX_GROUPS) and recompile.");
 				break;
 			}
-			
+
 			groupData[groupsCount][E_GROUP_NAME] = groupname;
 
-			format(string, sizeof (string), "SELECT `visibility` FROM `group_settings` WHERE `groupname` = '%s' LIMIT 1", groupData[groupsCount][E_GROUP_NAME]);
+			format(string, sizeof (string), "SELECT `visibility` FROM `GROUP_SETTINGS` WHERE `groupname` = '%s' LIMIT 1", groupData[groupsCount][E_GROUP_NAME]);
 			result2 = db_query(projectDB, string);
 			if (result2) {
    				if (db_num_rows(result2) == 1) {
@@ -1957,16 +1955,16 @@ Dialog:LOAD_PROJECT(playerid, response, listitem, inputtext[]) {
 			    else {
 					groupData[groupsCount][E_GROUP_VISIBLE] = true;
 
-	                format(string, sizeof (string), "INSERT INTO `group_settings` (`groupname`, `visibility`) VALUES ('%s', '1')", groupData[groupsCount][E_GROUP_NAME]);
+	                format(string, sizeof (string), "INSERT INTO `GROUP_SETTINGS` (`groupname`, `visibility`) VALUES ('%s', '1')", groupData[groupsCount][E_GROUP_NAME]);
 					db_query(projectDB, string);
 				}
-				
+
 				db_free_result(result2);
 			}
 			else {
 				groupData[groupsCount][E_GROUP_VISIBLE] = true;
-				
-                format(string, sizeof (string), "INSERT INTO `group_settings` (`groupname`, `visibility`) VALUES ('%s', '1')", groupData[groupsCount][E_GROUP_NAME]);
+
+                format(string, sizeof (string), "INSERT INTO `GROUP_SETTINGS` (`groupname`, `visibility`) VALUES ('%s', '1')", groupData[groupsCount][E_GROUP_NAME]);
 				db_query(projectDB, string);
 			}
 
@@ -2011,7 +2009,7 @@ Dialog:LOAD_PROJECT(playerid, response, listitem, inputtext[]) {
 						groupTextDrawData[groupsCount][textdrawid][E_TEXTDRAW_PREVIEW_VEH_COLOR1] = db_get_field_assoc_int(result2, "veh_color1");
 						groupTextDrawData[groupsCount][textdrawid][E_TEXTDRAW_PREVIEW_VEH_COLOR2] = db_get_field_assoc_int(result2, "veh_color2");
 						groupTextDrawData[groupsCount][textdrawid][E_TEXTDRAW_TYPE_PLAYER] = bool:db_get_field_assoc_int(result2, "type_player");
-			
+
 						CreateGroupTextDraw(groupsCount, textdrawid);
 					}
 					while (db_next_row(result2));
@@ -2119,7 +2117,7 @@ Dialog:NEW_GROUP(playerid, response, listitem, inputtext[]) {
 	}
 
 	new name[MAX_GROUP_NAME];
-	if (sscanf(inputtext, "%s["#MAX_GROUP_NAME"]", name)) {
+	if (sscanf(inputtext, "s["#MAX_GROUP_NAME"]", name)) {
 		return Dialog_Show(playerid, NEW_GROUP, DIALOG_STYLE_INPUT, "TDEditor: Create new group",
 			""COL_WHITE"Insert a textdraw "COL_GREEN"GROUP-NAME"COL_WHITE" below to create.\n\n\
 			"COL_GREY"What is a textdraw group?\n\
@@ -2162,8 +2160,8 @@ Dialog:NEW_GROUP(playerid, response, listitem, inputtext[]) {
 		`veh_color2` INTEGER, \
 		`type_player` INTEGER)");
 	db_query(projectDB, string);
-	
-	string = "INSERT INTO `group_settings` (`groupname`, `visibility`) VALUES ('";
+
+	string = "INSERT INTO `GROUP_SETTINGS` (`groupname`, `visibility`) VALUES ('";
 	strcat(string, name);
 	strcat(string, "', '1')");
 	db_query(projectDB, string);
@@ -2183,7 +2181,7 @@ Dialog:GROUP_MENU(playerid, response, listitem, inputtext[]) {
 	}
 
 	new groupid = playerCurrentGroup[playerid];
-	
+
 	switch (listitem) {
         case 0: {
 		    if (groupData[groupid][E_GROUP_TEXTDRAWS_COUNT] == MAX_GROUP_TEXTDRAWS) {
@@ -2437,7 +2435,7 @@ Dialog:CONFIRM_DELETE_GROUP(playerid, response, listitem, inputtext[]) {
 Dialog:CHANGE_GROUP_NAME(playerid, response, listitem, inputtext[]) {
 	if (response) {
 		new name[MAX_GROUP_NAME];
-		if (sscanf(inputtext, "%s["#MAX_GROUP_NAME"]", name)) {
+		if (sscanf(inputtext, "s["#MAX_GROUP_NAME"]", name)) {
 		    new string[512];
 			format(string, sizeof (string), ""COL_WHITE"Insert a new textdraw "COL_GREEN"GROUP-NAME"COL_WHITE" you want to call this group as!\n\n"COL_YELLOW"Current Name:\t"COL_WHITE"%s\n\n"COL_RED"Error: "COL_GREY"The group name cannot be empty or spaces.", groupData[playerCurrentGroup[playerid]][E_GROUP_NAME]);
 			return Dialog_Show(playerid, CHANGE_GROUP_NAME, DIALOG_STYLE_INPUT, "TDEditor: New project", string, "Change", "Back");
@@ -2474,7 +2472,7 @@ Dialog:TEXTDRAW_MENU(playerid, response, listitem, inputtext[]) {
 
 	new groupid = playerCurrentGroup[playerid];
 	new textdrawid = playerCurrentTextDraw[playerid];
-	
+
 	switch (listitem) {
 		case 0: {
 		    return Dialog_Show(playerid, CHANGE_TEXT_OR_POSITION, DIALOG_STYLE_LIST, "TDEditor: Change text/position", "Change Text\nChange Position", "Select", "Back");
@@ -2780,7 +2778,7 @@ Dialog:CHANGE_TEXT(playerid, response, listitem, inputtext[]) {
 	}
 
     new text[MAX_GROUP_TEXTDRAW_TEXT];
-	if (sscanf(inputtext, "%s["#MAX_GROUP_TEXTDRAW_TEXT"]", text)) {
+	if (sscanf(inputtext, "s["#MAX_GROUP_TEXTDRAW_TEXT"]", text)) {
 		new string[256];
 		format(string, sizeof(string), ""COL_WHITE"Insert a string to set as textxdraw "COL_GREEN"TEXT"COL_WHITE".\n\n"COL_YELLOW"Current Text: "COL_WHITE"'%s'\n\n"COL_RED"Error: "COL_GREY"No text entered.", previewChars);
 		return Dialog_Show(playerid,  CHANGE_TEXT, DIALOG_STYLE_INPUT, "TDEditor: Change text", string, "Set", "Back");
@@ -2865,6 +2863,7 @@ Dialog:CONFIRM_DELETE_TEXTDRAW(playerid, response, listitem, inputtext[]) {
 
 Dialog:CHANGE_COLOR(playerid, response, listitem, inputtext[]) {
 	if (!response) {
+		playerEditing[playerid] = EDITING_NONE;
   		return ShowPlayerTextDrawDialog(playerid, playerCurrentTextDraw[playerid]);
 	}
 
@@ -2877,7 +2876,7 @@ Dialog:CHANGE_COLOR(playerid, response, listitem, inputtext[]) {
          	return Dialog_Show(playerid, CUSTOM_RGBA_COLOR, DIALOG_STYLE_INPUT, "TDEditor: Custom RGBA color", ""COL_WHITE"Insert color element value for "COL_RED"RED"COL_WHITE" below.\n\n"COL_WHITE"Maximum value of a color componenet can be 255.", "Next", "Back");
 		}
 
-		case 2: {
+		default: {
             static string[sizeof (COLORS) * ((32 * 2) + 1)];
             string[0] = EOS;
 		    for (new i; i < sizeof (COLORS); i++) {
@@ -3037,7 +3036,7 @@ Dialog:CUSTOM_RGBA_COLOR(playerid, response, listitem, inputtext[]) {
 	}
 
 	new val;
-	if (!sscanf(inputtext, "%i", val)) {
+	if (!sscanf(inputtext, "i", val)) {
 		if (val >= 0 && val <= 255) {
 		    switch (GetPVarInt(playerid, "ColorElement")) {
 				case 0: {
@@ -3096,15 +3095,33 @@ Dialog:CUSTOM_RGBA_COLOR(playerid, response, listitem, inputtext[]) {
 						TextDrawShowForAll(groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_ID]);
 					}
 
-					SendClientMessage(playerid, MESSAGE_COLOR, string);
 					playerEditing[playerid] = EDITING_NONE;
+					SendClientMessage(playerid, MESSAGE_COLOR, string);
 
 					return ShowPlayerTextDrawDialog(playerid, textdrawid);
 				}
 			}
  		}
 	}
-    return Dialog_Show(playerid, CUSTOM_RGBA_COLOR, DIALOG_STYLE_INPUT, "TDEditor: Custom RGBA color", ""COL_WHITE"Insert color element value for "COL_RED"RED"COL_WHITE" below.\n\n"COL_WHITE"Maximum value of a color componenet can be 255.", "Next", "Back");
+
+	switch (GetPVarInt(playerid, "ColorElement")) {
+		case 0: {
+			return Dialog_Show(playerid, CUSTOM_RGBA_COLOR, DIALOG_STYLE_INPUT, "TDEditor: Custom RGBA color", ""COL_WHITE"Insert color element value for "COL_RED"RED"COL_WHITE" below.\n\n"COL_WHITE"Maximum value of a color componenet can be 255.", "Next", "Back");
+		}
+
+		case 1: {
+			return Dialog_Show(playerid, CUSTOM_RGBA_COLOR, DIALOG_STYLE_INPUT, "TDEditor: Custom RGBA color", ""COL_WHITE"Insert color element value for "COL_GREEN"GREEN"COL_WHITE" below.\n\n"COL_WHITE"Maximum value of a color componenet can be 255.", "Next", "Back");
+		}
+
+		case 2: {
+			return Dialog_Show(playerid, CUSTOM_RGBA_COLOR, DIALOG_STYLE_INPUT, "TDEditor: Custom RGBA color", ""COL_WHITE"Insert color element value for "COL_BLUE"BLUE"COL_WHITE" below.\n\n"COL_WHITE"Maximum value of a color componenet can be 255.", "Next", "Back");
+		}
+
+		case 3: {
+			return Dialog_Show(playerid, CUSTOM_RGBA_COLOR, DIALOG_STYLE_INPUT, "TDEditor: Custom RGBA color", ""COL_WHITE"Insert color element value for "COL_GREY"ALPHA"COL_WHITE" below.\n\n"COL_WHITE"Maximum value of a color componenet can be 255.", "Next", "Back");
+		}
+ 	}
+	return 1;
 }
 
 Dialog:COLOR_MENU(playerid, response, listitem, inputtext[]) {
@@ -3151,14 +3168,12 @@ Dialog:COLOR_MENU(playerid, response, listitem, inputtext[]) {
 		}
 	}
 
-	playerEditing[playerid] = EDITING_NONE;
-
 	if (groupData[groupid][E_GROUP_VISIBLE]) {
 		TextDrawShowForAll(groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_ID]);
 	}
 
-	SendClientMessage(playerid, MESSAGE_COLOR, string);
 	playerEditing[playerid] = EDITING_NONE;
+	SendClientMessage(playerid, MESSAGE_COLOR, string);
 
 	return ShowPlayerTextDrawDialog(playerid, textdrawid);
 }
@@ -3204,7 +3219,7 @@ Dialog:SEARCH_PREVIEW_MODEL(playerid, response, listitem, inputtext[]) {
 	}
 
 	new name[32];
-	if (sscanf(inputtext, "%s[32]", name)) {
+	if (sscanf(inputtext, "s[32]", name)) {
 		return Dialog_Show(playerid, SEARCH_PREVIEW_MODEL, DIALOG_STYLE_INPUT, "TDEditor: Search modelid", ""COL_WHITE"Insert exact "COL_GREEN"MODELID"COL_WHITE" or a "COL_GREEN"OBJECT NAME"COL_WHITE" or a hint so we can find all relative object models and give you a list!\n\n"COL_RED"Error: "COL_GREY"Model name not entered.", "Search", "Back");
 	}
 
@@ -3315,7 +3330,7 @@ Dialog:INPUT_ROTATION(playerid, response, listitem, inputtext[]) {
 	}
 
 	new Float:val = -1.0;
-	if (sscanf(inputtext, "%f", val) || ((GetPVarInt(playerid, "RotationType") == 3) ? (val < 0.0 || val > 100.0) : (val < -360.0 || val > 360.0))) {
+	if (sscanf(inputtext, "f", val) || ((GetPVarInt(playerid, "RotationType") == 3) ? (val < 0.0 || val > 100.0) : (val < -360.0 || val > 360.0))) {
 		new string[256];
 		switch (GetPVarInt(playerid, "RotationType")) {
 		    case 0: {
