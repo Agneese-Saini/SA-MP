@@ -4,12 +4,8 @@
 #define previewmodel_dialog_included
 
 /**************************************/
-// PreviewModelDialog.inc - By Gammix
+// PreviewModelDialog.inc - v4.0 - Last Updated: 25 Jan, 2018 - By Gammix
 /***************************************/
-
-// version info.
-#define VERSION	"v4.0"
-#define DATE    "25 Jan, 2018"
 
 // definitions
 #if !defined MAX_DIALOG_PREVIEW_MODELS
