@@ -952,7 +952,7 @@ stock Prev@ShowPlayerDialog(playerid, dialogid, style, caption[], info[], button
 		}
 
 		if (playerDialogNumListitems[playerid] == MAX_DIALOG_PREVIEW_MODELS) {
-    		printf("[PrevModelDialog.inc] - Warning: You have more than \"MAX_DIALOG_PREVIEW_MODELS\" ("#MAX_DIALOG_PREVIEW_MODELS") listitems, only the items under the limit were loaded.");
+    		printf("[PreviewModelDialog.inc] - Warning: You have more than \"MAX_DIALOG_PREVIEW_MODELS\" ("#MAX_DIALOG_PREVIEW_MODELS") listitems, only the items under the limit were loaded.");
 			break;
    		}
    		
@@ -972,6 +972,12 @@ stock Prev@ShowPlayerDialog(playerid, dialogid, style, caption[], info[], button
 	if (playerDialogNumListitems[playerid] == 0) {
 	    return 0;
 	}
+
+	// set player data
+	playerDialogID[playerid] = dialogid;
+	playerDialogListitem[playerid] = 0;
+	playerDialogPage[playerid] = 0;
+	playerDialogTickCount[playerid] = 0;
 
     /*
 	* FRAME
@@ -1032,12 +1038,6 @@ stock Prev@ShowPlayerDialog(playerid, dialogid, style, caption[], info[], button
 	* PREVIEW MODEL LISTITEMS
 	*/
 	Prev@UpdateListitems(playerid, 0, 0);
-	
-	// set player data
-	playerDialogID[playerid] = dialogid;
-	playerDialogListitem[playerid] = 0;
-	playerDialogPage[playerid] = 0;
-	playerDialogTickCount[playerid] = 0;
 	
 	return SelectTextDraw(playerid, DIALOG_PREVIEW_SELECT_COLOR);
 }
@@ -1063,7 +1063,7 @@ stock ShowPreviewModelDialog(playerid, dialogid, caption[], models[], labels[][]
 
 	if (size >= MAX_DIALOG_PREVIEW_MODELS) {
 	    size = MAX_DIALOG_PREVIEW_MODELS;
-		printf("[PrevModelDialog.inc] - Warning: You have more than \"MAX_DIALOG_PREVIEW_MODELS\" ("#MAX_DIALOG_PREVIEW_MODELS") listitems, only the items under the limit were loaded.");
+		printf("[PreviewModelDialog.inc] - Warning: You have more than \"MAX_DIALOG_PREVIEW_MODELS\" ("#MAX_DIALOG_PREVIEW_MODELS") listitems, only the items under the limit were loaded.");
 	}
 	
 	for (new i = 0; i < size; i++) {
@@ -1077,6 +1077,13 @@ stock ShowPreviewModelDialog(playerid, dialogid, caption[], models[], labels[][]
 	for (new i = 0; i < sizeof frameTextDraw; i++) {
    	 	TextDrawShowForPlayer(playerid, frameTextDraw[i]);
 	}
+
+	// set player data
+	playerDialogID[playerid] = dialogid;
+	playerDialogListitem[playerid] = 0;
+	playerDialogNumListitems[playerid] = size;
+	playerDialogPage[playerid] = 0;
+	playerDialogTickCount[playerid] = 0;
 
 	/*
 	* BUTTONS AND PLAYER DIALOG TEXTDRAWS
@@ -1131,12 +1138,6 @@ stock ShowPreviewModelDialog(playerid, dialogid, caption[], models[], labels[][]
 	*/
 	Prev@UpdateListitems(playerid, 0, 0);
 
-	// set player data
-	playerDialogID[playerid] = dialogid;
-	playerDialogListitem[playerid] = 0;
-	playerDialogPage[playerid] = 0;
-	playerDialogTickCount[playerid] = 0;
-
 	return SelectTextDraw(playerid, DIALOG_PREVIEW_SELECT_COLOR);
 }
 
@@ -1145,25 +1146,3 @@ stock ShowPreviewModelDialog(playerid, dialogid, caption[], models[], labels[][]
     
 #define ShowPlayerPreviewModelDialog \
     ShowPreviewModelDialog
-    
-stock SetDialogPreviewRotation(playerid, listitem, Float:rx, Float:ry, Float:rz, Float:zoom) {
-	if (playerid < 0 || playerid >= MAX_PLAYERS) {
-	    return 0;
-	}
-
-	if (listitem < 0 || listitem >= MAX_DIALOG_PREVIEW_MODELS) {
-	    return 0;
-	}
-
-    playerDialogPreviewRotation[playerid][listitem][0] = rx;
-    playerDialogPreviewRotation[playerid][listitem][1] = ry;
-    playerDialogPreviewRotation[playerid][listitem][2] = rz;
-    playerDialogPreviewRotation[playerid][listitem][3] = zoom;
-	return 1;
-}
-
-#define Dialog_SetListitemPreviewRot \
-    SetDialogPreviewRotation
-
-#define Dialog_SetModelRot \
-    Dialog_SetListitemPreviewRot
