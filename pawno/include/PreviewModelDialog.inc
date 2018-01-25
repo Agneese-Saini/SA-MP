@@ -1146,3 +1146,25 @@ stock ShowPreviewModelDialog(playerid, dialogid, caption[], models[], labels[][]
     
 #define ShowPlayerPreviewModelDialog \
     ShowPreviewModelDialog
+    
+stock SetDialogPreviewRotation(playerid, listitem, Float:rx, Float:ry, Float:rz, Float:zoom) {
+	if (playerid < 0 || playerid >= MAX_PLAYERS) {
+	    return 0;
+	}
+
+	if (listitem < 0 || listitem >= MAX_DIALOG_PREVIEW_MODELS) {
+	    return 0;
+	}
+
+    playerDialogPreviewRotation[playerid][listitem][0] = rx;
+    playerDialogPreviewRotation[playerid][listitem][1] = ry;
+    playerDialogPreviewRotation[playerid][listitem][2] = rz;
+    playerDialogPreviewRotation[playerid][listitem][3] = zoom;
+	return 1;
+}
+
+#define Dialog_SetListitemPreviewRot \
+    SetDialogPreviewRotation
+
+#define Dialog_SetModelRot \
+    Dialog_SetListitemPreviewRot
