@@ -610,7 +610,7 @@ static Prev@UpdateListitems(playerid, page, selected) {
 	playerDialogListitem[playerid] = selected;
 	
 	new string[16];
- 	format(string, sizeof string, "%i/%i", (page + 1), Prev@PlayerDialogPages(playerid));
+ 	format(string, sizeof string, "PAGE: %i/%i", (page + 1), Prev@PlayerDialogPages(playerid));
 	PlayerTextDrawSetString(playerid, pageNumPlayerTextDraw[playerid], string);
 }
 
