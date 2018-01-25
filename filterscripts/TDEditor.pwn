@@ -902,6 +902,16 @@ public OnPlayerConnect(playerid) {
 	PlayerTextDrawSetOutline(playerid, playerEditingTextDraw[playerid], 1);
 	PlayerTextDrawSetProportional(playerid, playerEditingTextDraw[playerid], 1);
 	PlayerTextDrawSetShadow(playerid, playerEditingTextDraw[playerid], 0);
+	
+	for (new a = 0; a < groupsCount; a++) {
+		if (!groupData[a][E_GROUP_VISIBLE]) {
+		    continue;
+		}
+		
+		for (new b = 0; b < groupData[a][E_GROUP_TEXTDRAWS_COUNT]; b++) {
+		    TextDrawShowForPlayer(playerid, groupTextDrawData[a][b][E_TEXTDRAW_ID]);
+		}
+	}
 	return 1;
 }
 
