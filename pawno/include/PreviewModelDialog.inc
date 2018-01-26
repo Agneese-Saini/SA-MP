@@ -1008,8 +1008,6 @@ stock Prev@ShowPlayerDialog(playerid, dialogid, style, caption[], info[], button
 			break;
    		}
 
-   		printf(string);
-
    		listitem = playerDialogNumListitems[playerid];
 
 		pos2 = strfind(string, "\t", true);
