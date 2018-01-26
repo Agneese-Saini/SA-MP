@@ -352,10 +352,10 @@ public ShowPlayerGroupDialog(playerid, groupid) {
 		"COL_YELLOW"Edit Group Position\t"COL_GREY"Modify all group textdraws position at the same time\n";
 
 	if (groupData[groupid][E_GROUP_VISIBLE]) {
-  		strcat(string, ""COL_YELLOW"Edit Group Visiblity\t"COL_GREY"Current: "COL_GREEN"ON\n");
+  		strcat(string, ""COL_YELLOW"Edit Group Visibility\t"COL_GREY"Current: "COL_GREEN"ON\n");
 	}
 	else {
-  		strcat(string, ""COL_YELLOW"Edit Group Visiblity\t"COL_GREY"Current: "COL_RED"OFF\n");
+  		strcat(string, ""COL_YELLOW"Edit Group Visibility\t"COL_GREY"Current: "COL_RED"OFF\n");
 	}
 
 	strcat(string, ""COL_YELLOW"Edit Group Name\t"COL_GREY"Current: '"COL_GREEN"");
@@ -927,7 +927,7 @@ public OnPlayerDisconnect(playerid, reason) {
 }
 
 public OnPlayerSpawn(playerid) {
-	SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: Use \"/text\" to open TextDraw Edtior menu.");
+	SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: Use \"/text\" to open TextDraw Editor menu.");
 	return 1;
 }
 
@@ -1803,7 +1803,7 @@ CMD:text(playerid) {
 
 Dialog:MAIN_MENU(playerid, response, listitem, inputtext[]) {
 	if (!response) {
-		return SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: Edtior closed.");
+		return SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: Editor closed.");
 	}
 
 	switch (listitem) {
@@ -2077,7 +2077,7 @@ Dialog:CONFIRM_DELETE_PROJECT(playerid, response, listitem, inputtext[]) {
 
 Dialog:EDITOR_MENU(playerid, response, listitem, inputtext[]) {
 	if (!response) {
-		return SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: Edtior closed.");
+		return SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: Editor closed.");
 	}
 
 	switch (listitem) {
@@ -2609,12 +2609,12 @@ Dialog:TEXTDRAW_MENU(playerid, response, listitem, inputtext[]) {
 		    if (groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_SELECTABLE]) {
 		        groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_SELECTABLE] = false;
 
-				format(string, sizeof (string), "TDEditor: Textdraw #%i is Selectable.", textdrawid);
+				format(string, sizeof (string), "TDEditor: Textdraw #%i is not Selectable.", textdrawid);
 		    }
 		    else {
 		        groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_SELECTABLE] = true;
 
-				format(string, sizeof (string), "TDEditor: Textdraw #%i is not Selectable.", textdrawid);
+				format(string, sizeof (string), "TDEditor: Textdraw #%i is Selectable.", textdrawid);
 		    }
 
 			TextDrawSetSelectable(groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_ID], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_SELECTABLE]);
