@@ -4,7 +4,7 @@
 #define previewmodel_dialog_included
 
 /**************************************/
-// PreviewModelDialog.inc - v4.1 - Last Updated: 26 Jan, 2018 - By Gammix
+// PreviewModelDialog.inc - v4.1 - Last Updated: 28 Jan, 2018 - By Gammix
 /***************************************/
 
 // by BigETI
@@ -793,7 +793,7 @@ public OnPlayerDisconnect(playerid, reason) {
 	}
 
 	#if defined PDialog_OnPlayerDisconnect
-		return PDialog_OnPlayerDisconnect(playerid);
+		return PDialog_OnPlayerDisconnect(playerid, reason);
 	#else
 		return 1;
 	#endif
