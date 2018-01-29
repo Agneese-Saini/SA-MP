@@ -26,7 +26,7 @@ Click on the embedded links to directly goto the following's page.
   	* Fixes
    		* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/Fixes/EnableVehicleFriendlyFire.inc">EnableVehicleFriendlyFire.inc</a></b> - Fix for tire poping when using Friendly fire on vehicles (fixes the annoying bug)
    		* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/Fixes/hitreg.inc">hitreg.inc</a></b> - Server sided damage handling which improves SAMP hit registeration A LOT, and also prevent certain weapon hacks (like range, damage hacks)
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/arraylist.inc">arraylist.inc</a></b> - arraylist based on Java's class with C++ like functions/syntax
+  	* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/list.inc">list.inc</a></b> - amazing array manipulation include (foreach alternative**)
   	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/attachments.inc">attachments.inc</a></b> - player attachments auto remove while aiming with scope weapons (e.g. snipers)
   	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/PreviewModelDialog.inc">PreviewModelDialog.inc</a></b> - Adds in new dialog styles "DIALOG_STYLE_PREVMODEL" and "DIALOG_STYLE_PREVMODEL_LIST"
   	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/dini2.inc">dini2.inc</a></b> - Improved dini processor with multi file processing and fast! *you can use this really)
