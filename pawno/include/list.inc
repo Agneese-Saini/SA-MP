@@ -43,7 +43,6 @@ list::swap(name<>, index, swapindex);
 	internal_list_add(LIST@%0, LIST_COUNT@%0, LIST_SIZE@%0, %1)
 stock internal_list_add(array[], &count, size, value) {
 	if (count == size) {
-	    printf("%i, %i", count, size);
 	    return -1;
 	}
 
