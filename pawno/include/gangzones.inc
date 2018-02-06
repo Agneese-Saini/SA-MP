@@ -248,7 +248,7 @@ stock GangZone_Create(Float:minx, Float:miny, Float:maxx, Float:maxy, number = -
     GangZone@Number2[index][4] = -1;
 
 	if (number == -1) {
-		number = (index % 99);
+		number = (index % 100);
 	}
 		
 	if (number >= 0 && number <= 9) {
@@ -316,8 +316,6 @@ stock GangZone_Create(Float:minx, Float:miny, Float:maxx, Float:maxy, number = -
 		return -1;
 	}
 	
-	GangZone@NumberUsed[number] = true;
-	
 	return index;
 }
 #if defined _ALS_GangZoneCreate
@@ -337,6 +335,7 @@ stock GangZone_Destroy(gangzone) {
 	}
 
   	GangZoneDestroy(GangZone@MainZone[gangzone]);
+	GangZone@MainZone[gangzone] = -1;
 
   	GangZoneDestroy(GangZone@Border[gangzone][0]);
   	GangZoneDestroy(GangZone@Border[gangzone][1]);
