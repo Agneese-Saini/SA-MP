@@ -23,8 +23,6 @@
 	#define GANGZONE_DEFAULT_NUMBER_COLOR 0xAA
 #endif
 
-static bool:GangZone@NumberUsed[100] = {false, ...};
-
 static GangZone@MainZone[MAX_GANG_ZONES] = {-1, ...};
 static GangZone@Border[MAX_GANG_ZONES][4];
 static GangZone@Number1[MAX_GANG_ZONES][5];
@@ -250,12 +248,7 @@ stock GangZone_Create(Float:minx, Float:miny, Float:maxx, Float:maxy, number = -
     GangZone@Number2[index][4] = -1;
 
 	if (number == -1) {
-		for (new i = 0; i < sizeof(GangZone@NumberUsed); i++) {
-			if (!GangZone@NumberUsed[i]) {
-				number = i;
-				break;
-			}
-		}
+		number = (index % 99);
 	}
 		
 	if (number >= 0 && number <= 9) {
