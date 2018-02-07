@@ -4,7 +4,7 @@
 #define gangzones_included
 
 /**************************************/
-// gangzones.inc - v2.0 - Last Updated: 4 Feb, 2018 - By Gammix & beijind
+// gangzones.inc - v2.1 - Last Updated: 7 Feb, 2018 - By Gammix & beijind
 /***************************************/
 
 #if !defined GANGZONE_DEFAULT_BORDER_SIZE
@@ -33,7 +33,7 @@ stock GangZone_CreateBorder(dest[], Float:minx, Float:miny, Float:maxx, Float:ma
 	dest[1] = GangZoneCreate(minx - bordersize, maxy - bordersize, maxx + bordersize, maxy + bordersize);
 	dest[2] = GangZoneCreate(maxx - bordersize, miny + bordersize, maxx + bordersize, maxy - bordersize);
 	dest[3] = GangZoneCreate(minx - bordersize, miny - bordersize, maxx + bordersize, miny + bordersize);
-	
+
 	for (new i = 0; i < 4; i++) {
 		if (dest[i] == -1) {
 
@@ -44,7 +44,7 @@ stock GangZone_CreateBorder(dest[], Float:minx, Float:miny, Float:maxx, Float:ma
 		    return 0;
 		}
 	}
-	
+
 	return 4;
 }
 
@@ -63,19 +63,19 @@ stock GangZone_CreateNumber(dest[], number, Float:centpos_x, Float:centpos_y, Fl
 			new Float:stroke = (LETTER_STROKE * numbersize);
 			new Float:distance_x = (20.0 * numbersize * LETTER_XSQUASH);
 			new Float:distance_y = (20.0 * numbersize);
-			
+
         	dest[0] = GangZoneCreate((centpos_x - distance_x - stroke), (centpos_y - distance_y - stroke), (centpos_x + distance_x + stroke), (centpos_y - distance_y + stroke)); // Down of 0
 			dest[1] = GangZoneCreate((centpos_x - distance_x - stroke), (centpos_y + distance_y + stroke), (centpos_x + distance_x + stroke), (centpos_y + distance_y - stroke)); // Up of 0
        	 	dest[2] = GangZoneCreate((centpos_x - distance_x - stroke), (centpos_y - distance_y + stroke), (centpos_x - distance_x + stroke), (centpos_y + distance_y - stroke)); // Left of 0
         	dest[3] = GangZoneCreate((centpos_x + distance_x - stroke), (centpos_y - distance_y + stroke), (centpos_x + distance_x + stroke), (centpos_y + distance_y - stroke)); // Right of 0
-	
+
 			ret = 4;
 	  	}
 
 	  	case '1': {
 			new Float:stroke = (LETTER_STROKE * numbersize);
 			new Float:distance_y = (20.0 * numbersize);
-			
+
 			dest[0] = GangZoneCreate((centpos_x - stroke), (centpos_y - distance_y - stroke),(centpos_x + stroke), (centpos_y + distance_y + stroke));
 
 			ret = 1;
@@ -85,7 +85,7 @@ stock GangZone_CreateNumber(dest[], number, Float:centpos_x, Float:centpos_y, Fl
 			new Float:stroke = (LETTER_STROKE * numbersize);
 			new Float:distance_y = (20.0 * numbersize);
 			new Float:distance_x = (25.0 * numbersize * LETTER_XSQUASH);
-			
+
 			dest[0] = GangZoneCreate((centpos_x - distance_x), 				(centpos_y + distance_y - stroke), 	(centpos_x + distance_x),				(centpos_y + distance_y + stroke)); // Up
 			dest[1] = GangZoneCreate((centpos_x + distance_x - (2 * stroke)),(centpos_y + stroke), 				(centpos_x + distance_x),				(centpos_y + distance_y - stroke)); // Right Stick
 			dest[2] = GangZoneCreate((centpos_x - distance_x), 				(centpos_y - stroke), 				(centpos_x + distance_x), 				(centpos_y + stroke)); // Middle
@@ -99,7 +99,7 @@ stock GangZone_CreateNumber(dest[], number, Float:centpos_x, Float:centpos_y, Fl
 			new Float:stroke = (LETTER_STROKE * numbersize);
 			new Float:distance_y = (20.0 * numbersize);
 			new Float:distance_x = (25.0 * numbersize * LETTER_XSQUASH);
-			
+
 			dest[0] = GangZoneCreate((centpos_x - distance_x), (centpos_y + distance_y - stroke),	(centpos_x + distance_x),				(centpos_y + distance_y + stroke)); // Up
 			dest[1] = GangZoneCreate((centpos_x + distance_x), (centpos_y - distance_y - stroke),	(centpos_x + distance_x + (2 * stroke)),(centpos_y + distance_y + stroke)); // Stick
 			dest[2] = GangZoneCreate((centpos_x - distance_x), (centpos_y - stroke),				(centpos_x + distance_x),				(centpos_y + stroke)); // Middle
@@ -112,7 +112,7 @@ stock GangZone_CreateNumber(dest[], number, Float:centpos_x, Float:centpos_y, Fl
 	  		new Float:stroke = (LETTER_STROKE * numbersize);
 			new Float:distance_y = (20.0 * numbersize);
 			new Float:distance_x = (25.0 * numbersize * LETTER_XSQUASH);
-			
+
 			dest[0] = GangZoneCreate((centpos_x - distance_x), (centpos_y + distance_y),	(centpos_x - distance_x + (2 * stroke)),	(centpos_y + stroke)); // Left
 			dest[1] = GangZoneCreate((centpos_x - distance_x), (centpos_y - stroke),		(centpos_x + distance_x),					(centpos_y + stroke));// Middle
 			dest[2] = GangZoneCreate((centpos_x + distance_x), (centpos_y - distance_y),	(centpos_x + distance_x + (2 * stroke)),	(centpos_y + distance_y)); // Stick
@@ -124,7 +124,7 @@ stock GangZone_CreateNumber(dest[], number, Float:centpos_x, Float:centpos_y, Fl
 	  		new Float:stroke = (LETTER_STROKE * numbersize);
 			new Float:distance_y = (20.0 * numbersize);
 			new Float:distance_x = (25.0 * numbersize * LETTER_XSQUASH);
-			
+
 			dest[0] = GangZoneCreate((centpos_x - distance_x - stroke), (centpos_y + distance_y - stroke),	(centpos_x + distance_x + stroke), (centpos_y + distance_y + stroke)); // Up
 			dest[1] = GangZoneCreate((centpos_x - distance_x - stroke), (centpos_y + stroke),				(centpos_x - distance_x + stroke), (centpos_y + distance_y - stroke)); // Left Stick
 			dest[2] = GangZoneCreate((centpos_x - distance_x - stroke), (centpos_y - stroke),				(centpos_x + distance_x + stroke), (centpos_y + stroke)); // Middle
@@ -138,7 +138,7 @@ stock GangZone_CreateNumber(dest[], number, Float:centpos_x, Float:centpos_y, Fl
 	  		new Float:stroke = (LETTER_STROKE * numbersize);
 			new Float:distance_y = (20.0 * numbersize);
 			new Float:distance_x = (25.0 * numbersize * LETTER_XSQUASH);
-			
+
 			dest[0] = GangZoneCreate((centpos_x - distance_x),					(centpos_y + distance_y - stroke),	(centpos_x + distance_x), (centpos_y + distance_y + stroke)); // Up
 			dest[1] = GangZoneCreate((centpos_x - distance_x - (2 * stroke)),	(centpos_y + distance_y + stroke),	(centpos_x - distance_x), (centpos_y - distance_y - stroke)); // Main Left Stick
 			dest[2] = GangZoneCreate((centpos_x - distance_x),					(centpos_y - stroke),				(centpos_x + distance_x), (centpos_y + stroke)); // Middle
@@ -152,7 +152,7 @@ stock GangZone_CreateNumber(dest[], number, Float:centpos_x, Float:centpos_y, Fl
 			new Float:stroke = (LETTER_STROKE * numbersize);
 			new Float:distance_y = (20.0 * numbersize);
 			new Float:distance_x = (15.0 * numbersize * LETTER_XSQUASH);
-			
+
 			dest[0] = GangZoneCreate((centpos_x + distance_x - stroke),		(centpos_y - distance_y - stroke), (centpos_x + distance_x + stroke), (centpos_y + distance_y - stroke)); // Stick of 7
 			dest[1] = GangZoneCreate((centpos_x - distance_x - distance_x),	(centpos_y + distance_y - stroke), (centpos_x + distance_x + stroke), (centpos_y + distance_y + stroke)); // Up of 7
 
@@ -163,7 +163,7 @@ stock GangZone_CreateNumber(dest[], number, Float:centpos_x, Float:centpos_y, Fl
 	  		new Float:stroke = (LETTER_STROKE * numbersize);
 			new Float:distance_y = (20.0 * numbersize);
 			new Float:distance_x = (25.0 * numbersize * LETTER_XSQUASH);
-			
+
 			dest[0] = GangZoneCreate((centpos_x - distance_x - stroke), (centpos_y + distance_y + stroke), 	(centpos_x - distance_x + stroke), (centpos_y - distance_y - stroke)); // Left stick
 			dest[1] = GangZoneCreate((centpos_x + distance_x - stroke), (centpos_y + distance_y + stroke), 	(centpos_x + distance_x + stroke), (centpos_y - distance_y - stroke)); // Right stick
 			dest[2] = GangZoneCreate((centpos_x - distance_x + stroke), (centpos_y + distance_y - stroke), 	(centpos_x + distance_x - stroke), (centpos_y + distance_y + stroke)); // Up
@@ -177,7 +177,7 @@ stock GangZone_CreateNumber(dest[], number, Float:centpos_x, Float:centpos_y, Fl
 	  		new Float:stroke = (LETTER_STROKE * numbersize);
 			new Float:distance_y = (20.0 * numbersize);
 			new Float:distance_x = (25.0 * numbersize * LETTER_XSQUASH);
-			
+
 			dest[0] = GangZoneCreate((centpos_x - distance_x - stroke),	centpos_y,							(centpos_x - distance_x + stroke),			(centpos_y + distance_y - stroke)); // Left Stick
 			dest[1] = GangZoneCreate((centpos_x + distance_x),			(centpos_y - distance_y - stroke),	(centpos_x + distance_x + (2 * stroke)),	(centpos_y + distance_y + stroke)); // Right Stick
 			dest[2] = GangZoneCreate((centpos_x - distance_x - stroke),	(centpos_y + distance_y - stroke),	(centpos_x + distance_x),					(centpos_y + distance_y + stroke)); // Up
@@ -187,7 +187,7 @@ stock GangZone_CreateNumber(dest[], number, Float:centpos_x, Float:centpos_y, Fl
 			ret = 5;
 	  	}
 	}
-	
+
 	for (new i = 0; i < ret; i++) {
 		if (dest[i] == -1) {
 
@@ -204,18 +204,18 @@ stock GangZone_CreateNumber(dest[], number, Float:centpos_x, Float:centpos_y, Fl
 
 stock GangZone_Create(Float:minx, Float:miny, Float:maxx, Float:maxy, number = -1, Float:bordersize = GANGZONE_DEFAULT_BORDER_SIZE, Float:numbersize = GANGZONE_DEFAULT_NUMBER_SIZE) {
 	new index = -1;
-	
+
 	for (new i = 0; i < MAX_GANG_ZONES; i++) {
         if (GangZone@MainZone[i] == -1) {
             index = i;
 			break;
 		}
 	}
-	
+
 	if (index == -1) {
 		return -1;
 	}
-	
+
     GangZone@MainZone[index] = GangZoneCreate(minx, miny, maxx, maxy);
     if (GangZone@MainZone[index] == -1) {
 		return -1;
@@ -235,85 +235,88 @@ stock GangZone_Create(Float:minx, Float:miny, Float:maxx, Float:maxy, number = -
 		}
 	}
 
-	GangZone@Number1[index][0] = -1;
-	GangZone@Number1[index][1] = -1;
- 	GangZone@Number1[index][2] = -1;
-    GangZone@Number1[index][3] = -1;
-    GangZone@Number1[index][4] = -1;
+	if (numbersize == 0.0) {
+		GangZone@Number1[index][0] = -1;
+		GangZone@Number1[index][1] = -1;
+	 	GangZone@Number1[index][2] = -1;
+	    GangZone@Number1[index][3] = -1;
+	    GangZone@Number1[index][4] = -1;
 
-    GangZone@Number2[index][0] = -1;
-    GangZone@Number2[index][1] = -1;
-    GangZone@Number2[index][2] = -1;
-    GangZone@Number2[index][3] = -1;
-    GangZone@Number2[index][4] = -1;
-
-	if (number == -1) {
-		number = (index % 100);
-	}
-		
-	if (number >= 0 && number <= 9) {
-	    new Float:centpos_x = ((minx + maxx) / 2);
-		new Float:centpos_y = ((miny + maxy) / 2);
-
-        new chars[2];
-		format(chars, sizeof(chars), "%i", number);
-		
-		if (GangZone_CreateNumber(GangZone@Number1[index], chars[0], centpos_x, centpos_y, numbersize) == 0) {
-    		GangZoneDestroy(GangZone@MainZone[index]);
-    		GangZone@MainZone[index] = -1;
-
-    		GangZoneDestroy(GangZone@Border[index][0]);
-    		GangZoneDestroy(GangZone@Border[index][1]);
-    		GangZoneDestroy(GangZone@Border[index][2]);
-    		GangZoneDestroy(GangZone@Border[index][3]);
-			return -1;
-		}
-	}
-	else if (number >= 10 && number <= 99) {
-	    const Float:NUMBER_DISTANCE = 25.0;
-	    
-	    new Float:centpos_x = ((minx + maxx) / 2);
-		new Float:centpos_y = ((miny + maxy) / 2);
-
-        new chars[3];
-		format(chars, sizeof(chars), "%i", number);
-
-		new numZones = GangZone_CreateNumber(GangZone@Number1[index], chars[0], (centpos_x - (NUMBER_DISTANCE * numbersize)), centpos_y, numbersize);
-		if (numZones == 0) {
-    		GangZoneDestroy(GangZone@MainZone[index]);
-    		GangZone@MainZone[index] = -1;
-
-    		GangZoneDestroy(GangZone@Border[index][0]);
-    		GangZoneDestroy(GangZone@Border[index][1]);
-    		GangZoneDestroy(GangZone@Border[index][2]);
-    		GangZoneDestroy(GangZone@Border[index][3]);
-			return -1;
-		}
-
-		if (GangZone_CreateNumber(GangZone@Number2[index], chars[1], (centpos_x + (NUMBER_DISTANCE * numbersize)), centpos_y, numbersize) == 0) {
-    		GangZoneDestroy(GangZone@MainZone[index]);
-    		GangZone@MainZone[index] = -1;
-
-    		GangZoneDestroy(GangZone@Border[index][0]);
-    		GangZoneDestroy(GangZone@Border[index][1]);
-    		GangZoneDestroy(GangZone@Border[index][2]);
-    		GangZoneDestroy(GangZone@Border[index][3]);
-    		
-    		for (new i = 0; i < numZones; i++) {
-    			GangZoneDestroy(GangZone@Number1[index][i]);
-    		}
-			return -1;
-		}
+	    GangZone@Number2[index][0] = -1;
+	    GangZone@Number2[index][1] = -1;
+	    GangZone@Number2[index][2] = -1;
+	    GangZone@Number2[index][3] = -1;
+	    GangZone@Number2[index][4] = -1;
 	}
 	else {
-		GangZoneDestroy(GangZone@MainZone[index]);
-		GangZone@MainZone[index] = -1;
+		if (number == -1) {
+			number = (index % 100);
+		}
 
-   		GangZoneDestroy(GangZone@Border[index][0]);
-   		GangZoneDestroy(GangZone@Border[index][1]);
-   		GangZoneDestroy(GangZone@Border[index][2]);
-   		GangZoneDestroy(GangZone@Border[index][3]);
-		return -1;
+		if (number >= 0 && number <= 9) {
+		    new Float:centpos_x = ((minx + maxx) / 2);
+			new Float:centpos_y = ((miny + maxy) / 2);
+
+	        new chars[2];
+			format(chars, sizeof(chars), "%i", number);
+
+			if (GangZone_CreateNumber(GangZone@Number1[index], chars[0], centpos_x, centpos_y, numbersize) == 0) {
+	    		GangZoneDestroy(GangZone@MainZone[index]);
+	    		GangZone@MainZone[index] = -1;
+
+	    		GangZoneDestroy(GangZone@Border[index][0]);
+	    		GangZoneDestroy(GangZone@Border[index][1]);
+	    		GangZoneDestroy(GangZone@Border[index][2]);
+	    		GangZoneDestroy(GangZone@Border[index][3]);
+				return -1;
+			}
+		}
+		else if (number >= 10 && number <= 99) {
+		    const Float:NUMBER_DISTANCE = 25.0;
+
+		    new Float:centpos_x = ((minx + maxx) / 2);
+			new Float:centpos_y = ((miny + maxy) / 2);
+
+	        new chars[3];
+			format(chars, sizeof(chars), "%i", number);
+
+			new numZones = GangZone_CreateNumber(GangZone@Number1[index], chars[0], (centpos_x - (NUMBER_DISTANCE * numbersize)), centpos_y, numbersize);
+			if (numZones == 0) {
+	    		GangZoneDestroy(GangZone@MainZone[index]);
+	    		GangZone@MainZone[index] = -1;
+
+	    		GangZoneDestroy(GangZone@Border[index][0]);
+	    		GangZoneDestroy(GangZone@Border[index][1]);
+	    		GangZoneDestroy(GangZone@Border[index][2]);
+	    		GangZoneDestroy(GangZone@Border[index][3]);
+				return -1;
+			}
+
+			if (GangZone_CreateNumber(GangZone@Number2[index], chars[1], (centpos_x + (NUMBER_DISTANCE * numbersize)), centpos_y, numbersize) == 0) {
+	    		GangZoneDestroy(GangZone@MainZone[index]);
+	    		GangZone@MainZone[index] = -1;
+
+	    		GangZoneDestroy(GangZone@Border[index][0]);
+	    		GangZoneDestroy(GangZone@Border[index][1]);
+	    		GangZoneDestroy(GangZone@Border[index][2]);
+	    		GangZoneDestroy(GangZone@Border[index][3]);
+
+	    		for (new i = 0; i < numZones; i++) {
+	    			GangZoneDestroy(GangZone@Number1[index][i]);
+	    		}
+				return -1;
+			}
+		}
+		else {
+			GangZoneDestroy(GangZone@MainZone[index]);
+			GangZone@MainZone[index] = -1;
+
+	   		GangZoneDestroy(GangZone@Border[index][0]);
+	   		GangZoneDestroy(GangZone@Border[index][1]);
+	   		GangZoneDestroy(GangZone@Border[index][2]);
+	   		GangZoneDestroy(GangZone@Border[index][3]);
+			return -1;
+		}
 	}
 	
 	return index;
@@ -353,7 +356,7 @@ stock GangZone_Destroy(gangzone) {
   	GangZoneDestroy(GangZone@Number2[gangzone][2]);
   	GangZoneDestroy(GangZone@Number2[gangzone][3]);
   	GangZoneDestroy(GangZone@Number2[gangzone][4]);
-  	
+
   	return 1;
 }
 #if defined _ALS_GangZoneDestroy
@@ -606,7 +609,7 @@ stock GangZone_StopFlashForPlayer(playerid, gangzone, bool:mainzone = true, bool
 	if (mainzone) {
   		GangZoneStopFlashForPlayer(playerid, GangZone@MainZone[gangzone]);
 	}
-	
+
 	if (border) {
 	  	GangZoneStopFlashForPlayer(playerid, GangZone@Border[gangzone][0]);
 	  	GangZoneStopFlashForPlayer(playerid, GangZone@Border[gangzone][1]);
