@@ -3,6 +3,21 @@
 #endif
 #define list_included
 
+/*
+List_Add(name<>, value);
+List_AddArray(name<>, values[], size);
+List_Delete(name<>, value);
+List_Size(name<>);
+List_Clear(name<>);
+List_IndexOf(name<>, value);
+List_Random(name<>);
+List_RandomEx(name<>, min, max);
+List_Sort(name<>);
+List_Shuffle(name<>);
+List_Set(name<>, index, value);
+List_Get(name<>, index);
+*/
+
 #define List:%0<%1> __list@%0[%1], __list_count@%0, __list_size@%0 = %1
 #define List2D:%0[%1]<%2> __list@%0[%1][%2], __list_count@%0[%1], __list_size@%0[%1] = {%2, ...}
 
@@ -63,8 +78,8 @@ stock Internal_List_IndexOf(array[], count, value) {
 
 #define List_RandomEx(%0,%1,%2) __list@%0[random((%2 < %1 || %2 >= %0) ? (@LIST_COUNT) : (%2)) + %1]
 
-#define List_Sort(%0,%1) Internal_List_Sort(__list@%0, __list_count@%0, %1)
-stock Internal_List_Sort(array[], count, type) { // credits to Ryder
+#define List_Sort(%0) Internal_List_Sort(__list@%0, 0, (__list_count@%0 - 1))
+stock Internal_List_Sort(array[], left, right) { // credits to Ryder
 	new tempLeft = left;
 	new tempRight = right;
 	new pivot = array[(left + right) / 2];
@@ -104,4 +119,21 @@ stock Internal_List_Shuffle(array[], count) {
 	}
 
 	return 1;
+}
+
+#define List_Set(%0,%1,%2) Internal_List_Set(__list@%0, __list_count@%0, %1, %2)
+stock Internal_List_Set(array[], count, index, value) {
+	if (index < 0 || index >= count)
+	    return 0;
+	    
+	array[index] = value;
+	return 1;
+}
+
+#define List_Get(%0,%1) Internal_List_Get(__list@%0, __list_count@%0, %1)
+stock Internal_List_Get(array[], count, index) {
+	if (index < 0 || index >= count)
+	    return 0;
+
+	return array[index];
 }
