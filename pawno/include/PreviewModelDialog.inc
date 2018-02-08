@@ -4,7 +4,7 @@
 #define previewmodel_dialog_included
 
 /**************************************/
-// PreviewModelDialog.inc - v4.3 - Last Updated: 7 Feb, 2018 - By Gammix
+// PreviewModelDialog.inc - v4.4 - Last Updated: 8 Feb, 2018 - By Gammix
 /***************************************/
 
 // by BigETI
@@ -764,12 +764,12 @@ public OnPlayerConnect(playerid) {
 	Prev@PlayerDialogID[playerid] = -1;
 
 	static const Float:__ROTATIONS[MAX_DIALOG_PREVIEW_MODELS] = {0.0, ...};
-	Prev@PlayerModelRotsPointer[playerid][0] = MEM_new_arr(_:__ROTATIONS, Prev@PlayerDialogNumListitems[playerid]);
-	Prev@PlayerModelRotsPointer[playerid][1] = MEM_new_arr(_:__ROTATIONS, Prev@PlayerDialogNumListitems[playerid]);
-	Prev@PlayerModelRotsPointer[playerid][2] = MEM_new_arr(_:__ROTATIONS, Prev@PlayerDialogNumListitems[playerid]);
+	Prev@PlayerModelRotsPointer[playerid][0] = MEM_new_arr(_:__ROTATIONS, MAX_DIALOG_PREVIEW_MODELS);
+	Prev@PlayerModelRotsPointer[playerid][1] = MEM_new_arr(_:__ROTATIONS, MAX_DIALOG_PREVIEW_MODELS);
+	Prev@PlayerModelRotsPointer[playerid][2] = MEM_new_arr(_:__ROTATIONS, MAX_DIALOG_PREVIEW_MODELS);
 
 	static const Float:__ZOOM[MAX_DIALOG_PREVIEW_MODELS] = {1.0, ...};
-	Prev@PlayerModelRotsPointer[playerid][3] = MEM_new_arr(_:__ZOOM, Prev@PlayerDialogNumListitems[playerid]);
+	Prev@PlayerModelRotsPointer[playerid][3] = MEM_new_arr(_:__ZOOM, MAX_DIALOG_PREVIEW_MODELS);
 
 	#if defined PDialog_OnPlayerConnect
 		return PDialog_OnPlayerConnect(playerid);
