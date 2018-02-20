@@ -8,6 +8,7 @@ FUNCTIONS:
 	Dialog_Show(playerid, dialogid[], style, caption[], info[], button1[], button2[]);
 	Dialog_Hide(playerid);
 	Dialog_IsActive(playerid);
+	Dialog_ShowPreviewModel(playerid, function[], caption[], models[], texts[][], button1[], button2[], size = sizeof(models));
 	
 ORIGINALLY BY Emmet_, MODIFIED BY Gammix
 */
