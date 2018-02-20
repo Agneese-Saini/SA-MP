@@ -4,10 +4,12 @@
 #define easydialog_included
 
 /*
-	FUNCTIONS:
-		- Dialog_Show(playerid, dialogid[], style, caption[], info[], button1[], button2[]);
-		- Dialog_Hide(playerid);
-		- Dialog_IsActive(playerid);
+FUNCTIONS:
+	Dialog_Show(playerid, dialogid[], style, caption[], info[], button1[], button2[]);
+	Dialog_Hide(playerid);
+	Dialog_IsActive(playerid);
+	
+ORIGINALLY BY Emmet_, MODIFIED BY Gammix
 */
 
 #if !defined easyDialog_ID
