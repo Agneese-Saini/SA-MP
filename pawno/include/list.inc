@@ -99,8 +99,8 @@ stock Internal_List_Sort(array[], left, right) { // credits to Ryder
 		}
     }
 
-	if(left < tempRight) quickSort(array, left, tempRight);
-	if(tempLeft < right) quickSort(array, tempLeft, right);
+	if(left < tempRight) Internal_List_Sort(array, left, tempRight);
+	if(tempLeft < right) Internal_List_Sort(array, tempLeft, right);
 
 	return 1;
 }
