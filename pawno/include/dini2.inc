@@ -4,7 +4,7 @@
 #define dini2_included
 
 /**********************************************/
-// Dini2.inc | v3.0 | Updated: 3 Jan, 2018 | By Gammix
+// Dini2.inc | v3.1 | Updated: 10 March, 2018 | By Gammix
 /**********************************************/
 
 #if !defined DINI_MAX_FILES
@@ -367,7 +367,7 @@ stock dini_GetKeyName(const filename[], keyid) {
 	if (keyid < 0 || keyid >= diniFile[file][E_DINI_NUM_FIELDS]) {
 		return NULL;
 	}
-	
+
 	return diniFileFields[file][keyid];
 }
 
@@ -385,23 +385,76 @@ stock DINI_StripNewLine(const string[]) {
 }
 
 stock DINI_fcopytextfile(const filename[], const newfilename[]) {
-	new File:h1 = fopen(filename, io_read);
-	if (!h1) {
+    new File:newFile = fopen(newfilename, io_write);
+	if (!newFile) {
 	    return 0;
 	}
 
-	new File:h2 = fopen(newfilename, io_write);
-	if (!h2) {
-	    fclose(h1);
+	new Dini:file = INVALID_DINI_FILE;
+	for (new Dini:i = Dini:0; i < Dini:DINI_MAX_FILES; i++) {
+		if (diniFile[i][E_DINI_FILENAME][0] && !strcmp(diniFile[i][E_DINI_FILENAME], filename)) {
+			file = i;
+			break;
+		}
+	}
+
+	if (file != INVALID_DINI_FILE) {
+	 	new line[DINI_MAX_FIELD_NAME + 3 + DINI_MAX_FIELD_VALUE];
+	 	for (new i = 0; i < diniFile[file][E_DINI_NUM_FIELDS]; i++) {
+			format(line, sizeof line, "%s=%s\r\n", diniFileFields[file][i], diniFileValues[file][i]);
+			fwrite(newFile, line);
+		}
+	}
+	else {
+		new File:copyFile = fopen(filename, io_read);
+		if (!copyFile) {
+		    return 0;
+		}
+
+		new line[DINI_MAX_FIELD_NAME + 3 + DINI_MAX_FIELD_VALUE];
+		while (fread(copyFile, line)) {
+			fwrite(newFile, line);
+		}
+
+		fclose(copyFile);
+	}
+
+	fclose(newFile);
+	return 1;
+}
+
+stock DINI_frenametextfile(const filename[], const newfilename[]) {
+    new File:newFile = fopen(newfilename, io_write);
+	if (!newFile) {
 	    return 0;
 	}
 
-	new line[DINI_MAX_FIELD_NAME + 3 + DINI_MAX_FIELD_VALUE];
-	while (fread(h1, line)) {
-		fwrite(h2, line);
+	new Dini:file = INVALID_DINI_FILE;
+	for (new Dini:i = Dini:0; i < Dini:DINI_MAX_FILES; i++) {
+		if (diniFile[i][E_DINI_FILENAME][0] && !strcmp(diniFile[i][E_DINI_FILENAME], filename)) {
+			file = i;
+			break;
+		}
 	}
 
-	fclose(h1);
-	fclose(h2);
+	if (file != INVALID_DINI_FILE) {
+	    format(diniFile[file][E_DINI_FILENAME], DINI_MAX_FILE_NAME, newfilename);
+	}
+	else {
+		new File:copyFile = fopen(filename, io_read);
+		if (!copyFile) {
+		    return 0;
+		}
+
+		new line[DINI_MAX_FIELD_NAME + 3 + DINI_MAX_FIELD_VALUE];
+		while (fread(copyFile, line)) {
+			fwrite(newFile, line);
+		}
+
+		fclose(copyFile);
+	}
+
+	fclose(newFile);
+	fremove(filename);
 	return 1;
 }
