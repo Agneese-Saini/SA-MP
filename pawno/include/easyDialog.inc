@@ -3,16 +3,6 @@
 #endif
 #define easydialog_included
 
-/*
-FUNCTIONS:
-	Dialog_Show(playerid, dialogid[], style, caption[], info[], button1[], button2[]);
-	Dialog_Hide(playerid);
-	Dialog_IsActive(playerid);
-	Dialog_ShowPreviewModel(playerid, function[], caption[], models[], texts[][], button1[], button2[], size = sizeof(models));
-	
-ORIGINALLY BY Emmet_, MODIFIED BY Gammix
-*/
-
 #if !defined easyDialog_ID
 	#define easyDialog_ID (32700)
 #endif
@@ -26,12 +16,12 @@ ORIGINALLY BY Emmet_, MODIFIED BY Gammix
 #define dialog(%0,%1) \
 	Dialog:%0(%1)
 
-#define Dialog_Show(%0,%1,%2) \
-	Dialog_Open(%0, #%1, %2)
+#define Dialog_Show(%0,%1, \
+	Dialog_Open(%0, #%1,
 
 #if defined previewmodel_dialog_included
-	#define Dialog_ShowPreviewModel(%0,%1,%2) \
-		Dialog_OpenPreviewModel(%0, #%1, %2)
+	#define Dialog_ShowPreviewModel(%0,%1, \
+		Dialog_OpenPreviewModel(%0, #%1,
 #endif
 
 #define Dialog_Opened \
@@ -43,6 +33,10 @@ ORIGINALLY BY Emmet_, MODIFIED BY Gammix
 #if defined OnDialogPerformed
 	forward OnDialogPerformed(playerid, dialog[], response, success);
 #endif
+
+forward @dialog_format(); @dialog_format() {
+	format("", 1, "");
+}
 
 stock Dialog_Open(playerid, function[], style, caption[], info[], button1[], button2[]) {
 	new ret = ShowPlayerDialog(playerid, easyDialog_ID, style, caption, info, button1, button2);
