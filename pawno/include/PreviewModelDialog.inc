@@ -4,7 +4,7 @@
 #define previewmodel_dialog_included
 
 /**************************************/
-// PreviewModelDialog.inc - v4.4 - Last Updated: 8 Feb, 2018 - By Gammix
+// PreviewModelDialog.inc - v4.5 - Last Updated: 24 March, 2018 - By Gammix
 /***************************************/
 
 // by BigETI
@@ -41,13 +41,15 @@
 #define LISTITEM_TEXTDRAW<%0> Prev@ModelTD[%0][0]
 #define LISTITEM_ROTATE_LEFT_TEXTDRAW<%0> Prev@ModelTD[%0][2]
 #define LISTITEM_ROTATE_RIGHT_TEXTDRAW<%0> Prev@ModelTD[%0][3]
+#define LISTITEM_ZOOM_IN_TEXTDRAW<%0> Prev@ModelTD[%0][4]
+#define LISTITEM_ZOOM_OUT_TEXTDRAW<%0> Prev@ModelTD[%0][5]
 
 // variables
 static Text:Prev@FrameTD[8];
 static Text:Prev@LeftButtonTD[2];
 static Text:Prev@RightButtonTD[2];
 static Text:Prev@CenterButtonTD[2];
-static Text:Prev@ModelTD[MAX_DIALOG_PREVIEW_ROWS * MAX_DIALOG_PREVIEW_COLUMNS][4];
+static Text:Prev@ModelTD[MAX_DIALOG_PREVIEW_ROWS * MAX_DIALOG_PREVIEW_COLUMNS][6];
 
 static PlayerText:Prev@HeaderPTD[MAX_PLAYERS];
 static PlayerText:Prev@LeftButtonPTD[MAX_PLAYERS];
@@ -55,7 +57,7 @@ static PlayerText:Prev@RightButtonPTD[MAX_PLAYERS];
 static PlayerText:Prev@CenterButtonPTD[MAX_PLAYERS];
 static PlayerText:Prev@PageNumberPTD[MAX_PLAYERS];
 static PlayerText:Prev@ScrollBarPTD[MAX_PLAYERS];
-static PlayerText:Prev@ModelTextPTD[MAX_PLAYERS][MAX_DIALOG_PREVIEW_ROWS * MAX_DIALOG_PREVIEW_COLUMNS][2];
+static PlayerText:Prev@ModelTextPTD[MAX_PLAYERS][MAX_DIALOG_PREVIEW_ROWS * MAX_DIALOG_PREVIEW_COLUMNS][3];
 
 static bool:Prev@CancelSelection[MAX_PLAYERS];
 
@@ -89,16 +91,16 @@ static Prev_CreateTextDraws() {
 	/*
 	* FRAME
 	*/
-    Prev@FrameTD[0] = TextDrawCreate(144.0000, 154.0000, "CONTENT_BOX");
+    Prev@FrameTD[0] = TextDrawCreate(144.0000, 143.0000, "CONTENT_BOX");
 	TextDrawFont(Prev@FrameTD[0], 2);
-	TextDrawLetterSize(Prev@FrameTD[0], 0.0000, 18.2000);
+	TextDrawLetterSize(Prev@FrameTD[0], 0.0000, 19.5000);
 	TextDrawColor(Prev@FrameTD[0], -1);
 	TextDrawSetShadow(Prev@FrameTD[0], 0);
 	TextDrawSetOutline(Prev@FrameTD[0], 0);
 	TextDrawBackgroundColor(Prev@FrameTD[0], 255);
 	TextDrawSetProportional(Prev@FrameTD[0], 1);
 	TextDrawUseBox(Prev@FrameTD[0], 1);
-	TextDrawBoxColor(Prev@FrameTD[0], 150);
+	TextDrawBoxColor(Prev@FrameTD[0], 175);
 	TextDrawTextSize(Prev@FrameTD[0], 501.0000, 0.0000);
 
 	Prev@FrameTD[1] = TextDrawCreate(146.5000, 155.5000, "LD_SPAC:WHITE");
@@ -304,7 +306,7 @@ static Prev_CreateTextDraws() {
 			TextDrawSetPreviewRot(Prev@ModelTD[textdrawid][1], 0.0000, 0.0000, -50.0000, 1.0000);
 
 		    // listitem rotation button (left)
-			Prev@ModelTD[textdrawid][2] = TextDrawCreate((151.5000 + (b * DIALOG_PREVIEW_HORIZONTAL_GAP)), (181.5000 + (a * DIALOG_PREVIEW_VERTICAL_GAP)), "LD_BEAT:LEFT");
+			Prev@ModelTD[textdrawid][2] = TextDrawCreate((157.5000 + (b * DIALOG_PREVIEW_HORIZONTAL_GAP)), (204.0000 + (a * DIALOG_PREVIEW_VERTICAL_GAP)), "LD_BEAT:LEFT");
 			TextDrawFont(Prev@ModelTD[textdrawid][2], 4);
 			TextDrawLetterSize(Prev@ModelTD[textdrawid][2], 0.5000, 1.0000);
 			TextDrawColor(Prev@ModelTD[textdrawid][2], -156);
@@ -312,12 +314,12 @@ static Prev_CreateTextDraws() {
 			TextDrawSetOutline(Prev@ModelTD[textdrawid][2], 0);
 			TextDrawBackgroundColor(Prev@ModelTD[textdrawid][2], 255);
 			TextDrawSetProportional(Prev@ModelTD[textdrawid][2], 1);
-			TextDrawTextSize(Prev@ModelTD[textdrawid][2], 15.0000, 15.0000);
+			TextDrawTextSize(Prev@ModelTD[textdrawid][2], 10.0000, 10.0000);
 			TextDrawSetSelectable(Prev@ModelTD[textdrawid][2], 1);
 			//
 
 		    // listitem rotation button (right)
-			Prev@ModelTD[textdrawid][3] = TextDrawCreate((185.0000 + (b * DIALOG_PREVIEW_HORIZONTAL_GAP)), (181.5000 + (a * DIALOG_PREVIEW_VERTICAL_GAP)), "LD_BEAT:RIGHT");
+			Prev@ModelTD[textdrawid][3] = TextDrawCreate((185.0000 + (b * DIALOG_PREVIEW_HORIZONTAL_GAP)), (204.0000 + (a * DIALOG_PREVIEW_VERTICAL_GAP)), "LD_BEAT:RIGHT");
 			TextDrawFont(Prev@ModelTD[textdrawid][3], 4);
 			TextDrawLetterSize(Prev@ModelTD[textdrawid][3], 0.5000, 1.0000);
 			TextDrawColor(Prev@ModelTD[textdrawid][3], -156);
@@ -325,8 +327,34 @@ static Prev_CreateTextDraws() {
 			TextDrawSetOutline(Prev@ModelTD[textdrawid][3], 0);
 			TextDrawBackgroundColor(Prev@ModelTD[textdrawid][3], 255);
 			TextDrawSetProportional(Prev@ModelTD[textdrawid][3], 1);
-			TextDrawTextSize(Prev@ModelTD[textdrawid][3], 15.0000, 15.0000);
+			TextDrawTextSize(Prev@ModelTD[textdrawid][3], 10.0000, 10.0000);
 			TextDrawSetSelectable(Prev@ModelTD[textdrawid][3], 1);
+			//
+
+		    // listitem zoom-in button
+			Prev@ModelTD[textdrawid][4] = TextDrawCreate((191.5000 + (b * DIALOG_PREVIEW_HORIZONTAL_GAP)), (171.0000 + (a * DIALOG_PREVIEW_VERTICAL_GAP)), "LD_BEAT:UP");
+			TextDrawFont(Prev@ModelTD[textdrawid][4], 4);
+			TextDrawLetterSize(Prev@ModelTD[textdrawid][4], 0.5000, 1.0000);
+			TextDrawColor(Prev@ModelTD[textdrawid][4], -156);
+			TextDrawSetShadow(Prev@ModelTD[textdrawid][4], 0);
+			TextDrawSetOutline(Prev@ModelTD[textdrawid][4], 0);
+			TextDrawBackgroundColor(Prev@ModelTD[textdrawid][4], 255);
+			TextDrawSetProportional(Prev@ModelTD[textdrawid][4], 1);
+			TextDrawTextSize(Prev@ModelTD[textdrawid][4], 10.0000, 10.0000);
+			TextDrawSetSelectable(Prev@ModelTD[textdrawid][4], 1);
+			//
+
+		    // listitem zoom-out button
+			Prev@ModelTD[textdrawid][5] = TextDrawCreate((191.5000 + (b * DIALOG_PREVIEW_HORIZONTAL_GAP)), (193.0000 + (a * DIALOG_PREVIEW_VERTICAL_GAP)), "LD_BEAT:DOWN");
+			TextDrawFont(Prev@ModelTD[textdrawid][5], 4);
+			TextDrawLetterSize(Prev@ModelTD[textdrawid][5], 0.5000, 1.0000);
+			TextDrawColor(Prev@ModelTD[textdrawid][5], -156);
+			TextDrawSetShadow(Prev@ModelTD[textdrawid][5], 0);
+			TextDrawSetOutline(Prev@ModelTD[textdrawid][5], 0);
+			TextDrawBackgroundColor(Prev@ModelTD[textdrawid][5], 255);
+			TextDrawSetProportional(Prev@ModelTD[textdrawid][5], 1);
+			TextDrawTextSize(Prev@ModelTD[textdrawid][5], 10.0000, 10.0000);
+			TextDrawSetSelectable(Prev@ModelTD[textdrawid][5], 1);
 			//
 		}
 	}
@@ -366,6 +394,8 @@ static Prev_DestroyTextDraws() {
 	    TextDrawDestroy(Prev@ModelTD[i][1]);
 	    TextDrawDestroy(Prev@ModelTD[i][2]);
 	    TextDrawDestroy(Prev@ModelTD[i][3]);
+	    TextDrawDestroy(Prev@ModelTD[i][4]);
+	    TextDrawDestroy(Prev@ModelTD[i][5]);
 	}
 }
 
@@ -480,7 +510,9 @@ static Prev_CreatePlayerTextDraws(playerid, header[], button1[], button2[], butt
 			PlayerTextDrawSetOutline(playerid, Prev@ModelTextPTD[playerid][textdrawid][0], 0);
 			PlayerTextDrawBackgroundColor(playerid, Prev@ModelTextPTD[playerid][textdrawid][0], 255);
 			PlayerTextDrawSetProportional(playerid, Prev@ModelTextPTD[playerid][textdrawid][0], 1);
-			PlayerTextDrawTextSize(playerid, Prev@ModelTextPTD[playerid][textdrawid][0], 640.0000, 480.0000);
+			PlayerTextDrawUseBox(playerid, Prev@ModelTextPTD[playerid][textdrawid][0], 1);
+			PlayerTextDrawBoxColor(playerid, Prev@ModelTextPTD[playerid][textdrawid][0], 0);
+			PlayerTextDrawTextSize(playerid, Prev@ModelTextPTD[playerid][textdrawid][0], (201.5000 + (b * DIALOG_PREVIEW_HORIZONTAL_GAP)), 0.0000);
 
 			Prev@ModelTextPTD[playerid][textdrawid][1] = CreatePlayerTextDraw(playerid, (176.5000 + (b * DIALOG_PREVIEW_HORIZONTAL_GAP)), (204.5000 + (a * DIALOG_PREVIEW_VERTICAL_GAP)), "0.0");
 			PlayerTextDrawFont(playerid, Prev@ModelTextPTD[playerid][textdrawid][1], 2);
@@ -492,6 +524,17 @@ static Prev_CreatePlayerTextDraws(playerid, header[], button1[], button2[], butt
 			PlayerTextDrawBackgroundColor(playerid, Prev@ModelTextPTD[playerid][textdrawid][1], 255);
 			PlayerTextDrawSetProportional(playerid, Prev@ModelTextPTD[playerid][textdrawid][1], 1);
 			PlayerTextDrawTextSize(playerid, Prev@ModelTextPTD[playerid][textdrawid][1], 640.0000, 480.0000);
+
+			Prev@ModelTextPTD[playerid][textdrawid][2] = CreatePlayerTextDraw(playerid, (196.5000 + (b * DIALOG_PREVIEW_HORIZONTAL_GAP)), (182.0000 + (a * DIALOG_PREVIEW_VERTICAL_GAP)), "0.0");
+			PlayerTextDrawFont(playerid, Prev@ModelTextPTD[playerid][textdrawid][2], 2);
+			PlayerTextDrawLetterSize(playerid, Prev@ModelTextPTD[playerid][textdrawid][2], 0.1399, 0.8999);
+			PlayerTextDrawAlignment(playerid, Prev@ModelTextPTD[playerid][textdrawid][2], 2);
+			PlayerTextDrawColor(playerid, Prev@ModelTextPTD[playerid][textdrawid][2], -156);
+			PlayerTextDrawSetShadow(playerid, Prev@ModelTextPTD[playerid][textdrawid][2], 0);
+			PlayerTextDrawSetOutline(playerid, Prev@ModelTextPTD[playerid][textdrawid][2], 0);
+			PlayerTextDrawBackgroundColor(playerid, Prev@ModelTextPTD[playerid][textdrawid][2], 255);
+			PlayerTextDrawSetProportional(playerid, Prev@ModelTextPTD[playerid][textdrawid][2], 1);
+			PlayerTextDrawTextSize(playerid, Prev@ModelTextPTD[playerid][textdrawid][2], 640.0000, 480.0000);
 		}
 	}
 
@@ -538,6 +581,7 @@ static Prev_DestroyPlayerTextDraws(playerid) {
 	for (new i = 0; i < (MAX_DIALOG_PREVIEW_ROWS * MAX_DIALOG_PREVIEW_COLUMNS); i++) {
 		PlayerTextDrawDestroy(playerid, Prev@ModelTextPTD[playerid][i][0]);
 		PlayerTextDrawDestroy(playerid, Prev@ModelTextPTD[playerid][i][1]);
+		PlayerTextDrawDestroy(playerid, Prev@ModelTextPTD[playerid][i][2]);
 	}
 }
 
@@ -580,9 +624,12 @@ static Prev_UpdateListitems(playerid, page, selected, totalItems) {
 			    TextDrawHideForPlayer(playerid, Prev@ModelTD[textdrawid][1]);
 			    TextDrawHideForPlayer(playerid, Prev@ModelTD[textdrawid][2]);
 			    TextDrawHideForPlayer(playerid, Prev@ModelTD[textdrawid][3]);
+			    TextDrawHideForPlayer(playerid, Prev@ModelTD[textdrawid][4]);
+			    TextDrawHideForPlayer(playerid, Prev@ModelTD[textdrawid][5]);
 
 			    PlayerTextDrawHide(playerid, Prev@ModelTextPTD[playerid][textdrawid][0]);
 			    PlayerTextDrawHide(playerid, Prev@ModelTextPTD[playerid][textdrawid][1]);
+			    PlayerTextDrawHide(playerid, Prev@ModelTextPTD[playerid][textdrawid][2]);
 
 				continue;
 			}
@@ -598,10 +645,17 @@ static Prev_UpdateListitems(playerid, page, selected, totalItems) {
 			    TextDrawShowForPlayer(playerid, Prev@ModelTD[textdrawid][2]);
 			    TextDrawShowForPlayer(playerid, Prev@ModelTD[textdrawid][3]);
 
+			    TextDrawShowForPlayer(playerid, Prev@ModelTD[textdrawid][4]);
+			    TextDrawShowForPlayer(playerid, Prev@ModelTD[textdrawid][5]);
+
 			    new string[16];
-			    format(string, sizeof string, "%0.1f", Float:MEM_get_val(Prev@PlayerModelRotsPointer[playerid][3], listitem));
+			    format(string, sizeof string, "%0.1f", Float:MEM_get_val(Prev@PlayerModelRotsPointer[playerid][2], listitem));
 			    PlayerTextDrawSetString(playerid, Prev@ModelTextPTD[playerid][textdrawid][1], string);
 			    PlayerTextDrawShow(playerid, Prev@ModelTextPTD[playerid][textdrawid][1]);
+
+			    format(string, sizeof string, "%0.1f", Float:MEM_get_val(Prev@PlayerModelRotsPointer[playerid][3], listitem));
+			    PlayerTextDrawSetString(playerid, Prev@ModelTextPTD[playerid][textdrawid][2], string);
+			    PlayerTextDrawShow(playerid, Prev@ModelTextPTD[playerid][textdrawid][2]);
 			} else {
 				TextDrawColor(Prev@ModelTD[textdrawid][0], DIALOG_PREVIEW_UNSELECT_COLOR);
 				TextDrawShowForPlayer(playerid, Prev@ModelTD[textdrawid][0]);
@@ -609,7 +663,11 @@ static Prev_UpdateListitems(playerid, page, selected, totalItems) {
 			    TextDrawHideForPlayer(playerid, Prev@ModelTD[textdrawid][2]);
 			    TextDrawHideForPlayer(playerid, Prev@ModelTD[textdrawid][3]);
 
+			    TextDrawHideForPlayer(playerid, Prev@ModelTD[textdrawid][4]);
+			    TextDrawHideForPlayer(playerid, Prev@ModelTD[textdrawid][5]);
+
 			    PlayerTextDrawHide(playerid, Prev@ModelTextPTD[playerid][textdrawid][1]);
+			    PlayerTextDrawHide(playerid, Prev@ModelTextPTD[playerid][textdrawid][2]);
 			}
 
 			if (MEM_get_arr(Prev@PlayerModelNamesPointer[playerid][listitem], 0, name, MEM_get_size(Prev@PlayerModelNamesPointer[playerid][listitem])) != MEM_NULLFEPTR) {
@@ -660,6 +718,8 @@ static Prev_HidePlayerDialog(playerid) {
 	    TextDrawHideForPlayer(playerid, Prev@ModelTD[i][1]);
 	    TextDrawHideForPlayer(playerid, Prev@ModelTD[i][2]);
 	    TextDrawHideForPlayer(playerid, Prev@ModelTD[i][3]);
+	    TextDrawHideForPlayer(playerid, Prev@ModelTD[i][4]);
+	    TextDrawHideForPlayer(playerid, Prev@ModelTD[i][5]);
 	}
 
 	/*
@@ -909,6 +969,46 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid) {
 	    	PlayerTextDrawSetString(playerid, Prev@ModelTextPTD[playerid][Prev@PlayerDialogListitem[playerid]][1], string);
 		    PlayerTextDrawShow(playerid, Prev@ModelTextPTD[playerid][Prev@PlayerDialogListitem[playerid]][1]);
 
+		} else if (clickedid == LISTITEM_ZOOM_IN_TEXTDRAW<Prev@PlayerDialogListitem[playerid]>) {
+		    new listitem = ((Prev@PlayerDialogPage[playerid] * (MAX_DIALOG_PREVIEW_ROWS * MAX_DIALOG_PREVIEW_COLUMNS)) + Prev@PlayerDialogListitem[playerid]);
+
+			new Float:rx, Float:ry, Float:rz, Float:rzoom;
+			rx = Float:MEM_get_val(Prev@PlayerModelRotsPointer[playerid][0], listitem);
+			ry = Float:MEM_get_val(Prev@PlayerModelRotsPointer[playerid][1], listitem);
+			rz = Float:MEM_get_val(Prev@PlayerModelRotsPointer[playerid][2], listitem);
+			rzoom = Float:MEM_get_val(Prev@PlayerModelRotsPointer[playerid][3], listitem);
+
+			rzoom -= 0.1;
+			MEM_set_val(Prev@PlayerModelRotsPointer[playerid][3], listitem, _:rzoom);
+
+		    TextDrawSetPreviewRot(Prev@ModelTD[Prev@PlayerDialogListitem[playerid]][1], rx, ry, rz, rzoom);
+			TextDrawShowForPlayer(playerid, Prev@ModelTD[Prev@PlayerDialogListitem[playerid]][1]);
+
+            new string[16];
+  			format(string, sizeof string, "%0.1f", rzoom);
+	    	PlayerTextDrawSetString(playerid, Prev@ModelTextPTD[playerid][Prev@PlayerDialogListitem[playerid]][2], string);
+		    PlayerTextDrawShow(playerid, Prev@ModelTextPTD[playerid][Prev@PlayerDialogListitem[playerid]][2]);
+
+		} else if (clickedid == LISTITEM_ZOOM_OUT_TEXTDRAW<Prev@PlayerDialogListitem[playerid]>) {
+		    new listitem = ((Prev@PlayerDialogPage[playerid] * (MAX_DIALOG_PREVIEW_ROWS * MAX_DIALOG_PREVIEW_COLUMNS)) + Prev@PlayerDialogListitem[playerid]);
+
+			new Float:rx, Float:ry, Float:rz, Float:rzoom;
+			rx = Float:MEM_get_val(Prev@PlayerModelRotsPointer[playerid][0], listitem);
+			ry = Float:MEM_get_val(Prev@PlayerModelRotsPointer[playerid][1], listitem);
+			rz = Float:MEM_get_val(Prev@PlayerModelRotsPointer[playerid][2], listitem);
+			rzoom = Float:MEM_get_val(Prev@PlayerModelRotsPointer[playerid][3], listitem);
+
+			rzoom += 0.1;
+			MEM_set_val(Prev@PlayerModelRotsPointer[playerid][3], listitem, _:rzoom);
+
+		    TextDrawSetPreviewRot(Prev@ModelTD[Prev@PlayerDialogListitem[playerid]][1], rx, ry, rz, rzoom);
+			TextDrawShowForPlayer(playerid, Prev@ModelTD[Prev@PlayerDialogListitem[playerid]][1]);
+
+            new string[16];
+  			format(string, sizeof string, "%0.1f", rzoom);
+	    	PlayerTextDrawSetString(playerid, Prev@ModelTextPTD[playerid][Prev@PlayerDialogListitem[playerid]][2], string);
+		    PlayerTextDrawShow(playerid, Prev@ModelTextPTD[playerid][Prev@PlayerDialogListitem[playerid]][2]);
+
 		} else {
 			for (new i = 0; i < (MAX_DIALOG_PREVIEW_ROWS * MAX_DIALOG_PREVIEW_COLUMNS); i++) {
 				if (clickedid == LISTITEM_TEXTDRAW<i>) {
@@ -933,7 +1033,11 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid) {
 					    TextDrawHideForPlayer(playerid, Prev@ModelTD[previous][2]);
 					    TextDrawHideForPlayer(playerid, Prev@ModelTD[previous][3]);
 
+					    TextDrawHideForPlayer(playerid, Prev@ModelTD[previous][4]);
+					    TextDrawHideForPlayer(playerid, Prev@ModelTD[previous][5]);
+
 					    PlayerTextDrawHide(playerid, Prev@ModelTextPTD[playerid][previous][1]);
+					    PlayerTextDrawHide(playerid, Prev@ModelTextPTD[playerid][previous][2]);
 
 					    // update new selected listitem
 					    TextDrawColor(Prev@ModelTD[i][0], DIALOG_PREVIEW_SELECT_COLOR);
@@ -942,10 +1046,18 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid) {
 					    TextDrawShowForPlayer(playerid, Prev@ModelTD[i][2]);
 					    TextDrawShowForPlayer(playerid, Prev@ModelTD[i][3]);
 
+					    TextDrawShowForPlayer(playerid, Prev@ModelTD[i][4]);
+					    TextDrawShowForPlayer(playerid, Prev@ModelTD[i][5]);
+
+						new listitem = ((Prev@PlayerDialogPage[playerid] * (MAX_DIALOG_PREVIEW_ROWS * MAX_DIALOG_PREVIEW_COLUMNS)) + i);
 					    new string[16];
-					    format(string, sizeof string, "%0.1f", Float:MEM_get_val(Prev@PlayerModelRotsPointer[playerid][2], ((Prev@PlayerDialogPage[playerid] * (MAX_DIALOG_PREVIEW_ROWS * MAX_DIALOG_PREVIEW_COLUMNS)) + i)));
+					    format(string, sizeof string, "%0.1f", Float:MEM_get_val(Prev@PlayerModelRotsPointer[playerid][2], listitem));
 					    PlayerTextDrawSetString(playerid, Prev@ModelTextPTD[playerid][i][1], string);
 					    PlayerTextDrawShow(playerid, Prev@ModelTextPTD[playerid][i][1]);
+					    
+					    format(string, sizeof string, "%0.1f", Float:MEM_get_val(Prev@PlayerModelRotsPointer[playerid][3], listitem));
+					    PlayerTextDrawSetString(playerid, Prev@ModelTextPTD[playerid][i][2], string);
+					    PlayerTextDrawShow(playerid, Prev@ModelTextPTD[playerid][i][2]);
 
 						Prev@PlayerDialogListitem[playerid] = i;
 					    Prev@PlayerDialogTickCount[playerid] = GetTickCount();
