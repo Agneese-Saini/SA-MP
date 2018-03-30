@@ -1171,19 +1171,25 @@ stock Prev_ShowPlayerDialog(playerid, dialogid, style, caption[], info[], button
 		MEM_set_val(listitemPointer, 0, strval(modelstr));
 
         // listitem text validity check
-        valid = false;
-		for (new i = next + 1; listitem[i] != EOS; i++) {
-			if (listitem[i] != ' ') {
-			    valid = true;
-			    break;
+		valid = false;
+        if (next != -1) {
+			for (new i = next + 1; listitem[i] != EOS; i++) {
+				if (listitem[i] != ' ') {
+				    valid = true;
+				    break;
+				}
 			}
 		}
-
+		
+		listitemTextPointer = Pointer:MEM_get_val(listitemPointer, 5);
 		if (valid) {
-			listitemTextPointer = Pointer:MEM_get_val(listitemPointer, 5);
-			MEM_set_arr(listitemTextPointer, 0, listitem[next + 1], MAX_DIALOG_PREVIEW_TEXTSIZE);
+			format(listitem, sizeof(listitem), listitem[next + 1]);
+		} else {
+            listitem[0] = EOS;
 		}
-
+		
+		MEM_set_arr(listitemTextPointer, 0, listitem, MAX_DIALOG_PREVIEW_TEXTSIZE);
+			
 		// check if number of models doesnt exceed the array size
 	    if (++count == MAX_DIALOG_PREVIEW_MODELS) {
 		    printf("[PreviewModelDialog.inc] - Warning: You have more than \"MAX_DIALOG_PREVIEW_MODELS\" ("#MAX_DIALOG_PREVIEW_MODELS") listitems in your dialog, only the first "#MAX_DIALOG_PREVIEW_MODELS" listitems were loaded.");
