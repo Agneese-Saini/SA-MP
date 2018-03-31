@@ -23,6 +23,12 @@
 
 #define pair_second(%0,%1) \
 	internal_second(%0, %0@next, %0@first_type, %0@second_type, %1)
+	
+#define pair_set_first(%0,%1,%2) \
+	internal_set_first(%0, %0@next, %0@first_type, %0@second_type, %1, %2)
+
+#define pair_set_second(%0,%1,%2) \
+	internal_set_second(%0, %0@next, %0@first_type, %0@second_type, %1, %2)
 
 #define pair_clear(%0) \
 	internal_clear(%0, %0@next, %0@first_type, %0@second_type)
@@ -150,7 +156,7 @@ static stock internal_delete(&Pointer:addr, next, first_type, second_type, index
         return;
 
 	if (((first_type == PAIR_TYPE_int || first_type == PAIR_TYPE_float) && second_type == PAIR_TYPE_null) || (first_type == PAIR_TYPE_null && (second_type == PAIR_TYPE_int || second_type == PAIR_TYPE_float))) {
-		MEM_set_val(addr, next, 0);
+		MEM_set_val(addr, index, 0);
 	}
     else if ((first_type == PAIR_TYPE_string && second_type == PAIR_TYPE_null) || (first_type == PAIR_TYPE_null && second_type == PAIR_TYPE_string)) {
 	    new Pointer:string_addr = Pointer:MEM_get_val(addr, index);
@@ -263,6 +269,74 @@ static stock internal_second(Pointer:addr, next, first_type, second_type, index,
 	}
 
 	return ret;
+}
+
+static stock internal_set_first(Pointer:addr, next, first_type, second_type, index, {Float, _}:...) {
+    if (index >= next)
+        return;
+
+	if (first_type == PAIR_TYPE_null)
+		return;
+
+	static dest[2048];
+	dest[0] = EOS;
+
+    if ((first_type == PAIR_TYPE_int || first_type == PAIR_TYPE_float) && second_type == PAIR_TYPE_null) {
+        MEM_set_val(addr, index, getarg(5));
+	}
+	else if (first_type == PAIR_TYPE_string && second_type == PAIR_TYPE_null) {
+	    getstringarg(5, dest);
+
+	    new Pointer:string_addr = Pointer:MEM_get_val(addr, index);
+	    MEM_get_arr(string_addr, _, dest);
+	}
+	else {
+		new Pointer:double_addr = Pointer:MEM_get_val(addr, index);
+
+		if (first_type == PAIR_TYPE_int || first_type == PAIR_TYPE_float) {
+		    MEM_set_val(double_addr, 0, getarg(5));
+		}
+		else if (first_type == PAIR_TYPE_string) {
+		    getstringarg(5, dest);
+
+			new Pointer:string_addr = Pointer:MEM_get_val(double_addr, 0);
+		    MEM_set_arr(string_addr, _, dest);
+		}
+	}
+}
+
+static stock internal_set_second(Pointer:addr, next, first_type, second_type, index, {Float, _}:...) {
+    if (index >= next)
+        return;
+
+	if (second_type == PAIR_TYPE_null)
+		return;
+
+	static dest[2048];
+	dest[0] = EOS;
+
+    if ((first_type == PAIR_TYPE_int || first_type == PAIR_TYPE_float) && second_type == PAIR_TYPE_null) {
+        MEM_set_val(addr, index, getarg(5));
+	}
+	else if (first_type == PAIR_TYPE_string && second_type == PAIR_TYPE_null) {
+	    getstringarg(5, dest);
+
+	    new Pointer:string_addr = Pointer:MEM_get_val(addr, index);
+	    MEM_get_arr(string_addr, _, dest);
+	}
+	else {
+		new Pointer:double_addr = Pointer:MEM_get_val(addr, index);
+
+		if (first_type == PAIR_TYPE_int || first_type == PAIR_TYPE_float) {
+		    MEM_set_val(double_addr, 1, getarg(5));
+		}
+		else if (first_type == PAIR_TYPE_string) {
+		    getstringarg(5, dest);
+
+			new Pointer:string_addr = Pointer:MEM_get_val(double_addr, 1);
+		    MEM_set_arr(string_addr, _, dest);
+		}
+	}
 }
 
 static stock internal_clear(&Pointer:addr, &next, first_type, second_type) {
