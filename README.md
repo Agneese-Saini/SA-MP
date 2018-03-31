@@ -24,9 +24,7 @@ Click on the embedded links to directly goto the following's page.
    		* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/gamemodes/base/mysql.pwn">mysql.pwn</a></b> - an advance MYSQL R41+ base gamemode
    		* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/gamemodes/base/sqlite.pwn">sqlite.pwn</a></b> - an advance SQLite base gamemode
 * includes
-  	* Fixes
-   		* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/Fixes/EnableVehicleFriendlyFire.inc">EnableVehicleFriendlyFire.inc</a></b> - Fix for tire poping when using Friendly fire on vehicles (fixes the annoying bug)
-   		* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/Fixes/hitreg.inc">hitreg.inc</a></b> - Server sided damage handling which improves SAMP hit registeration A LOT, and also prevent certain weapon hacks (like range, damage hacks)
+  	* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/Fixes/EnableVehicleFriendlyFire.inc">EnableVehicleFriendlyFire.inc</a></b> - Fix for tire poping when using Friendly fire on vehicles (fixes the annoying bug)
   	* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/list.inc">list.inc</a></b> - amazing array manipulation include
   	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/attachments.inc">attachments.inc</a></b> - player attachments auto remove while aiming with scope weapons (e.g. snipers)
   	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/PreviewModelDialog.inc">PreviewModelDialog.inc</a></b> - Adds in new dialog styles "DIALOG_STYLE_PREVMODEL" and "DIALOG_STYLE_PREVMODEL_LIST"
