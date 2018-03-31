@@ -19,6 +19,7 @@ Click on the embedded links to directly goto the following's page.
   	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/filterscripts/throw_deagle.pwn">throw_deagle.pwn</a></b> - projectile.inc example script (throwing a desert eagle on ground).
   	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/filterscripts/grenade_launcher.pwn">grenade_launcher.pwn</a></b> - projectile.inc example script (Grenade launcher for M4).
 * gamemodes
+	* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/gamemodes/CopsAndTerrorists.pwn">CopsAndTerrorists.pwn</a></b> - A simple capture zone based cops vs terrorists gamemode, team deathmatch in a small town of los santos (near vinewood)!
   	* base
    		* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/gamemodes/base/mysql.pwn">mysql.pwn</a></b> - an advance MYSQL R41+ base gamemode
    		* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/gamemodes/base/sqlite.pwn">sqlite.pwn</a></b> - an advance SQLite base gamemode
@@ -30,6 +31,7 @@ Click on the embedded links to directly goto the following's page.
   	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/attachments.inc">attachments.inc</a></b> - player attachments auto remove while aiming with scope weapons (e.g. snipers)
   	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/PreviewModelDialog.inc">PreviewModelDialog.inc</a></b> - Adds in new dialog styles "DIALOG_STYLE_PREVMODEL" and "DIALOG_STYLE_PREVMODEL_LIST"
   	* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/easyDialog.inc">easyDialog.inc</a></b> - Manage dialogs in ZCMD style! (originally by Emmet_)
+  	* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/map.inc">map.inc</a></b> - C++ std::map in PAWN, somewhat same funcionality!
   	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/dini2.inc">dini2.inc</a></b> - Improved dini processor with multi file processing and fast! *you can use this really)
   	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/gangzones.inc">gangzones.inc</a></b> - GangZones with borders and interior & virtual world support
   	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/gmenu.inc">gmenu.inc</a></b> - GTA 5 styled menus with response control, even switching to one item to next
