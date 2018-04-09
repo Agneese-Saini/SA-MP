@@ -711,6 +711,8 @@ public OnPlayerStateChange(playerid, newstate, oldstate) {
 			if (playerSpectateID[i] == playerid) {
     			playerSpectateVehicleID[i] = vehicleid;
 
+    			PlayerSpectateVehicle(playerid, vehicleid, SPECTATE_MODE_NORMAL);
+
 				TextDrawSetPreviewModel(vehicleInfoTD[1], modelid);
 
 			    GetVehicleModelName(modelid, string, sizeof(string));
@@ -740,6 +742,8 @@ public OnPlayerStateChange(playerid, newstate, oldstate) {
 	    foreach (new i : Player) {
 			if (playerSpectateID[i] == playerid) {
     			playerSpectateVehicleID[i] = INVALID_VEHICLE_ID;
+
+    			PlayerSpectatePlayer(playerid, playerid, SPECTATE_MODE_NORMAL);
 
 				for (new x = 0; x < sizeof(vehicleInfoPTD[]); x++) {
 				    PlayerTextDrawHide(i, vehicleInfoPTD[i][x]);
