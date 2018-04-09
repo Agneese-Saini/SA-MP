@@ -458,6 +458,17 @@ ShowPlayerTextDraws(playerid, targetid, vehicleid) {
 	format(string, sizeof(string), "ID: %i", targetid);
 	PlayerTextDrawSetString(playerid, playerInfoPTD[playerid][1], string);
 
+	new index;
+	foreach (new i : SpectatePlayers) {
+		++index;
+		
+		if (i == targetid) {
+			break;
+		}
+	}
+	format(string, sizeof(string), "%i/%i", index, Iter_Count(SpectatePlayers));
+	PlayerTextDrawSetString(playerid, playerInfoPTD[playerid][1], string);
+	
 	for (new i = 0; i < sizeof(playerInfoPTD[]); i++) {
 	    PlayerTextDrawShow(playerid, playerInfoPTD[playerid][i]);
 	}
