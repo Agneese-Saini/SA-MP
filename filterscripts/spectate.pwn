@@ -913,7 +913,7 @@ CMD:spec(playerid, params[]) {
 	GetPlayerHealth(playerid, oldPlayerHealth[playerid]);
 	GetPlayerArmour(playerid, oldPlayerArmour[playerid]);
 
-    StartSpectate(playerid, playerid);
+    StartSpectate(playerid, targetid);
 	return 1;
 }
 
