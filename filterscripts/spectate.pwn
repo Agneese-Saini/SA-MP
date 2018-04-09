@@ -49,7 +49,7 @@ new PlayerText:playerInfoPTD[MAX_PLAYERS][8];
 new PlayerText:vehicleInfoPTD[MAX_PLAYERS][5];
 
 new playerSpectateID[MAX_PLAYERS];
-new playerSpectateVehicleID[MAX_PLAYERS];
+new bool:playerSpectateTypeVehicle[MAX_PLAYERS];
 
 new Iterator:SpectatePlayers<MAX_PLAYERS>;
 
@@ -445,7 +445,7 @@ FormatNumber(number) { // i didn't made it, idk who did!
 	return ret;
 }
 
-ShowPlayerTextDraws(playerid, targetid, vehicleid) {
+ShowPlayerInfo(playerid, targetid) {
 	TextDrawSetPreviewModel(playerInfoTD[1], GetPlayerSkin(targetid));
 
 	new name[MAX_PLAYER_NAME];
@@ -456,17 +456,6 @@ ShowPlayerTextDraws(playerid, targetid, vehicleid) {
 	new string[128];
 	format(string, sizeof(string), "ID: %i", targetid);
 	PlayerTextDrawSetString(playerid, playerInfoPTD[playerid][1], string);
-
-	new index;
-	foreach (new i : SpectatePlayers) {
-		++index;
-
-		if (i == targetid) {
-			break;
-		}
-	}
-	format(string, sizeof(string), "%i/%i", index, Iter_Count(SpectatePlayers));
-	PlayerTextDrawSetString(playerid, playerInfoPTD[playerid][7], string);
 
 	for (new i = 0; i < sizeof(playerInfoPTD[]); i++) {
 	    PlayerTextDrawShow(playerid, playerInfoPTD[playerid][i]);
@@ -479,50 +468,23 @@ ShowPlayerTextDraws(playerid, targetid, vehicleid) {
 	for (new i = 0; i < sizeof(playerInfoTD); i++) {
 	    TextDrawShowForPlayer(playerid, playerInfoTD[i]);
 	}
+}
 
-	if (vehicleid != 0) {
-		new modelid = GetVehicleModel(vehicleid);
-		TextDrawSetPreviewModel(vehicleInfoTD[1], modelid);
-
-	    GetVehicleModelName(modelid, string, sizeof(string));
-		PlayerTextDrawSetString(playerid, vehicleInfoPTD[playerid][0], string);
-
-		format(string, sizeof(string), "MODELID: %i", modelid);
-		PlayerTextDrawSetString(playerid, vehicleInfoPTD[playerid][1], string);
-
-		format(string, sizeof(string), "[maximum: %0.1f km/h]", GetVehicleModelTopSpeed(modelid));
-		PlayerTextDrawSetString(playerid, vehicleInfoPTD[playerid][4], string);
-
-		for (new i = 0; i < sizeof(vehicleInfoPTD[]); i++) {
-		    PlayerTextDrawShow(playerid, vehicleInfoPTD[playerid][i]);
-		}
-
-		for (new i = 0; i < sizeof(vehicleInfoFrameTD); i++) {
-		    TextDrawShowForPlayer(playerid, vehicleInfoFrameTD[i]);
-		}
-
-		for (new i = 0; i < sizeof(vehicleInfoTD); i++) {
-		    TextDrawShowForPlayer(playerid, vehicleInfoTD[i]);
-		}
+HidePlayerInfo(playerid) {
+	for (new i = 0; i < sizeof(playerInfoPTD[]); i++) {
+	    PlayerTextDrawHide(playerid, playerInfoPTD[playerid][i]);
 	}
-	else {
-		for (new i = 0; i < sizeof(vehicleInfoPTD[]); i++) {
-		    PlayerTextDrawHide(playerid, vehicleInfoPTD[playerid][i]);
-		}
 
-		for (new i = 0; i < sizeof(vehicleInfoFrameTD); i++) {
-		    TextDrawHideForPlayer(playerid, vehicleInfoFrameTD[i]);
-		}
+	for (new i = 0; i < sizeof(playerInfoFrameTD); i++) {
+	    TextDrawHideForPlayer(playerid, playerInfoFrameTD[i]);
+	}
 
-		for (new i = 0; i < sizeof(vehicleInfoTD); i++) {
-		    TextDrawHideForPlayer(playerid, vehicleInfoTD[i]);
-		}
+	for (new i = 0; i < sizeof(playerInfoTD); i++) {
+	    TextDrawHideForPlayer(playerid, playerInfoTD[i]);
 	}
 }
 
-UpdatePlayerTextDraws(playerid) {
-	new targetid = playerSpectateID[playerid];
-
+UpdatePlayerInfo(playerid, targetid) {
 	new Float:amount;
 	GetPlayerHealth(targetid, amount);
 
@@ -558,47 +520,75 @@ UpdatePlayerTextDraws(playerid) {
 	GetPlayerVelocity(targetid, vx, vy, vz);
 	format(string, sizeof(string), "SPEED: ~w~%0.1f MPH", (GetSpeed(vx, vy, vz) / 1.609344));
 	PlayerTextDrawSetString(playerid, playerInfoPTD[playerid][6], string);
+	
+	new index;
+	foreach (new i : SpectatePlayers) {
+		++index;
+		if (i == targetid) {
+			break;
+		}
+ 	}
+	format(string, sizeof(string), "%i/%i", index, Iter_Count(SpectatePlayers));
+	PlayerTextDrawSetString(playerid, playerInfoPTD[playerid][7], string);
+}
 
-	new vehicleid = playerSpectateVehicleID[playerid];
-	if (vehicleid != INVALID_VEHICLE_ID) {
-        GetVehicleHealth(vehicleid, amount);
-		format(string, sizeof(string), "HEALTH: ~w~%i/1000", floatround(amount));
-		PlayerTextDrawSetString(playerid, vehicleInfoPTD[playerid][2], string);
+ShowVehicleInfo(playerid, vehicleid) {
+	new modelid = GetVehicleModel(vehicleid);
+	TextDrawSetPreviewModel(vehicleInfoTD[1], modelid);
 
-		barLength = ((clamp(floatround(amount), 0, 1000) / 1000.0) * 94.5);
-		TextDrawTextSize(vehicleInfoTD[3], barLength, 3.0000);
- 		TextDrawShowForPlayer(playerid, vehicleInfoTD[3]);
+	new string[128];
+    GetVehicleModelName(modelid, string, sizeof(string));
+	PlayerTextDrawSetString(playerid, vehicleInfoPTD[playerid][0], string);
 
-		GetVehicleVelocity(vehicleid, vx, vy, vz);
-		format(string, sizeof(string), "SPEED: ~w~%0.1f KM/H", GetSpeed(vx, vy, vz));
-		PlayerTextDrawSetString(playerid, vehicleInfoPTD[playerid][3], string);
+	format(string, sizeof(string), "MODELID: %i", modelid);
+	PlayerTextDrawSetString(playerid, vehicleInfoPTD[playerid][1], string);
+
+	format(string, sizeof(string), "[maximum: %0.1f km/h]", GetVehicleModelTopSpeed(modelid));
+	PlayerTextDrawSetString(playerid, vehicleInfoPTD[playerid][4], string);
+
+	for (new i = 0; i < sizeof(vehicleInfoPTD[]); i++) {
+	    PlayerTextDrawShow(playerid, vehicleInfoPTD[playerid][i]);
+	}
+
+	for (new i = 0; i < sizeof(vehicleInfoFrameTD); i++) {
+	    TextDrawShowForPlayer(playerid, vehicleInfoFrameTD[i]);
+	}
+
+	for (new i = 0; i < sizeof(vehicleInfoTD); i++) {
+	    TextDrawShowForPlayer(playerid, vehicleInfoTD[i]);
 	}
 }
 
-HidePlayerTextDraws(playerid) {
-    for (new x = 0; x < sizeof(playerInfoPTD[]); x++) {
-	    PlayerTextDrawHide(playerid, playerInfoPTD[playerid][x]);
+HideVehicleInfo(playerid) {
+	for (new i = 0; i < sizeof(vehicleInfoPTD[]); i++) {
+	    PlayerTextDrawHide(playerid, vehicleInfoPTD[playerid][i]);
 	}
 
-	for (new x = 0; x < sizeof(playerInfoFrameTD); x++) {
-		TextDrawHideForPlayer(playerid, playerInfoFrameTD[x]);
+	for (new i = 0; i < sizeof(vehicleInfoFrameTD); i++) {
+	    TextDrawHideForPlayer(playerid, vehicleInfoFrameTD[i]);
 	}
 
-	for (new x = 0; x < sizeof(playerInfoTD); x++) {
-	    TextDrawHideForPlayer(playerid, playerInfoTD[x]);
+	for (new i = 0; i < sizeof(vehicleInfoTD); i++) {
+	    TextDrawHideForPlayer(playerid, vehicleInfoTD[i]);
 	}
+}
 
-	for (new x = 0; x < sizeof(vehicleInfoPTD[]); x++) {
-	    PlayerTextDrawHide(playerid, vehicleInfoPTD[playerid][x]);
-	}
+UpdateVehicleInfo(playerid, vehicleid) {
+	new Float:amount;
+	GetVehicleHealth(vehicleid, amount);
+	
+	new string[128];
+	format(string, sizeof(string), "HEALTH: ~w~%i/1000", floatround(amount));
+	PlayerTextDrawSetString(playerid, vehicleInfoPTD[playerid][2], string);
 
-	for (new x = 0; x < sizeof(vehicleInfoFrameTD); x++) {
-	    TextDrawHideForPlayer(playerid, vehicleInfoFrameTD[x]);
-	}
+	new Float:barLength = ((clamp(floatround(amount), 0, 1000) / 1000.0) * 94.5);
+	TextDrawTextSize(vehicleInfoTD[3], barLength, 3.0000);
+	TextDrawShowForPlayer(playerid, vehicleInfoTD[3]);
 
-	for (new x = 0; x < sizeof(vehicleInfoTD); x++) {
-	    TextDrawHideForPlayer(playerid, vehicleInfoTD[x]);
-	}
+	new Float:vx, Float:vy, Float:vz;
+	GetVehicleVelocity(vehicleid, vx, vy, vz);
+	format(string, sizeof(string), "SPEED: ~w~%0.1f KM/H", GetSpeed(vx, vy, vz));
+	PlayerTextDrawSetString(playerid, vehicleInfoPTD[playerid][3], string);
 }
 
 GetNextPlayer(current) {
@@ -609,7 +599,7 @@ GetNextPlayer(current) {
 			next = Iter_Next(SpectatePlayers, current);
 
 			if (next == Iter_End(SpectatePlayers)) {
-			    next = Iter_Begin(SpectatePlayers);
+			    next = Iter_First(SpectatePlayers);
 			}
 		}
 	}
@@ -625,7 +615,7 @@ GetPreviousPlayer(current) {
 			prev = Iter_Prev(SpectatePlayers, current);
 
 			if (prev == Iter_Begin(SpectatePlayers)) {
-			    prev = Iter_End(SpectatePlayers);
+			    prev = Iter_Last(SpectatePlayers);
 			}
 		}
 	}
@@ -642,15 +632,17 @@ StartSpectate(playerid, targetid) {
 	new vehicleid = GetPlayerVehicleID(targetid);
 	if (vehicleid != 0) {
 		PlayerSpectateVehicle(playerid, vehicleid, SPECTATE_MODE_NORMAL);
+		ShowPlayerInfo(playerid, targetid);
+		ShowVehicleInfo(playerid, vehicleid);
 	}
 	else {
 	    PlayerSpectatePlayer(playerid, targetid, SPECTATE_MODE_NORMAL);
+		ShowPlayerInfo(playerid, targetid);
+		HideVehicleInfo(playerid);
 	}
 
-	ShowPlayerTextDraws(playerid, targetid, vehicleid);
-
     playerSpectateID[playerid] = targetid;
-	playerSpectateVehicleID[playerid] = (vehicleid == 0) ? INVALID_VEHICLE_ID : vehicleid;
+    playerSpectateTypeVehicle[playerid] = (vehicleid != 0);
 
 	return SelectTextDraw(playerid, 0xAA0000FF);
 }
@@ -658,10 +650,11 @@ StartSpectate(playerid, targetid) {
 StopSpectate(playerid) {
 	TogglePlayerSpectating(playerid, 0);
 
-    HidePlayerTextDraws(playerid);
+    HidePlayerInfo(playerid);
+    HideVehicleInfo(playerid);
 
 	playerSpectateID[playerid] = INVALID_PLAYER_ID;
-	playerSpectateVehicleID[playerid] = INVALID_VEHICLE_ID;
+    playerSpectateTypeVehicle[playerid] = false;
 
 	return CancelSelectTextDraw(playerid);
 }
@@ -694,6 +687,7 @@ public OnFilterScriptExit() {
 
 public OnPlayerConnect(playerid) {
     playerSpectateID[playerid] = INVALID_PLAYER_ID;
+    playerSpectateTypeVehicle[playerid] = false;
 
     CreatePlayerTextDraws(playerid);
 
@@ -703,59 +697,23 @@ public OnPlayerConnect(playerid) {
 public OnPlayerStateChange(playerid, newstate, oldstate) {
 	if (newstate == PLAYER_STATE_DRIVER || newstate == PLAYER_STATE_PASSENGER) {
 	    new vehicleid = GetPlayerVehicleID(playerid);
-		new modelid = GetVehicleModel(vehicleid);
-
-	    new string[128];
-
+	    
 	    foreach (new i : Player) {
 			if (playerSpectateID[i] == playerid) {
-    			playerSpectateVehicleID[i] = vehicleid;
-
-    			PlayerSpectateVehicle(playerid, vehicleid, SPECTATE_MODE_NORMAL);
-
-				TextDrawSetPreviewModel(vehicleInfoTD[1], modelid);
-
-			    GetVehicleModelName(modelid, string, sizeof(string));
-				PlayerTextDrawSetString(i, vehicleInfoPTD[i][0], string);
-
-				format(string, sizeof(string), "MODELID: %i", modelid);
-				PlayerTextDrawSetString(playerid, vehicleInfoPTD[i][1], string);
-
-				format(string, sizeof(string), "[maximum: %0.1f km/h]", GetVehicleModelTopSpeed(modelid));
-				PlayerTextDrawSetString(playerid, vehicleInfoPTD[i][4], string);
-
-				for (new x = 0; x < sizeof(vehicleInfoPTD[]); x++) {
-				    PlayerTextDrawShow(i, vehicleInfoPTD[i][x]);
-				}
-
-				for (new x = 0; x < sizeof(vehicleInfoFrameTD); x++) {
-				    TextDrawShowForPlayer(i, vehicleInfoFrameTD[x]);
-				}
-
-				for (new x = 0; x < sizeof(vehicleInfoTD); x++) {
-				    TextDrawShowForPlayer(i, vehicleInfoTD[x]);
-				}
+    			PlayerSpectateVehicle(i, vehicleid, SPECTATE_MODE_NORMAL);
+    			
+				ShowVehicleInfo(i, vehicleid);
+    			playerSpectateTypeVehicle[i] = true;
 			}
 		}
 	}
 	else if (newstate == PLAYER_STATE_ONFOOT) {
 	    foreach (new i : Player) {
 			if (playerSpectateID[i] == playerid) {
-    			playerSpectateVehicleID[i] = INVALID_VEHICLE_ID;
-
     			PlayerSpectatePlayer(playerid, playerid, SPECTATE_MODE_NORMAL);
 
-				for (new x = 0; x < sizeof(vehicleInfoPTD[]); x++) {
-				    PlayerTextDrawHide(i, vehicleInfoPTD[i][x]);
-				}
-
-				for (new x = 0; x < sizeof(vehicleInfoFrameTD); x++) {
-				    TextDrawHideForPlayer(i, vehicleInfoFrameTD[x]);
-				}
-
-				for (new x = 0; x < sizeof(vehicleInfoTD); x++) {
-				    TextDrawHideForPlayer(i, vehicleInfoTD[x]);
-				}
+				HideVehicleInfo(i);
+    			playerSpectateTypeVehicle[i] = false;
 			}
 		}
 	}
@@ -839,7 +797,7 @@ public OnPlayerDeath(playerid, killerid, reason) {
 
 public OnPlayerSpawn(playerid) {
 	Iter_Add(SpectatePlayers, playerid);
-
+	
 	foreach (new i : Player) {
 		if (playerSpectateID[i] == playerid) {
 			StartSpectate(i, playerid);
@@ -855,7 +813,7 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid) {
 			return SelectTextDraw(playerid, 0xAA0000FF);
 		}
 		else if (clickedid == BUTTON_PREVIOUS) {
-		    new prev = GetPreviousPlayer(playerid);
+		    new prev = GetPreviousPlayer(playerSpectateID[playerid]);
 		    if (prev == INVALID_PLAYER_ID) {
 			    PlayerPlaySound(playerid, 1085, 0.0, 0.0, 0.0);
 			}
@@ -864,7 +822,7 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid) {
 			}
 		}
 		else if (clickedid == BUTTON_NEXT) {
-		    new next = GetNextPlayer(playerid);
+		    new next = GetNextPlayer(playerSpectateID[playerid]);
 		    if (next == INVALID_PLAYER_ID) {
 			    PlayerPlaySound(playerid, 1085, 0.0, 0.0, 0.0);
 			}
@@ -890,7 +848,11 @@ public OnPlayerUpdate(playerid) {
 	}
 
     if (playerSpectateID[playerid] != INVALID_PLAYER_ID) {
-		UpdatePlayerTextDraws(playerid);
+		UpdatePlayerInfo(playerid, playerSpectateID[playerid]);
+		
+		if (playerSpectateTypeVehicle[playerid]) {
+			UpdateVehicleInfo(playerid, GetPlayerVehicleID(playerSpectateID[playerid]));
+		}
 	}
 
 	return 1;
