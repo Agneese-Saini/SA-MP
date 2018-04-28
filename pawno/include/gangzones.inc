@@ -4,7 +4,7 @@
 #define gangzones_included
 
 /**************************************/
-// gangzones.inc - v2.1 - Last Updated: 7 Feb, 2018 - By Gammix & beijind
+// gangzones.inc - v2.2 - Last Updated: 28 April, 2018 - By Gammix & beijind
 /***************************************/
 
 #if !defined GANGZONE_DEFAULT_BORDER_SIZE
@@ -28,7 +28,7 @@ static GangZone@Border[MAX_GANG_ZONES][4];
 static GangZone@Number1[MAX_GANG_ZONES][5];
 static GangZone@Number2[MAX_GANG_ZONES][5];
 
-stock GangZone_CreateBorder(dest[], Float:minx, Float:miny, Float:maxx, Float:maxy, Float:bordersize) {
+static GangZone_CreateBorder(dest[], Float:minx, Float:miny, Float:maxx, Float:maxy, Float:bordersize) {
     dest[0] = GangZoneCreate(minx - bordersize, miny + bordersize, minx + bordersize, maxy - bordersize);
 	dest[1] = GangZoneCreate(minx - bordersize, maxy - bordersize, maxx + bordersize, maxy + bordersize);
 	dest[2] = GangZoneCreate(maxx - bordersize, miny + bordersize, maxx + bordersize, maxy - bordersize);
@@ -41,6 +41,7 @@ stock GangZone_CreateBorder(dest[], Float:minx, Float:miny, Float:maxx, Float:ma
 				GangZoneDestroy(dest[i]);
 				dest[i] = -1;
 			}
+			
 		    return 0;
 		}
 	}
@@ -48,13 +49,13 @@ stock GangZone_CreateBorder(dest[], Float:minx, Float:miny, Float:maxx, Float:ma
 	return 4;
 }
 
-stock GangZone_CreateNumber(dest[], number, Float:centpos_x, Float:centpos_y, Float:numbersize) {
+static GangZone_CreateNumber(dest[], number, Float:centpos_x, Float:centpos_y, Float:numbersize) {
     if (number < '0' || number > '9') {
         return 0;
 	}
 
-	const Float:LETTER_STROKE = 3.5;
-	const Float:LETTER_XSQUASH = 0.7;
+	static const Float:LETTER_STROKE = 3.5;
+	static const Float:LETTER_XSQUASH = 0.7;
 
 	new ret = 0;
 
@@ -190,11 +191,12 @@ stock GangZone_CreateNumber(dest[], number, Float:centpos_x, Float:centpos_y, Fl
 
 	for (new i = 0; i < ret; i++) {
 		if (dest[i] == -1) {
-
+		
 			for (i = 0; i < ret; i++) {
 				GangZoneDestroy(dest[i]);
 				dest[i] = -1;
 			}
+			
 		    return 0;
 		}
 	}
@@ -221,13 +223,24 @@ stock GangZone_Create(Float:minx, Float:miny, Float:maxx, Float:maxy, number = -
 		return -1;
     }
 
-	if (bordersize == 0.0) {
-	    GangZone@Border[index][0] = -1;
-	    GangZone@Border[index][1] = -1;
-	    GangZone@Border[index][2] = -1;
-	    GangZone@Border[index][3] = -1;
-	}
-	else {
+	GangZone@Border[index][0] = -1;
+	GangZone@Border[index][1] = -1;
+	GangZone@Border[index][2] = -1;
+	GangZone@Border[index][3] = -1;
+
+	GangZone@Number1[index][0] = -1;
+	GangZone@Number1[index][1] = -1;
+	GangZone@Number1[index][2] = -1;
+   	GangZone@Number1[index][3] = -1;
+   	GangZone@Number1[index][4] = -1;
+
+    GangZone@Number2[index][0] = -1;
+    GangZone@Number2[index][1] = -1;
+    GangZone@Number2[index][2] = -1;
+    GangZone@Number2[index][3] = -1;
+    GangZone@Number2[index][4] = -1;
+
+	if (bordersize != 0.0) {
 		if (GangZone_CreateBorder(GangZone@Border[index], minx, miny, maxx, maxy, bordersize) == 0) {
       		GangZoneDestroy(GangZone@MainZone[index]);
       		GangZone@MainZone[index] = -1;
@@ -235,20 +248,7 @@ stock GangZone_Create(Float:minx, Float:miny, Float:maxx, Float:maxy, number = -
 		}
 	}
 
-	if (numbersize == 0.0) {
-		GangZone@Number1[index][0] = -1;
-		GangZone@Number1[index][1] = -1;
-	 	GangZone@Number1[index][2] = -1;
-	    GangZone@Number1[index][3] = -1;
-	    GangZone@Number1[index][4] = -1;
-
-	    GangZone@Number2[index][0] = -1;
-	    GangZone@Number2[index][1] = -1;
-	    GangZone@Number2[index][2] = -1;
-	    GangZone@Number2[index][3] = -1;
-	    GangZone@Number2[index][4] = -1;
-	}
-	else {
+	if (numbersize != 0.0) {
 		if (number == -1) {
 			number = (index % 100);
 		}
@@ -318,7 +318,7 @@ stock GangZone_Create(Float:minx, Float:miny, Float:maxx, Float:maxy, number = -
 			return -1;
 		}
 	}
-	
+
 	return index;
 }
 #if defined _ALS_GangZoneCreate
@@ -362,7 +362,6 @@ stock GangZone_Destroy(gangzone) {
 #if defined _ALS_GangZoneDestroy
     #undef GangZoneDestroy
 #else
-	native OLD_GangZoneDestroy(zone) = GangZoneDestroy;
     #define _ALS_GangZoneDestroy
 #endif
 #define GangZoneDestroy GangZone_Destroy
