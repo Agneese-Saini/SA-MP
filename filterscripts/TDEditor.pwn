@@ -3,20 +3,21 @@
 
 #include <a_samp>
 #include <zcmd>
+#include <dialogs>
 #include <easydialog>
 #include <timestamptodate>
 #include <dini2>
 #include <sscanf2>
 
 // Editor info.
-#define VERSION                 "v1.3.3"
-#define DATE                 	"24 Jan, 2018"
+#define VERSION                 "v1.3.4"
+#define DATE                 	"30 April, 2018"
 //
 
 #define PATH_PROJECT_FILES		"TDEditor/Projects/"
 #define PATH_EXPORT_FILES		"TDEditor/Exports/"
 #define PATH_RECORD_FILE        "TDEditor/Records.txt"
-#define PATH_OBJECTS_FILE       "TDEditor/ObjectsData.db"
+#define PATH_OBJECTS_FILE       "TDEditor/ObjectModels.db"
 
 #define MAX_PROJECTS            32
 #define MAX_PROJECT_NAME 		64
@@ -352,10 +353,10 @@ public ShowPlayerGroupDialog(playerid, groupid) {
 		"COL_YELLOW"Edit Group Position\t"COL_GREY"Modify all group textdraws position at the same time\n";
 
 	if (groupData[groupid][E_GROUP_VISIBLE]) {
-  		strcat(string, ""COL_YELLOW"Edit Group Visibility\t"COL_GREY"Current: "COL_GREEN"ON\n");
+  		strcat(string, ""COL_YELLOW"Edit Group Visiblity\t"COL_GREY"Current: "COL_GREEN"ON\n");
 	}
 	else {
-  		strcat(string, ""COL_YELLOW"Edit Group Visibility\t"COL_GREY"Current: "COL_RED"OFF\n");
+  		strcat(string, ""COL_YELLOW"Edit Group Visiblity\t"COL_GREY"Current: "COL_RED"OFF\n");
 	}
 
 	strcat(string, ""COL_YELLOW"Edit Group Name\t"COL_GREY"Current: '"COL_GREEN"");
@@ -927,7 +928,7 @@ public OnPlayerDisconnect(playerid, reason) {
 }
 
 public OnPlayerSpawn(playerid) {
-	SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: Use \"/text\" to open TextDraw Editor menu.");
+	SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: Use \"/text\" to open TextDraw Edtior menu.");
 	return 1;
 }
 
@@ -1803,7 +1804,7 @@ CMD:text(playerid) {
 
 Dialog:MAIN_MENU(playerid, response, listitem, inputtext[]) {
 	if (!response) {
-		return SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: Editor closed.");
+		return SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: Edtior closed.");
 	}
 
 	switch (listitem) {
@@ -2077,7 +2078,7 @@ Dialog:CONFIRM_DELETE_PROJECT(playerid, response, listitem, inputtext[]) {
 
 Dialog:EDITOR_MENU(playerid, response, listitem, inputtext[]) {
 	if (!response) {
-		return SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: Editor closed.");
+		return SendClientMessage(playerid, MESSAGE_COLOR, "TDEditor: Edtior closed.");
 	}
 
 	switch (listitem) {
@@ -2609,12 +2610,12 @@ Dialog:TEXTDRAW_MENU(playerid, response, listitem, inputtext[]) {
 		    if (groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_SELECTABLE]) {
 		        groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_SELECTABLE] = false;
 
-				format(string, sizeof (string), "TDEditor: Textdraw #%i is not Selectable.", textdrawid);
+				format(string, sizeof (string), "TDEditor: Textdraw #%i is Selectable.", textdrawid);
 		    }
 		    else {
 		        groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_SELECTABLE] = true;
 
-				format(string, sizeof (string), "TDEditor: Textdraw #%i is Selectable.", textdrawid);
+				format(string, sizeof (string), "TDEditor: Textdraw #%i is not Selectable.", textdrawid);
 		    }
 
 			TextDrawSetSelectable(groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_ID], groupTextDrawData[groupid][textdrawid][E_TEXTDRAW_SELECTABLE]);
@@ -3247,8 +3248,10 @@ Dialog:SEARCH_PREVIEW_MODEL(playerid, response, listitem, inputtext[]) {
 			return Dialog_Show(playerid, SEARCH_PREVIEW_MODEL, DIALOG_STYLE_INPUT, "TDEditor: Search modelid", ""COL_WHITE"Insert exact "COL_GREEN"MODELID"COL_WHITE" or a "COL_GREEN"OBJECT NAME"COL_WHITE" or a hint so we can find all relative object models and give you a list!\n\n"COL_RED"Error: "COL_GREY"Database file \"allbuildings.db\" wasn't found in scriptfiles.", "Search", "Back");
 		}
 
+		#define MAX_SEARCH_ITEMS 100
+
 		new string[256];
-		format(string, sizeof (string), "SELECT Model, Model_Name FROM buildings WHERE Model_Name LIKE '%s%q%s'", "%", name, "%");
+		format(string, sizeof (string), "SELECT * FROM models WHERE name LIKE '%s%q%s' LIMIT %i", "%", name, "%", MAX_SEARCH_ITEMS);
 		new DBResult:result = db_query(db, string);
 		if (!result) {
 		    db_close(db);
@@ -3262,9 +3265,10 @@ Dialog:SEARCH_PREVIEW_MODEL(playerid, response, listitem, inputtext[]) {
 		}
 
 		new count;
-		static info[100 * (32 + 1)];
-		info = "Model\tModel Name\n";
-
+		static info[MAX_SEARCH_ITEMS * (45 + 16)];
+		
+		info[0] = EOS;
+		
 		do {
 		    if (count++ == 100) {
 				break;
@@ -3278,7 +3282,7 @@ Dialog:SEARCH_PREVIEW_MODEL(playerid, response, listitem, inputtext[]) {
 		db_free_result(result);
 		db_close(db);
 
-		return Dialog_Show(playerid, CHOOSE_PREVIEW_MODEL, DIALOG_STYLE_TABLIST_HEADERS, "TDEditor: Search modelid", info, "Set", "Back");
+		return Dialog_Show(playerid, CHOOSE_PREVIEW_MODEL, DIALOG_STYLE_PREVIEW_MODEL, "TDEditor: Search modelid", info, "Set", "Back");
 	}
 }
 
