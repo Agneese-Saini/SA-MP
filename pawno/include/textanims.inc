@@ -434,11 +434,11 @@ public __OnTextDrawAnimate(index, update_rate) {
 	textDrawAnimation[index][E_ANIMATION_FROM_ROT_ZOOM] = newrot[3];
 	
 	if (!savechanges) {        
-        TextAnim_Stop(index);
-
 	    #if defined OnTextDrawAnimated
         	OnTextDrawAnimated(index);
         #endif
+		
+        TextAnim_Stop(index);
         return;
 	}
 	
