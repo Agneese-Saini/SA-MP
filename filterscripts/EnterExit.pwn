@@ -38,8 +38,8 @@ public OnPlayerEnterExit(playerid, enxid) {
 	if (enxid == 0) {
 		// first enter exit code here!
 	}
-	
-	return 1;
+
+	return 1; // returning 0 will not allow player to use/teleport from enter-exit pickup
 }
 // END
 
@@ -82,10 +82,10 @@ public OnPlayerPickUpDynamicPickup(playerid, pickupid) {
 	    if (pickupid == ENTER_EXITS[i][ENTER_EXIT_PICKUPID]) {
 	        if (bool:(OnPlayerEnterExit(playerid, i)) == true) {
          		TextAnim_SetData(playerid, E_ANIMATION_TEXTDRAW, enterExitTextDraw);
-			    TextAnim_SetData(playerid, E_ANIMATION_FROM_COLOR, 0x00);
-			    TextAnim_SetData(playerid, E_ANIMATION_TO_COLOR, 0xFF);
+			    TextAnim_SetData(playerid, E_ANIMATION_FROM_BOXCOLOR, 0x00000000);
+			    TextAnim_SetData(playerid, E_ANIMATION_TO_BOXCOLOR, 0x000000FF);
 			    TextAnim_SetData(playerid, E_ANIMATION_PLAYERID, playerid);
-			    TextAnim_Play(playerid, 2, 50);
+			    TextAnim_Play(playerid, 5, 50);
 
 			    TogglePlayerControllable(playerid, false);
 
@@ -122,28 +122,32 @@ public OnDynamicObjectMoved(objectid) {
 }
 
 public OnTextDrawAnimated(index) {
-	new toColor;
-	TextAnim_GetData(index, E_ANIMATION_TO_COLOR, toColor);
+	new toBoxColor;
+	TextAnim_GetData(index, E_ANIMATION_TO_BOXCOLOR, toBoxColor);
 
-	if (toColor == 0xFF) {
-	    new idx = playerEnterExitID[index];
+	printf("toBoxColor = %i", toBoxColor);
 
-	    SetPlayerPos(index, ENTER_EXITS[idx][ENTER_EXIT_TELEPORT][0], ENTER_EXITS[idx][ENTER_EXIT_TELEPORT][1], ENTER_EXITS[idx][ENTER_EXIT_TELEPORT][2]);
-		SetPlayerInterior(index, ENTER_EXITS[idx][ENTER_EXIT_TELEPORT_INTERIORID]);
-		SetPlayerVirtualWorld(index, ENTER_EXITS[idx][ENTER_EXIT_TELEPORT_WORLDID]);
-		
-		GameTextForPlayer(index, ENTER_EXITS[idx][ENTER_EXIT_NAME], 5000, 6);
+	new playerid = index;
+
+	if (toBoxColor == 0x000000FF) {
+	    new idx = playerEnterExitID[playerid];
+
+	    SetPlayerPos(playerid, ENTER_EXITS[idx][ENTER_EXIT_TELEPORT][0], ENTER_EXITS[idx][ENTER_EXIT_TELEPORT][1], ENTER_EXITS[idx][ENTER_EXIT_TELEPORT][2]);
+		SetPlayerInterior(playerid, ENTER_EXITS[idx][ENTER_EXIT_TELEPORT_INTERIORID]);
+		SetPlayerVirtualWorld(playerid, ENTER_EXITS[idx][ENTER_EXIT_TELEPORT_WORLDID]);
+
+		GameTextForPlayer(playerid, ENTER_EXITS[idx][ENTER_EXIT_NAME], 5000, 6);
 
 		TextAnim_SetData(index, E_ANIMATION_TEXTDRAW, enterExitTextDraw);
-	    TextAnim_SetData(index, E_ANIMATION_FROM_COLOR, 0xFF);
-	    TextAnim_SetData(index, E_ANIMATION_TO_COLOR, 0x00);
-	    TextAnim_SetData(index, E_ANIMATION_PLAYERID, index);
-	    TextAnim_Play(index, 2, 50);
+	    TextAnim_SetData(index, E_ANIMATION_FROM_BOXCOLOR, 0x000000FF);
+	    TextAnim_SetData(index, E_ANIMATION_TO_BOXCOLOR, 0x00000000);
+	    TextAnim_SetData(index, E_ANIMATION_PLAYERID, playerid);
+	    TextAnim_Play(index, 5, 50);
 	}
-	else if (toColor == 0x00) {
-		TogglePlayerControllable(index, true);
+	else if (toBoxColor == 0x00000000) {
+		TogglePlayerControllable(playerid, true);
 
-	    TextDrawHideForPlayer(index, enterExitTextDraw);
+	    TextDrawHideForPlayer(playerid, enterExitTextDraw);
 	}
 
 	return 1;
