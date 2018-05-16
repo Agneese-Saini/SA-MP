@@ -3,1113 +3,868 @@
 #endif
 #define _progress2_included
 
-#define BAR_DIRECTION_RIGHT \
-	0
-#define BAR_DIRECTION_LEFT \
-	1
-#define BAR_DIRECTION_UP \
-	2
-#define BAR_DIRECTION_DOWN \
-	3
+#define MAX_GLOBAL_BARS (MAX_TEXT_DRAWS / 3)
+#define MAX_PLAYER_BARS (MAX_PLAYER_TEXT_DRAWS / 3)
 
-#define BAR_TEXTDRAW_BACKGROUND \
-	0
-#define BAR_TEXTDRAW_FILL \
-	1
-#define BAR_TEXTDRAW_MAIN \
-	2
+#define INVALID_BAR_ID (Bar:-1)
 
-enum PB_e_BAR
-{
-	PB_e_BAR_DIRECTION,
-	Float:PB_e_BAR_X,
-	Float:PB_e_BAR_Y,
-	Float:PB_e_BAR_WIDTH,
-	Float:PB_e_BAR_HEIGHT,
-	PB_e_BAR_COLOR,
-	PB_e_BAR_BACKGROUND_COLOR,
-	Float:PB_e_BAR_VALUE,
-	Float:PB_e_BAR_MAX_VALUE
+#define DEFAULT_BAR_INITIAL_VALUE 0.0
+#define DEFAULT_BAR_MAX_VALUE 100.0
+
+#define DEFAULT_BAR_BORDER_COLOR 0x383838ff
+#define DEFAULT_BAR_BACKGROUND_COLOR 0x87b4ffff
+#define DEFAULT_BAR_FILLER_COLOR 0x3f87fcff
+
+enum {
+	BAR_DIRECTION_RIGHT,
+	BAR_DIRECTION_LEFT,
+	BAR_DIRECTION_UP,
+	BAR_DIRECTION_DOWN
 };
 
-static Float:PB_BarPercent(Float:x, Float:widthorheight, Float:max, Float:value, direction)
-{
-	new Float:ret;
-	switch(direction)
-	{
+enum E_PROGRESS_BAR_DATA {
+	bool:BAR_VALID,
+	BAR_TEXTDRAW_BORDER,
+	BAR_TEXTDRAW_BACKGROUND,
+	BAR_TEXTDRAW_FILLER,
+	BAR_FILLER_COLOR,
+	BAR_DIRECTION,
+	Float:BAR_X,
+	Float:BAR_Y,
+	Float:BAR_WIDTH,
+	Float:BAR_HEIGHT,
+	Float:BAR_VALUE,
+	Float:BAR_MAX_VALUE
+};
+
+static globalProgressBarData[Bar:MAX_GLOBAL_BARS][E_PROGRESS_BAR_DATA];
+static bool:globalProgressBarShown[MAX_PLAYERS][Bar:MAX_GLOBAL_BARS];
+
+static playerProgressBarData[MAX_PLAYERS][Bar:MAX_PLAYER_BARS][E_PROGRESS_BAR_DATA];
+static bool:playerProgressBarShown[MAX_PLAYERS][Bar:MAX_PLAYER_BARS];
+
+static Float:GetBarFill(Float:x, Float:widthorheight, Float:max, Float:value, direction) {
+	switch(direction) {
 		case BAR_DIRECTION_RIGHT:
-		{
-			ret = ((x - 3.0) + (((((x - 2.0) + widthorheight) - x) / max) * value));
-		}
+			return ((x - 3.0) + (((((x - 2.0) + widthorheight) - x) / max) * value));
 
 		case BAR_DIRECTION_LEFT:
-		{
-			ret = ((x - 1.0) - (((((x + 2.0) - widthorheight) - x) / max) * -value)) - 4.0;
-		}
+			return ((x - 1.0) - (((((x + 2.0) - widthorheight) - x) / max) * -value)) - 4.0;
 
 		case BAR_DIRECTION_UP:
-		{
-			ret = -((((((widthorheight / 10.0) - 0.45) * 1.02) / max) * value) + 0.55);
-		}
+			return -((((((widthorheight / 10.0) - 0.45) * 1.02) / max) * value) + 0.55);
 
 		case BAR_DIRECTION_DOWN:
-		{
-			ret = ((((((widthorheight / 10.0) - 0.45) * 1.02) / max) * value) - 0.55);
-		}
+			return ((((((widthorheight / 10.0) - 0.45) * 1.02) / max) * value) - 0.55);
 	}
-	return ret;
+
+	return 0.0;
 }
 
-/******************************
-*
-*
-*   PLAYER PROGRESS BARS
-*
-*
-******************************/
+static CreateBarBorderTextDraw(Float:x, Float:y, Float:width, Float:height, border_color, direction, playerid) {
+	new border;
 
-/*
-native PlayerBar: CreatePlayerProgressBar(playerid, Float:x, Float:y, Float:width = 55.5, Float:height = 3.2, color = 0xFF1C1CFF, Float:max = 100.0, direction = BAR_DIRECTION_RIGHT, bgcolor = 0x000000FF);
-native IsValidPlayerProgressBar(playerid, PlayerBar:barid);
-native DestroyPlayerProgressBar(playerid, PlayerBar:barid);
-native ShowPlayerProgressBar(playerid, PlayerBar:barid);
-native HidePlayerProgressBar(playerid, PlayerBar:barid);
-native GetPlayerProgressBarDirection(playerid, PlayerBar:barid);
-native GetPlayerProgressBarPos(playerid, PlayerBar:barid, &Float:x, &Float:y);
-native Float:GetPlayerProgressBarHeight(playerid, PlayerBar:barid);
-native Float:GetPlayerProgressBarWidth(playerid, PlayerBar:barid);
-native GetPlayerProgressBarBGColor(playerid, PlayerBar:barid);
-native GetPlayerProgressBarColor(playerid, PlayerBar:barid);
-native Float:GetPlayerProgressBarValue(playerid, PlayerBar:barid);
-native Float:GetPlayerProgressBarMaxValue(playerid, PlayerBar:barid);
-native SetPlayerProgressBarDirection(playerid, PlayerBar:barid);
-native SetPlayerProgressBarPos(playerid, PlayerBar:barid, &Float:x, &Float:y);
-native SetPlayerProgressBarHeight(playerid, PlayerBar:barid, Float:height);
-native SetPlayerProgressBarWidth(playerid, PlayerBar:barid, Float:width);
-native SetPlayerProgressBarBGColor(playerid, PlayerBar:barid, bgcolor);
-native SetPlayerProgressBarColor(playerid, PlayerBar:barid, color);
-native SetPlayerProgressBarValue(playerid, PlayerBar:barid, Float:value);
-native SetPlayerProgressBarMaxValue(playerid, PlayerBar:barid, Float:maxvalue);
-native CountPlayerProgressBars(playerid);
-*/
-
-#if !defined MAX_PLAYER_BARS
-	#define MAX_PLAYER_BARS \
-		(MAX_PLAYER_TEXT_DRAWS / 3)
-#endif
-
-#define INVALID_PLAYER_BAR_ID \
-	(PlayerBar:-1)
-
-static PB_ePlayerBar[MAX_PLAYERS][PlayerBar:MAX_PLAYER_BARS][PB_e_BAR];
-static PlayerText:PB_ptxtBar[MAX_PLAYERS][PlayerBar:MAX_PLAYER_BARS][3];
-static bool:PB_bPlayerBarShown[MAX_PLAYERS][PlayerBar:MAX_PLAYER_BARS];
-static PB_iPlayerBarCount[MAX_PLAYERS];
-
-static stock PB_RenderPlayerBar(playerid, PlayerBar:barid)
-{
-	PlayerTextDrawDestroy(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND]);
-	PlayerTextDrawDestroy(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL]);
-	PlayerTextDrawDestroy(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN]);
-
-	switch (PB_ePlayerBar[playerid][barid][PB_e_BAR_DIRECTION])
-	{
-		case BAR_DIRECTION_RIGHT:
-		{
-			PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND] = CreatePlayerTextDraw(playerid, PB_ePlayerBar[playerid][barid][PB_e_BAR_X], PB_ePlayerBar[playerid][barid][PB_e_BAR_Y], "_");
-			PlayerTextDrawUseBox		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND], 1);
-			PlayerTextDrawTextSize		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND], PB_ePlayerBar[playerid][barid][PB_e_BAR_X] + PB_ePlayerBar[playerid][barid][PB_e_BAR_WIDTH] - 4.0, 0.0);
-			PlayerTextDrawLetterSize	(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND], 1.0, PB_ePlayerBar[playerid][barid][PB_e_BAR_HEIGHT] / 10);
-			PlayerTextDrawBoxColor		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND], PB_ePlayerBar[playerid][barid][PB_e_BAR_BACKGROUND_COLOR]);
-
-			PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL] = CreatePlayerTextDraw(playerid, PB_ePlayerBar[playerid][barid][PB_e_BAR_X] + 1.2, PB_ePlayerBar[playerid][barid][PB_e_BAR_Y] + 2.15, "_");
-			PlayerTextDrawUseBox		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], 1);
-			PlayerTextDrawTextSize		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], PB_ePlayerBar[playerid][barid][PB_e_BAR_X] + PB_ePlayerBar[playerid][barid][PB_e_BAR_WIDTH] - 5.5, 0.0);
-			PlayerTextDrawLetterSize	(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], 1.0, PB_ePlayerBar[playerid][barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
-			PlayerTextDrawBoxColor		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], (PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
-
-			PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN] = CreatePlayerTextDraw(playerid, PB_ePlayerBar[playerid][barid][PB_e_BAR_X] + 1.2, PB_ePlayerBar[playerid][barid][PB_e_BAR_Y] + 2.15, "_");
-			PlayerTextDrawUseBox		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], 1);
-			PlayerTextDrawTextSize		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], PB_BarPercent(PB_ePlayerBar[playerid][barid][PB_e_BAR_X], PB_ePlayerBar[playerid][barid][PB_e_BAR_WIDTH], PB_ePlayerBar[playerid][barid][PB_e_BAR_MAX_VALUE], PB_ePlayerBar[playerid][barid][PB_e_BAR_VALUE], PB_ePlayerBar[playerid][barid][PB_e_BAR_DIRECTION]), 0.0);
-			PlayerTextDrawLetterSize	(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], 1.0, PB_ePlayerBar[playerid][barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
-			PlayerTextDrawBoxColor		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR]);
+    switch (direction) {
+		case BAR_DIRECTION_RIGHT: {
+		    if (playerid == -1) {
+				border = _:TextDrawCreate(x, y, "_");
+				TextDrawUseBox(Text:border, 1);
+				TextDrawTextSize(Text:border, (x + width - 4.0), 0.0);
+				TextDrawLetterSize(Text:border, 1.0, (height / 10));
+				TextDrawBoxColor(Text:border, border_color);
+			}
+			else  {
+				border = _:CreatePlayerTextDraw(playerid, x, y, "_");
+				PlayerTextDrawUseBox(playerid, PlayerText:border, 1);
+				PlayerTextDrawTextSize(playerid, PlayerText:border, (x + width - 4.0), 0.0);
+				PlayerTextDrawLetterSize(playerid, PlayerText:border, 1.0, (height / 10));
+				PlayerTextDrawBoxColor(playerid, PlayerText:border, border_color);
+			}
 		}
 
-		case BAR_DIRECTION_LEFT:
-		{
-			PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND] = CreatePlayerTextDraw(playerid, PB_ePlayerBar[playerid][barid][PB_e_BAR_X], PB_ePlayerBar[playerid][barid][PB_e_BAR_Y], "_");
-			PlayerTextDrawUseBox		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND], 1);
-			PlayerTextDrawTextSize		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND], PB_ePlayerBar[playerid][barid][PB_e_BAR_X] - PB_ePlayerBar[playerid][barid][PB_e_BAR_WIDTH] - 4.0, 0.0);
-			PlayerTextDrawLetterSize	(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND], 1.0, PB_ePlayerBar[playerid][barid][PB_e_BAR_HEIGHT] / 10);
-			PlayerTextDrawBoxColor		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND], PB_ePlayerBar[playerid][barid][PB_e_BAR_BACKGROUND_COLOR]);
-
-			PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL] = CreatePlayerTextDraw(playerid, PB_ePlayerBar[playerid][barid][PB_e_BAR_X] - 1.2, PB_ePlayerBar[playerid][barid][PB_e_BAR_Y] + 2.15, "_");
-			PlayerTextDrawUseBox		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], 1);
-			PlayerTextDrawTextSize		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], PB_ePlayerBar[playerid][barid][PB_e_BAR_X] - PB_ePlayerBar[playerid][barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
-			PlayerTextDrawLetterSize	(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], 1.0, PB_ePlayerBar[playerid][barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
-			PlayerTextDrawBoxColor		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], (PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
-
-			PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN] = CreatePlayerTextDraw(playerid, PB_ePlayerBar[playerid][barid][PB_e_BAR_X] - 1.2, PB_ePlayerBar[playerid][barid][PB_e_BAR_Y] + 2.15, "_");
-			PlayerTextDrawUseBox		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], 1);
-			PlayerTextDrawTextSize		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], PB_BarPercent(PB_ePlayerBar[playerid][barid][PB_e_BAR_X], PB_ePlayerBar[playerid][barid][PB_e_BAR_WIDTH], PB_ePlayerBar[playerid][barid][PB_e_BAR_MAX_VALUE], PB_ePlayerBar[playerid][barid][PB_e_BAR_VALUE], PB_ePlayerBar[playerid][barid][PB_e_BAR_DIRECTION]), 0.0);
-			PlayerTextDrawLetterSize	(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], 1.0, PB_ePlayerBar[playerid][barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
-			PlayerTextDrawBoxColor		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR]);
+		case BAR_DIRECTION_LEFT: {
+		    if (playerid == -1) {
+				border = _:TextDrawCreate(x, y, "_");
+				TextDrawUseBox(Text:border, 1);
+				TextDrawTextSize(Text:border, (x - width - 4.0), 0.0);
+				TextDrawLetterSize(Text:border, 1.0, (height / 10));
+				TextDrawBoxColor(Text:border, border_color);
+			}
+			else  {
+				border = _:CreatePlayerTextDraw(playerid, x, y, "_");
+				PlayerTextDrawUseBox(playerid, PlayerText:border, 1);
+				PlayerTextDrawTextSize(playerid, PlayerText:border, (x - width - 4.0), 0.0);
+				PlayerTextDrawLetterSize(playerid, PlayerText:border, 1.0, (height / 10));
+				PlayerTextDrawBoxColor(playerid, PlayerText:border, border_color);
+			}
 		}
 
-		case BAR_DIRECTION_UP:
-		{
-			PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND] = CreatePlayerTextDraw(playerid, PB_ePlayerBar[playerid][barid][PB_e_BAR_X], PB_ePlayerBar[playerid][barid][PB_e_BAR_Y], "_");
-			PlayerTextDrawUseBox		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND], 1);
-			PlayerTextDrawTextSize		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND], PB_ePlayerBar[playerid][barid][PB_e_BAR_X] - PB_ePlayerBar[playerid][barid][PB_e_BAR_WIDTH] - 4.0, 0.0);
-			PlayerTextDrawLetterSize	(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND], 1.0, -((PB_ePlayerBar[playerid][barid][PB_e_BAR_HEIGHT] / 10) * 1.02) -0.35);
-			PlayerTextDrawBoxColor		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND], PB_ePlayerBar[playerid][barid][PB_e_BAR_BACKGROUND_COLOR]);
-
-			PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL] = CreatePlayerTextDraw(playerid, PB_ePlayerBar[playerid][barid][PB_e_BAR_X] - 1.2, PB_ePlayerBar[playerid][barid][PB_e_BAR_Y] - 1.0, "_");
-			PlayerTextDrawUseBox		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], 1);
-			PlayerTextDrawTextSize		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], PB_ePlayerBar[playerid][barid][PB_e_BAR_X] - PB_ePlayerBar[playerid][barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
-			PlayerTextDrawLetterSize	(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], 1.0, -(PB_ePlayerBar[playerid][barid][PB_e_BAR_HEIGHT] / 10.0) * 1.02);
-			PlayerTextDrawBoxColor		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], (PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
-
-			PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN] = CreatePlayerTextDraw(playerid, PB_ePlayerBar[playerid][barid][PB_e_BAR_X] - 1.2, PB_ePlayerBar[playerid][barid][PB_e_BAR_Y] - 1.0, "_");
-			PlayerTextDrawUseBox		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], 1);
-			PlayerTextDrawTextSize		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], PB_ePlayerBar[playerid][barid][PB_e_BAR_X] - PB_ePlayerBar[playerid][barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
-			PlayerTextDrawLetterSize	(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], 1.0, PB_BarPercent(PB_ePlayerBar[playerid][barid][PB_e_BAR_X], PB_ePlayerBar[playerid][barid][PB_e_BAR_HEIGHT], PB_ePlayerBar[playerid][barid][PB_e_BAR_MAX_VALUE], PB_ePlayerBar[playerid][barid][PB_e_BAR_VALUE], PB_ePlayerBar[playerid][barid][PB_e_BAR_DIRECTION]));
-			PlayerTextDrawBoxColor		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR]);
+		case BAR_DIRECTION_UP: {
+		    if (playerid == -1) {
+				border = _:TextDrawCreate(x, y, "_");
+				TextDrawUseBox(Text:border, 1);
+				TextDrawTextSize(Text:border, (x - width - 4.0), 0.0);
+				TextDrawLetterSize(Text:border, 1.0, (-((height / 10) * 1.02) - 0.35));
+				TextDrawBoxColor(Text:border, border_color);
+			}
+			else  {
+				border = _:CreatePlayerTextDraw(playerid, x, y, "_");
+				PlayerTextDrawUseBox(playerid, PlayerText:border, 1);
+				PlayerTextDrawTextSize(playerid, PlayerText:border, (x - width - 4.0), 0.0);
+				PlayerTextDrawLetterSize(playerid, PlayerText:border, 1.0, (-((height / 10) * 1.02) - 0.35));
+				PlayerTextDrawBoxColor(playerid, PlayerText:border, border_color);
+			}
 		}
 
-		case BAR_DIRECTION_DOWN:
-		{
-			PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND] = CreatePlayerTextDraw(playerid, PB_ePlayerBar[playerid][barid][PB_e_BAR_X], PB_ePlayerBar[playerid][barid][PB_e_BAR_Y], "_");
-			PlayerTextDrawUseBox		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND], 1);
-			PlayerTextDrawTextSize		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND], PB_ePlayerBar[playerid][barid][PB_e_BAR_X] - PB_ePlayerBar[playerid][barid][PB_e_BAR_WIDTH] - 4.0, 0.0);
-			PlayerTextDrawLetterSize	(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND], 1.0, ((PB_ePlayerBar[playerid][barid][PB_e_BAR_HEIGHT] / 10)) -0.35);
-			PlayerTextDrawBoxColor		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND], PB_ePlayerBar[playerid][barid][PB_e_BAR_BACKGROUND_COLOR]);
-
-			PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL] = CreatePlayerTextDraw(playerid, PB_ePlayerBar[playerid][barid][PB_e_BAR_X] - 1.2, PB_ePlayerBar[playerid][barid][PB_e_BAR_Y] + 1.0, "_");
-			PlayerTextDrawUseBox		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], 1);
-			PlayerTextDrawTextSize		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], PB_ePlayerBar[playerid][barid][PB_e_BAR_X] - PB_ePlayerBar[playerid][barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
-			PlayerTextDrawLetterSize	(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], 1.0, (PB_ePlayerBar[playerid][barid][PB_e_BAR_HEIGHT] / 10.0) - 0.55);
-			PlayerTextDrawBoxColor		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL], (PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
-
-			PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN] = CreatePlayerTextDraw(playerid, PB_ePlayerBar[playerid][barid][PB_e_BAR_X] - 1.2, PB_ePlayerBar[playerid][barid][PB_e_BAR_Y] + 1.0, "_");
-			PlayerTextDrawUseBox		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], 1);
-			PlayerTextDrawTextSize		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], PB_ePlayerBar[playerid][barid][PB_e_BAR_X] - PB_ePlayerBar[playerid][barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
-			PlayerTextDrawLetterSize	(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], 1.0, PB_BarPercent(PB_ePlayerBar[playerid][barid][PB_e_BAR_X], PB_ePlayerBar[playerid][barid][PB_e_BAR_HEIGHT], PB_ePlayerBar[playerid][barid][PB_e_BAR_MAX_VALUE], PB_ePlayerBar[playerid][barid][PB_e_BAR_VALUE], PB_ePlayerBar[playerid][barid][PB_e_BAR_DIRECTION]));
-			PlayerTextDrawBoxColor		(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN], PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR]);
-		}
-	}
-
-	if (PB_bPlayerBarShown[playerid][barid])
-	{
-		PlayerTextDrawShow(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND]);
-		PlayerTextDrawShow(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL]);
-		PlayerTextDrawShow(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN]);
-	}
-}
-
-stock PlayerBar:CreatePlayerProgressBar(playerid, Float:x, Float:y, Float:width = 55.5, Float:height = 3.2, color = 0xFF1C1CFF, Float:max = 100.0, direction = BAR_DIRECTION_RIGHT, bgcolor = 0x000000FF)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return INVALID_PLAYER_BAR_ID;
-	}
-
-	if (PB_iPlayerBarCount[playerid] == MAX_PLAYER_BARS)
-	{
-	    return INVALID_PLAYER_BAR_ID;
-	}
-
-	new PlayerBar:barid = PlayerBar:PB_iPlayerBarCount[playerid]++;
-
-	PB_ePlayerBar[playerid][barid][PB_e_BAR_DIRECTION] = direction;
-	PB_ePlayerBar[playerid][barid][PB_e_BAR_X] = x;
-	PB_ePlayerBar[playerid][barid][PB_e_BAR_Y] = y;
-	PB_ePlayerBar[playerid][barid][PB_e_BAR_WIDTH] = width;
-	PB_ePlayerBar[playerid][barid][PB_e_BAR_HEIGHT] = height;
-	PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR] = color;
-	PB_ePlayerBar[playerid][barid][PB_e_BAR_BACKGROUND_COLOR] = bgcolor;
-	PB_ePlayerBar[playerid][barid][PB_e_BAR_VALUE] = 0.0;
-	PB_ePlayerBar[playerid][barid][PB_e_BAR_MAX_VALUE] = max;
-
-    PB_bPlayerBarShown[playerid][barid] = false;
-
-	PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND] = PlayerText:INVALID_TEXT_DRAW;
-	PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL] = PlayerText:INVALID_TEXT_DRAW;
-	PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN] = PlayerText:INVALID_TEXT_DRAW;
-	PB_RenderPlayerBar(playerid, barid);
-	return barid;
-}
-
-stock IsValidPlayerProgressBar(playerid, PlayerBar:barid)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	if (barid < PlayerBar:0 || barid >= PlayerBar:PB_iPlayerBarCount[playerid])
-	{
-	    return 0;
-	}
-
-	return 1;
-}
-
-stock DestroyPlayerProgressBar(playerid, PlayerBar:barid)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0;
-	}
-
-	PlayerTextDrawDestroy(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND]);
-	PlayerTextDrawDestroy(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL]);
-	PlayerTextDrawDestroy(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN]);
-
-	for (new PlayerBar:i = barid; i < (PlayerBar:(PB_iPlayerBarCount[playerid] - 1)); i++)
-	{
-		PB_ePlayerBar[playerid][i][PB_e_BAR_DIRECTION] = PB_ePlayerBar[playerid][(i + PlayerBar:1)][PB_e_BAR_DIRECTION];
-		PB_ePlayerBar[playerid][i][PB_e_BAR_X] = PB_ePlayerBar[playerid][(i + PlayerBar:1)][PB_e_BAR_X];
-		PB_ePlayerBar[playerid][i][PB_e_BAR_Y] = PB_ePlayerBar[playerid][(i + PlayerBar:1)][PB_e_BAR_Y];
-		PB_ePlayerBar[playerid][i][PB_e_BAR_WIDTH] = PB_ePlayerBar[playerid][(i + PlayerBar:1)][PB_e_BAR_WIDTH];
-		PB_ePlayerBar[playerid][i][PB_e_BAR_HEIGHT] = PB_ePlayerBar[playerid][(i + PlayerBar:1)][PB_e_BAR_HEIGHT];
-		PB_ePlayerBar[playerid][i][PB_e_BAR_COLOR] = PB_ePlayerBar[playerid][(i + PlayerBar:1)][PB_e_BAR_COLOR];
-		PB_ePlayerBar[playerid][i][PB_e_BAR_BACKGROUND_COLOR] = PB_ePlayerBar[playerid][(i + PlayerBar:1)][PB_e_BAR_BACKGROUND_COLOR];
-		PB_ePlayerBar[playerid][i][PB_e_BAR_VALUE] = PB_ePlayerBar[playerid][(i + PlayerBar:1)][PB_e_BAR_VALUE];
-		PB_ePlayerBar[playerid][i][PB_e_BAR_MAX_VALUE] = PB_ePlayerBar[playerid][(i + PlayerBar:1)][PB_e_BAR_MAX_VALUE];
-
-    	PB_bPlayerBarShown[playerid][i] = PB_bPlayerBarShown[playerid][(i + PlayerBar:1)];
-
-		PB_ptxtBar[playerid][i][BAR_TEXTDRAW_BACKGROUND] = PB_ptxtBar[playerid][(i + PlayerBar:1)][BAR_TEXTDRAW_BACKGROUND];
-		PB_ptxtBar[playerid][i][BAR_TEXTDRAW_FILL] = PB_ptxtBar[playerid][(i + PlayerBar:1)][BAR_TEXTDRAW_FILL];
-		PB_ptxtBar[playerid][i][BAR_TEXTDRAW_MAIN] = PB_ptxtBar[playerid][(i + PlayerBar:1)][BAR_TEXTDRAW_MAIN];
-	}
-
-	PB_iPlayerBarCount[playerid]--;
-	return 1;
-}
-
-stock ShowPlayerProgressBar(playerid, PlayerBar:barid)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0;
-	}
-
-	PlayerTextDrawShow(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND]);
-	PlayerTextDrawShow(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL]);
-	PlayerTextDrawShow(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN]);
-
-	PB_bPlayerBarShown[playerid][barid] = true;
-	return 1;
-}
-
-stock HidePlayerProgressBar(playerid, PlayerBar:barid)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0;
-	}
-
-	PlayerTextDrawHide(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_BACKGROUND]);
-	PlayerTextDrawHide(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_FILL]);
-	PlayerTextDrawHide(playerid, PB_ptxtBar[playerid][barid][BAR_TEXTDRAW_MAIN]);
-
-	PB_bPlayerBarShown[playerid][barid] = false;
-	return 1;
-}
-
-stock GetPlayerProgressBarDirection(playerid, PlayerBar:barid)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0;
-	}
-
-	return PB_ePlayerBar[playerid][barid][PB_e_BAR_DIRECTION];
-}
-
-stock GetPlayerProgressBarPos(playerid, PlayerBar:barid, &Float:x, &Float:y)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0;
-	}
-
-	x = PB_ePlayerBar[playerid][barid][PB_e_BAR_X];
-	y = PB_ePlayerBar[playerid][barid][PB_e_BAR_Y];
-	return 1;
-}
-
-stock Float:GetPlayerProgressBarHeight(playerid, PlayerBar:barid)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0.0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0.0;
-	}
-
-	return PB_ePlayerBar[playerid][barid][PB_e_BAR_HEIGHT];
-}
-
-stock Float:GetPlayerProgressBarWidth(playerid, PlayerBar:barid)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0.0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0.0;
-	}
-
-	return PB_ePlayerBar[playerid][barid][PB_e_BAR_WIDTH];
-}
-
-stock GetPlayerProgressBarBGColor(playerid, PlayerBar:barid)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0;
-	}
-
-	return PB_ePlayerBar[playerid][barid][PB_e_BAR_BACKGROUND_COLOR];
-}
-
-stock GetPlayerProgressBarColor(playerid, PlayerBar:barid)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0;
-	}
-
-	return PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR];
-}
-
-#define GetPlayerProgressBarColour \
-    GetPlayerProgressBarColor
-
-stock Float:GetPlayerProgressBarValue(playerid, PlayerBar:barid)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0.0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0.0;
-	}
-
-	return PB_ePlayerBar[playerid][barid][PB_e_BAR_VALUE];
-}
-
-stock Float:GetPlayerProgressBarMaxValue(playerid, PlayerBar:barid)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0.0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0.0;
-	}
-
-	return PB_ePlayerBar[playerid][barid][PB_e_BAR_MAX_VALUE];
-}
-
-stock SetPlayerProgressBarDirection(playerid, PlayerBar:barid, direction)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0;
-	}
-
-    PB_ePlayerBar[playerid][barid][PB_e_BAR_DIRECTION] = direction;
-	PB_RenderPlayerBar(playerid, barid);
-	return 1;
-}
-
-stock SetPlayerProgressBarPos(playerid, PlayerBar:barid, Float:x, Float:y)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0;
-	}
-
-	PB_ePlayerBar[playerid][barid][PB_e_BAR_X] = x;
-	PB_ePlayerBar[playerid][barid][PB_e_BAR_Y] = y;
-	PB_RenderPlayerBar(playerid, barid);
-	return 1;
-}
-
-stock SetPlayerProgressBarHeight(playerid, PlayerBar:barid, Float:height)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0;
-	}
-
-	PB_ePlayerBar[playerid][barid][PB_e_BAR_HEIGHT] = height;
-	PB_RenderPlayerBar(playerid, barid);
-	return 1;
-}
-
-stock SetPlayerProgressBarWidth(playerid, PlayerBar:barid, Float:width)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0;
-	}
-
-	PB_ePlayerBar[playerid][barid][PB_e_BAR_WIDTH] = width;
-	PB_RenderPlayerBar(playerid, barid);
-	return 1;
-}
-
-stock SetPlayerProgressBarBGColor(playerid, PlayerBar:barid, bgcolor)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0;
-	}
-
-    PB_ePlayerBar[playerid][barid][PB_e_BAR_BACKGROUND_COLOR] = bgcolor;
-	PB_RenderPlayerBar(playerid, barid);
-	return 1;
-}
-
-stock SetPlayerProgressBarColor(playerid, PlayerBar:barid, color)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0;
-	}
-
-    PB_ePlayerBar[playerid][barid][PB_e_BAR_COLOR] = color;
-	PB_RenderPlayerBar(playerid, barid);
-	return 1;
-}
-
-#define SetPlayerProgressBarColour \
-    SetPlayerProgressBarColor
-
-stock SetPlayerProgressBarValue(playerid, PlayerBar:barid, Float:value)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0;
-	}
-
-	PB_ePlayerBar[playerid][barid][PB_e_BAR_VALUE] = value;
-	PB_RenderPlayerBar(playerid, barid);
-	return 1;
-}
-
-stock SetPlayerProgressBarMaxValue(playerid, PlayerBar:barid, Float:maxvalue)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	if (!IsValidPlayerProgressBar(playerid, barid))
-	{
-	    return 0;
-	}
-
-	PB_ePlayerBar[playerid][barid][PB_e_BAR_MAX_VALUE] = maxvalue;
-	PB_RenderPlayerBar(playerid, barid);
-	return 1;
-}
-
-stock CountPlayerProgressBars(playerid)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	return PB_iBarCount;
-}
-
-/******************************
-*
-*
-*   GLOBAL PROGRESS BARS
-*
-*
-******************************/
-
-/*
-native Bar: CreateProgressBar(Float:x, Float:y, Float:width = 55.5, Float:height = 3.2, color = 0xFF1C1CFF, Float:max = 100.0, direction = BAR_DIRECTION_RIGHT, bgcolor = 0x000000FF);
-native IsValidProgressBar(Bar:barid);
-native DestroyProgressBar(Bar:barid);
-native ShowProgressBarForPlayer(playerid, Bar:barid);
-native HideProgressBarForPlayer(playerid, Bar:barid);
-native ShowProgressBarForAll(Bar:barid);
-native HideProgressBarForAll(Bar:barid);
-native GetProgressBarDirection(Bar:barid);
-native GetProgressBarPos(Bar:barid, &Float:x, &Float:y);
-native Float:GetProgressBarHeight(Bar:barid);
-native Float:GetProgressBarWidth(Bar:barid);
-native GetProgressBarBGColor(Bar:barid);
-native GetProgressBarColor(Bar:barid);
-native Float:GetProgressBarValue(Bar:barid);
-native Float:GetProgressBarMaxValue(Bar:barid);
-native SetProgressBarDirection(Bar:barid);
-native SetProgressBarPos(Bar:barid, Float:x, Float:y);
-native SetProgressBarHeight(Bar:barid, Float:height);
-native SetBarWidth(Bar:barid, Float:width);
-native SetProgressBarBGColor(Bar:barid, bgcolor);
-native SetProgressBarColor(Bar:barid, color);
-native SetProgressBarValue(Bar:barid, Float:value);
-native SetProgressBarMaxValue(Bar:barid, Float:maxvalue);
-native CountProgressBars();
-*/
-
-#if !defined MAX_BARS
-	#define MAX_BARS \
-		(MAX_TEXT_DRAWS / 3)
-#endif
-
-#define INVALID_BAR_ID \
-	(Bar:-1)
-
-static PB_eBar[Bar:MAX_BARS][PB_e_BAR];
-static Text:PB_txtBar[Bar:MAX_BARS][3];
-static bool:PB_bBarShownForPlayer[Bar:MAX_BARS][MAX_PLAYERS];
-static PB_iBarCount;
-
-static stock PB_RenderBar(Bar:barid)
-{
-	TextDrawDestroy(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND]);
-	TextDrawDestroy(PB_txtBar[barid][BAR_TEXTDRAW_FILL]);
-	TextDrawDestroy(PB_txtBar[barid][BAR_TEXTDRAW_MAIN]);
-
-	switch (PB_eBar[barid][PB_e_BAR_DIRECTION])
-	{
-		case BAR_DIRECTION_RIGHT:
-		{
-			PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_Y], "_");
-			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1);
-			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_X] + PB_eBar[barid][PB_e_BAR_WIDTH] - 4.0, 0.0);
-			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10);
-			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_BACKGROUND_COLOR]);
-
-			PB_txtBar[barid][BAR_TEXTDRAW_FILL] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X] + 1.2, PB_eBar[barid][PB_e_BAR_Y] + 2.15, "_");
-			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1);
-			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], PB_eBar[barid][PB_e_BAR_X] + PB_eBar[barid][PB_e_BAR_WIDTH] - 5.5, 0.0);
-			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
-			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], (PB_eBar[barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_eBar[barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
-
-			PB_txtBar[barid][BAR_TEXTDRAW_MAIN] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X] + 1.2, PB_eBar[barid][PB_e_BAR_Y] + 2.15, "_");
-			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1);
-			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_BarPercent(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_WIDTH], PB_eBar[barid][PB_e_BAR_MAX_VALUE], PB_eBar[barid][PB_e_BAR_VALUE], PB_eBar[barid][PB_e_BAR_DIRECTION]), 0.0);
-			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
-			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_COLOR]);
-		}
-
-		case BAR_DIRECTION_LEFT:
-		{
-			PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_Y], "_");
-			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1);
-			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 4.0, 0.0);
-			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10);
-			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_BACKGROUND_COLOR]);
-
-			PB_txtBar[barid][BAR_TEXTDRAW_FILL] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] + 2.15, "_");
-			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1);
-			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
-			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
-			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], (PB_eBar[barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_eBar[barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
-
-			PB_txtBar[barid][BAR_TEXTDRAW_MAIN] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] + 2.15, "_");
-			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1);
-			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_BarPercent(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_WIDTH], PB_eBar[barid][PB_e_BAR_MAX_VALUE], PB_eBar[barid][PB_e_BAR_VALUE], PB_eBar[barid][PB_e_BAR_DIRECTION]), 0.0);
-			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1.0, PB_eBar[barid][PB_e_BAR_HEIGHT] / 10 - 0.35);
-			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_COLOR]);
-		}
-
-		case BAR_DIRECTION_UP:
-		{
-			PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_Y], "_");
-			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1);
-			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 4.0, 0.0);
-			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1.0, -((PB_eBar[barid][PB_e_BAR_HEIGHT] / 10) * 1.02) -0.35);
-			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_BACKGROUND_COLOR]);
-
-			PB_txtBar[barid][BAR_TEXTDRAW_FILL] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] - 1.0, "_");
-			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1);
-			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
-			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1.0, -(PB_eBar[barid][PB_e_BAR_HEIGHT] / 10.0) * 1.02);
-			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], (PB_eBar[barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_eBar[barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
-
-			PB_txtBar[barid][BAR_TEXTDRAW_MAIN] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] - 1.0, "_");
-			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1);
-			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
-			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1.0, PB_BarPercent(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_HEIGHT], PB_eBar[barid][PB_e_BAR_MAX_VALUE], PB_eBar[barid][PB_e_BAR_VALUE], PB_eBar[barid][PB_e_BAR_DIRECTION]));
-			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_COLOR]);
-		}
-
-		case BAR_DIRECTION_DOWN:
-		{
-			PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_Y], "_");
-			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1);
-			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 4.0, 0.0);
-			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], 1.0, ((PB_eBar[barid][PB_e_BAR_HEIGHT] / 10)) -0.35);
-			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND], PB_eBar[barid][PB_e_BAR_BACKGROUND_COLOR]);
-
-			PB_txtBar[barid][BAR_TEXTDRAW_FILL] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] + 1.0, "_");
-			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1);
-			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
-			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], 1.0, (PB_eBar[barid][PB_e_BAR_HEIGHT] / 10.0) - 0.55);
-			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_FILL], (PB_eBar[barid][PB_e_BAR_COLOR] & 0xFFFFFF00) | (0x66 & ((PB_eBar[barid][PB_e_BAR_COLOR] & 0x000000FF) / 2)));
-
-			PB_txtBar[barid][BAR_TEXTDRAW_MAIN] = TextDrawCreate(PB_eBar[barid][PB_e_BAR_X] - 1.2, PB_eBar[barid][PB_e_BAR_Y] + 1.0, "_");
-			TextDrawUseBox		(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1);
-			TextDrawTextSize	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_X] - PB_eBar[barid][PB_e_BAR_WIDTH] - 2.5, 0.0);
-			TextDrawLetterSize	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], 1.0, PB_BarPercent(PB_eBar[barid][PB_e_BAR_X], PB_eBar[barid][PB_e_BAR_HEIGHT], PB_eBar[barid][PB_e_BAR_MAX_VALUE], PB_eBar[barid][PB_e_BAR_VALUE], PB_eBar[barid][PB_e_BAR_DIRECTION]));
-			TextDrawBoxColor	(PB_txtBar[barid][BAR_TEXTDRAW_MAIN], PB_eBar[barid][PB_e_BAR_COLOR]);
-		}
-	}
-
-	for (new i, j = GetPlayerPoolSize(); i <= j; i++)
-	{
-	    if (IsPlayerConnected(i))
-	    {
-		    if (PB_bBarShownForPlayer[barid][i])
-		    {
-				TextDrawShowForPlayer(i, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND]);
-				TextDrawShowForPlayer(i, PB_txtBar[barid][BAR_TEXTDRAW_FILL]);
-				TextDrawShowForPlayer(i, PB_txtBar[barid][BAR_TEXTDRAW_MAIN]);
+		case BAR_DIRECTION_DOWN: {
+		    if (playerid == -1) {
+				border = _:TextDrawCreate(x, y, "_");
+				TextDrawUseBox(Text:border, 1);
+				TextDrawTextSize(Text:border, (x - width - 4.0), 0.0);
+				TextDrawLetterSize(Text:border, 1.0, (((height / 10)) - 0.35));
+				TextDrawBoxColor(Text:border, border_color);
+			}
+			else  {
+				border = _:CreatePlayerTextDraw(playerid, x, y, "_");
+				PlayerTextDrawUseBox(playerid, PlayerText:border, 1);
+				PlayerTextDrawTextSize(playerid, PlayerText:border, (x - width - 4.0), 0.0);
+				PlayerTextDrawLetterSize(playerid, PlayerText:border, 1.0, (((height / 10)) - 0.35));
+				PlayerTextDrawBoxColor(playerid, PlayerText:border, border_color);
 			}
 		}
 	}
+
+	return border;
 }
 
-stock Bar:CreateProgressBar(Float:x, Float:y, Float:width = 55.5, Float:height = 3.2, color = 0xFF1C1CFF, Float:max = 100.0, direction = BAR_DIRECTION_RIGHT, bgcolor = 0x000000FF)
-{
-	if (PB_iBarCount == MAX_BARS)
-	{
-	    return INVALID_BAR_ID;
-	}
 
-	new Bar:barid = Bar:PB_iBarCount++;
+static CreateBarBackgroundTextDraw(Float:x, Float:y, Float:width, Float:height, background_color, direction, playerid) {
+	new background;
 
-	PB_eBar[barid][PB_e_BAR_DIRECTION] = direction;
-	PB_eBar[barid][PB_e_BAR_X] = x;
-	PB_eBar[barid][PB_e_BAR_Y] = y;
-	PB_eBar[barid][PB_e_BAR_WIDTH] = width;
-	PB_eBar[barid][PB_e_BAR_HEIGHT] = height;
-	PB_eBar[barid][PB_e_BAR_COLOR] = color;
-	PB_eBar[barid][PB_e_BAR_BACKGROUND_COLOR] = bgcolor;
-	PB_eBar[barid][PB_e_BAR_VALUE] = 0.0;
-	PB_eBar[barid][PB_e_BAR_MAX_VALUE] = max;
-
-	for (new i; i < MAX_PLAYERS; i++)
-	{
-	    PB_bBarShownForPlayer[barid][i] = false;
-	}
-
-	PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND] = Text:INVALID_TEXT_DRAW;
-	PB_txtBar[barid][BAR_TEXTDRAW_FILL] = Text:INVALID_TEXT_DRAW;
-	PB_txtBar[barid][BAR_TEXTDRAW_MAIN] = Text:INVALID_TEXT_DRAW;
-	PB_RenderBar(barid);
-	return barid;
-}
-
-stock IsValidProgressBar(Bar:barid)
-{
-	if (barid < Bar:0 || barid >= Bar:PB_iBarCount)
-	{
-	    return 0;
-	}
-
-	return 1;
-}
-
-stock DestroyProgressBar(Bar:barid)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0;
-	}
-
-	TextDrawDestroy(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND]);
-	TextDrawDestroy(PB_txtBar[barid][BAR_TEXTDRAW_FILL]);
-	TextDrawDestroy(PB_txtBar[barid][BAR_TEXTDRAW_MAIN]);
-
-	for (new Bar:i = barid; i < Bar:(PB_iBarCount - 1); i++)
-	{
-		PB_eBar[i][PB_e_BAR_DIRECTION] = PB_eBar[(i + Bar:1)][PB_e_BAR_DIRECTION];
-		PB_eBar[i][PB_e_BAR_X] = PB_eBar[(i + Bar:1)][PB_e_BAR_X];
-		PB_eBar[i][PB_e_BAR_Y] = PB_eBar[(i + Bar:1)][PB_e_BAR_Y];
-		PB_eBar[i][PB_e_BAR_WIDTH] = PB_eBar[(i + Bar:1)][PB_e_BAR_WIDTH];
-		PB_eBar[i][PB_e_BAR_HEIGHT] = PB_eBar[(i + Bar:1)][PB_e_BAR_HEIGHT];
-		PB_eBar[i][PB_e_BAR_COLOR] = PB_eBar[(i + Bar:1)][PB_e_BAR_COLOR];
-		PB_eBar[i][PB_e_BAR_BACKGROUND_COLOR] = PB_eBar[(i + Bar:1)][PB_e_BAR_BACKGROUND_COLOR];
-		PB_eBar[i][PB_e_BAR_VALUE] = PB_eBar[(i + Bar:1)][PB_e_BAR_VALUE];
-		PB_eBar[i][PB_e_BAR_MAX_VALUE] = PB_eBar[(i + Bar:1)][PB_e_BAR_MAX_VALUE];
-
-		for (new x; x < MAX_PLAYERS; x++)
-		{
-		    PB_bBarShownForPlayer[i][x] = PB_bBarShownForPlayer[(i + Bar:1)][x];
+    switch (direction) {
+		case BAR_DIRECTION_RIGHT: {
+		    if (playerid == -1) {
+				background = _:TextDrawCreate((x + 1.2), (y + 2.15), "_");
+				TextDrawUseBox(Text:background, 1);
+				TextDrawTextSize(Text:background, (x + width - 5.5), 0.0);
+				TextDrawLetterSize(Text:background, 1.0, ((height / 10) - 0.35));
+				TextDrawBoxColor(Text:background, background_color);
+			}
+			else  {
+				background = _:CreatePlayerTextDraw(playerid, (x + 1.2), (y + 2.15), "_");
+				PlayerTextDrawUseBox(playerid, PlayerText:background, 1);
+				PlayerTextDrawTextSize(playerid, PlayerText:background, (x + width - 5.5), 0.0);
+				PlayerTextDrawLetterSize(playerid, PlayerText:background, 1.0, ((height / 10) - 0.35));
+				PlayerTextDrawBoxColor(playerid, PlayerText:background, background_color);
+			}
 		}
 
-		PB_txtBar[i][BAR_TEXTDRAW_BACKGROUND] = PB_txtBar[(i + Bar:1)][BAR_TEXTDRAW_BACKGROUND];
-		PB_txtBar[i][BAR_TEXTDRAW_FILL] = PB_txtBar[(i + Bar:1)][BAR_TEXTDRAW_FILL];
-		PB_txtBar[i][BAR_TEXTDRAW_MAIN] = PB_txtBar[(i + Bar:1)][BAR_TEXTDRAW_MAIN];
-	}
+		case BAR_DIRECTION_LEFT: {
+		    if (playerid == -1) {
+				background = _:TextDrawCreate((x - 1.2), (y + 2.15), "_");
+				TextDrawUseBox(Text:background, 1);
+				TextDrawTextSize(Text:background, (x - width - 2.5), 0.0);
+				TextDrawLetterSize(Text:background, 1.0, ((height / 10) - 0.35));
+				TextDrawBoxColor(Text:background, background_color);
+			}
+			else  {
+				background = _:CreatePlayerTextDraw(playerid, (x - 1.2), (y + 2.15), "_");
+				PlayerTextDrawUseBox(playerid, PlayerText:background, 1);
+				PlayerTextDrawTextSize(playerid, PlayerText:background, (x - width - 2.5), 0.0);
+				PlayerTextDrawLetterSize(playerid, PlayerText:background, 1.0, ((height / 10) - 0.35));
+				PlayerTextDrawBoxColor(playerid, PlayerText:background, background_color);
+			}
+		}
 
-	PB_iBarCount--;
-	return 1;
-}
+		case BAR_DIRECTION_UP: {
+		    if (playerid == -1) {
+				background = _:TextDrawCreate((x - 1.2), (y - 1.0), "_");
+				TextDrawUseBox(Text:background, 1);
+				TextDrawTextSize(Text:background, (x - width - 2.5), 0.0);
+				TextDrawLetterSize(Text:background, 1.0, (-(height / 10.0) * 1.02));
+				TextDrawBoxColor(Text:background, background_color);
+			}
+			else  {
+				background = _:CreatePlayerTextDraw(playerid, (x - 1.2), (y - 1.0), "_");
+				PlayerTextDrawUseBox(playerid, PlayerText:background, 1);
+				PlayerTextDrawTextSize(playerid, PlayerText:background, (x - width - 2.5), 0.0);
+				PlayerTextDrawLetterSize(playerid, PlayerText:background, 1.0, (-(height / 10.0) * 1.02));
+				PlayerTextDrawBoxColor(playerid, PlayerText:background, background_color);
+			}
+		}
 
-stock ShowProgressBarForPlayer(playerid, Bar:barid)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0;
-	}
-
-	TextDrawShowForPlayer(playerid, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND]);
-	TextDrawShowForPlayer(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL]);
-	TextDrawShowForPlayer(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN]);
-
-	PB_bBarShownForPlayer[barid][playerid] = true;
-	return 1;
-}
-
-stock HideProgressBarForPlayer(playerid, Bar:barid)
-{
-	if (playerid < 0 || playerid >= MAX_PLAYERS)
-	{
-	    return 0;
-	}
-
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0;
-	}
-
-	TextDrawHideForPlayer(playerid, PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND]);
-	TextDrawHideForPlayer(playerid, PB_txtBar[barid][BAR_TEXTDRAW_FILL]);
-	TextDrawHideForPlayer(playerid, PB_txtBar[barid][BAR_TEXTDRAW_MAIN]);
-
-	PB_bBarShownForPlayer[barid][playerid] = false;
-	return 1;
-}
-
-stock ShowProgressBarForAll(Bar:barid)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0;
-	}
-
-	TextDrawShowForAll(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND]);
-	TextDrawShowForAll(PB_txtBar[barid][BAR_TEXTDRAW_FILL]);
-	TextDrawShowForAll(PB_txtBar[barid][BAR_TEXTDRAW_MAIN]);
-
-	for (new i, j = GetPlayerPoolSize(); i <= j; i++)
-	{
-	    if (IsPlayerConnected(i))
-	    {
-			PB_bBarShownForPlayer[barid][i] = true;
+		case BAR_DIRECTION_DOWN: {
+		    if (playerid == -1) {
+				background = _:TextDrawCreate((x - 1.2), (y + 1.0), "_");
+				TextDrawUseBox(Text:background, 1);
+				TextDrawTextSize(Text:background, (x - width - 2.5), 0.0);
+				TextDrawLetterSize(Text:background, 1.0, ((height / 10.0) - 0.55));
+				TextDrawBoxColor(Text:background, background_color);
+			}
+			else  {
+				background = _:CreatePlayerTextDraw(playerid, (x - 1.2), (y + 1.0), "_");
+				PlayerTextDrawUseBox(playerid, PlayerText:background, 1);
+				PlayerTextDrawTextSize(playerid, PlayerText:background, (x - width - 2.5), 0.0);
+				PlayerTextDrawLetterSize(playerid, PlayerText:background, 1.0, ((height / 10.0) - 0.55));
+				PlayerTextDrawBoxColor(playerid, PlayerText:background, background_color);
+			}
 		}
 	}
-	return 1;
+
+	return background;
 }
 
-stock HideProgressBarForAll(Bar:barid)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0;
-	}
+static CreateBarFillerTextDraw(Float:x, Float:y, Float:width, Float:height, fill_color, Float:value, Float:max_value, direction, playerid) {
+	new filler;
 
-	TextDrawHideForAll(PB_txtBar[barid][BAR_TEXTDRAW_BACKGROUND]);
-	TextDrawHideForAll(PB_txtBar[barid][BAR_TEXTDRAW_FILL]);
-	TextDrawHideForAll(PB_txtBar[barid][BAR_TEXTDRAW_MAIN]);
+	switch (direction) {
+		case BAR_DIRECTION_RIGHT: {
+		    if (playerid == -1) {
+				filler = _:TextDrawCreate((x + 1.2), (y + 2.15), "_");
+				TextDrawUseBox(Text:filler, 1);
+				TextDrawTextSize(Text:filler, GetBarFill(x, width, max_value, value, direction), 0.0);
+				TextDrawLetterSize(Text:filler, 1.0, ((height / 10) - 0.35));
+				TextDrawBoxColor(Text:filler, fill_color);
+			}
+			else  {
+				filler = _:CreatePlayerTextDraw(playerid, (x + 1.2), (y + 2.15), "_");
+				PlayerTextDrawUseBox(playerid, PlayerText:filler, 1);
+				PlayerTextDrawTextSize(playerid, PlayerText:filler, GetBarFill(x, width, max_value, value, direction), 0.0);
+				PlayerTextDrawLetterSize(playerid, PlayerText:filler, 1.0, ((height / 10) - 0.35));
+				PlayerTextDrawBoxColor(playerid, PlayerText:filler, fill_color);
+			}
+		}
 
-	for (new i, j = GetPlayerPoolSize(); i <= j; i++)
-	{
-	    if (IsPlayerConnected(i))
-	    {
-			PB_bBarShownForPlayer[barid][i] = false;
+		case BAR_DIRECTION_LEFT: {
+		    if (playerid == -1) {
+				filler = _:TextDrawCreate((x - 1.2), (y + 2.15), "_");
+				TextDrawUseBox(Text:filler, 1);
+				TextDrawTextSize(Text:filler, GetBarFill(x, width, max_value, value, direction), 0.0);
+				TextDrawLetterSize(Text:filler, 1.0, ((height / 10) - 0.35));
+				TextDrawBoxColor(Text:filler, fill_color);
+			}
+			else  {
+				filler = _:CreatePlayerTextDraw(playerid, (x - 1.2), (y + 2.15), "_");
+				PlayerTextDrawUseBox(playerid, PlayerText:filler, 1);
+				PlayerTextDrawTextSize(playerid, PlayerText:filler, GetBarFill(x, width, max_value, value, direction), 0.0);
+				PlayerTextDrawLetterSize(playerid, PlayerText:filler, 1.0, ((height / 10) - 0.35));
+				PlayerTextDrawBoxColor(playerid, PlayerText:filler, fill_color);
+			}
+		}
+
+		case BAR_DIRECTION_UP: {
+		    if (playerid == -1) {
+				filler = _:TextDrawCreate((x - 1.2), (y - 1.0), "_");
+				TextDrawUseBox(Text:filler, 1);
+				TextDrawTextSize(Text:filler, (x - width - 2.5), 0.0);
+				TextDrawLetterSize(Text:filler, 1.0, GetBarFill(x, height, max_value, value, direction));
+				TextDrawBoxColor(Text:filler, fill_color);
+			}
+			else  {
+				filler = _:CreatePlayerTextDraw(playerid, (x - 1.2), (y - 1.0), "_");
+				PlayerTextDrawUseBox(playerid, PlayerText:filler, 1);
+				PlayerTextDrawTextSize(playerid, PlayerText:filler, (x - width - 2.5), 0.0);
+				PlayerTextDrawLetterSize(playerid, PlayerText:filler, 1.0, GetBarFill(x, height, max_value, value, direction));
+				PlayerTextDrawBoxColor(playerid, PlayerText:filler, fill_color);
+			}
+		}
+
+		case BAR_DIRECTION_DOWN: {
+		    if (playerid == -1) {
+				filler = _:TextDrawCreate((x - 1.2), (y + 1.0), "_");
+				TextDrawUseBox(Text:filler, 1);
+				TextDrawTextSize(Text:filler, (x - width - 2.5), 0.0);
+				TextDrawLetterSize(Text:filler, 1.0, GetBarFill(x, height, max_value, value, direction));
+				TextDrawBoxColor(Text:filler, fill_color);
+			}
+			else  {
+				filler = _:CreatePlayerTextDraw(playerid, (x - 1.2), (y + 1.0), "_");
+				PlayerTextDrawUseBox(playerid, PlayerText:filler, 1);
+				PlayerTextDrawTextSize(playerid, PlayerText:filler, (x - width - 2.5), 0.0);
+				PlayerTextDrawLetterSize(playerid, PlayerText:filler, 1.0, GetBarFill(x, height, max_value, value, direction));
+				PlayerTextDrawBoxColor(playerid, PlayerText:filler, fill_color);
+			}
 		}
 	}
+
+	return filler;
+}
+
+stock Bar:ProgressBarCreate(Float:x, Float:y, Float:width = 55.5, Float:height = 3.2, direction = BAR_DIRECTION_RIGHT, playerid = -1) {
+	if (playerid != -1 && (playerid < 0 || playerid >= MAX_PLAYERS)) {
+		return INVALID_BAR_ID;
+	}
+
+	if (height == 0.0 || width == 0.0) {
+		return INVALID_BAR_ID;
+	}
+
+	new Bar:index = INVALID_BAR_ID;
+
+	if (playerid == -1) {
+		for (new Bar:i = Bar:0; i < Bar:MAX_GLOBAL_BARS; i++) {
+            if (globalProgressBarData[i][BAR_VALID] == false) {
+				index = i;
+				break;
+			}
+		}
+
+		if (index == INVALID_BAR_ID) {
+			return INVALID_BAR_ID;
+		}
+
+		globalProgressBarData[index][BAR_TEXTDRAW_BORDER] = CreateBarBorderTextDraw(x, y, width, height, DEFAULT_BAR_BORDER_COLOR, direction, playerid);
+		if (globalProgressBarData[index][BAR_TEXTDRAW_BORDER] == INVALID_TEXT_DRAW) {
+			return INVALID_BAR_ID;
+		}
+
+		globalProgressBarData[index][BAR_TEXTDRAW_BACKGROUND] = CreateBarBackgroundTextDraw(x, y, width, height, DEFAULT_BAR_BACKGROUND_COLOR, direction, playerid);
+		if (globalProgressBarData[index][BAR_TEXTDRAW_BACKGROUND] == INVALID_TEXT_DRAW) {
+
+		    TextDrawDestroy(Text:globalProgressBarData[index][BAR_TEXTDRAW_BORDER]);
+		    globalProgressBarData[index][BAR_TEXTDRAW_BORDER] = INVALID_TEXT_DRAW;
+
+			return INVALID_BAR_ID;
+		}
+
+		globalProgressBarData[index][BAR_TEXTDRAW_FILLER] = CreateBarFillerTextDraw(x, y, width, height, DEFAULT_BAR_FILLER_COLOR, DEFAULT_BAR_INITIAL_VALUE, DEFAULT_BAR_MAX_VALUE, direction, playerid);
+		if (globalProgressBarData[index][BAR_TEXTDRAW_FILLER] == INVALID_TEXT_DRAW) {
+
+		    TextDrawDestroy(Text:globalProgressBarData[index][BAR_TEXTDRAW_BORDER]);
+		    globalProgressBarData[index][BAR_TEXTDRAW_BORDER] = INVALID_TEXT_DRAW;
+
+		    TextDrawDestroy(Text:globalProgressBarData[index][BAR_TEXTDRAW_BACKGROUND]);
+		    globalProgressBarData[index][BAR_TEXTDRAW_BACKGROUND] = INVALID_TEXT_DRAW;
+
+			return INVALID_BAR_ID;
+		}
+
+		globalProgressBarData[index][BAR_DIRECTION] = direction;
+		globalProgressBarData[index][BAR_X] = x;
+		globalProgressBarData[index][BAR_Y] = y;
+		globalProgressBarData[index][BAR_WIDTH] = width;
+		globalProgressBarData[index][BAR_HEIGHT] = height;
+		globalProgressBarData[index][BAR_VALUE] = DEFAULT_BAR_INITIAL_VALUE;
+		globalProgressBarData[index][BAR_MAX_VALUE] = DEFAULT_BAR_MAX_VALUE;
+
+		globalProgressBarData[index][BAR_FILLER_COLOR] = DEFAULT_BAR_FILLER_COLOR;
+
+		globalProgressBarData[index][BAR_VALID] = true;
+
+		for (new i = 0; i < MAX_PLAYERS; i++) {
+  			globalProgressBarShown[i][index] = false;
+		}
+
+		return Bar:index;
+	}
+	else {
+		for (new Bar:i = Bar:0; i < Bar:MAX_PLAYER_BARS; i++) {
+            if (playerProgressBarData[playerid][i][BAR_VALID] == false) {
+				index = i;
+				break;
+			}
+		}
+
+		if (index == INVALID_BAR_ID) {
+			return INVALID_BAR_ID;
+		}
+
+		playerProgressBarData[playerid][index][BAR_TEXTDRAW_BORDER] = CreateBarBorderTextDraw(x, y, width, height, DEFAULT_BAR_BORDER_COLOR, direction, playerid);
+		if (playerProgressBarData[playerid][index][BAR_TEXTDRAW_BORDER] == INVALID_TEXT_DRAW) {
+			return INVALID_BAR_ID;
+		}
+
+		playerProgressBarData[playerid][index][BAR_TEXTDRAW_BACKGROUND] = CreateBarBackgroundTextDraw(x, y, width, height, DEFAULT_BAR_BACKGROUND_COLOR, direction, playerid);
+		if (playerProgressBarData[playerid][index][BAR_TEXTDRAW_BACKGROUND] == INVALID_TEXT_DRAW) {
+
+		    PlayerTextDrawDestroy(playerid, PlayerText:playerProgressBarData[playerid][index][BAR_TEXTDRAW_BORDER]);
+		    playerProgressBarData[playerid][index][BAR_TEXTDRAW_BORDER] = INVALID_TEXT_DRAW;
+
+			return INVALID_BAR_ID;
+		}
+
+		playerProgressBarData[playerid][index][BAR_TEXTDRAW_FILLER] = CreateBarFillerTextDraw(x, y, width, height, DEFAULT_BAR_FILLER_COLOR, DEFAULT_BAR_INITIAL_VALUE, DEFAULT_BAR_MAX_VALUE, direction, playerid);
+		if (playerProgressBarData[playerid][index][BAR_TEXTDRAW_FILLER] == INVALID_TEXT_DRAW) {
+
+		    PlayerTextDrawDestroy(playerid, PlayerText:playerProgressBarData[playerid][index][BAR_TEXTDRAW_BORDER]);
+		    playerProgressBarData[playerid][index][BAR_TEXTDRAW_BORDER] = INVALID_TEXT_DRAW;
+
+		    PlayerTextDrawDestroy(playerid, PlayerText:playerProgressBarData[playerid][index][BAR_TEXTDRAW_BACKGROUND]);
+		    playerProgressBarData[playerid][index][BAR_TEXTDRAW_BACKGROUND] = INVALID_TEXT_DRAW;
+
+			return INVALID_BAR_ID;
+		}
+
+		playerProgressBarData[playerid][index][BAR_DIRECTION] = direction;
+		playerProgressBarData[playerid][index][BAR_X] = x;
+		playerProgressBarData[playerid][index][BAR_Y] = y;
+		playerProgressBarData[playerid][index][BAR_WIDTH] = width;
+		playerProgressBarData[playerid][index][BAR_HEIGHT] = height;
+		playerProgressBarData[playerid][index][BAR_VALUE] = DEFAULT_BAR_INITIAL_VALUE;
+		playerProgressBarData[playerid][index][BAR_MAX_VALUE] = DEFAULT_BAR_MAX_VALUE;
+
+		playerProgressBarData[playerid][index][BAR_FILLER_COLOR] = DEFAULT_BAR_FILLER_COLOR;
+
+		playerProgressBarData[playerid][index][BAR_VALID] = true;
+
+		for (new i = 0; i < MAX_PLAYERS; i++) {
+  			playerProgressBarShown[playerid][index] = false;
+		}
+
+		return (Bar:(MAX_PLAYERS) + index);
+	}
+}
+
+stock IsValidProgressBar(Bar:barid, playerid = -1) {
+	if (playerid == -1) {
+		if (barid < Bar:0 || barid >= Bar:MAX_GLOBAL_BARS) {
+		    return 0;
+		}
+
+		return globalProgressBarData[barid][BAR_VALID];
+	}
+	else if (playerid >= 0 && playerid < MAX_PLAYERS) {
+		if (barid < Bar:MAX_PLAYERS || barid >= Bar:(MAX_PLAYERS + MAX_PLAYER_BARS)) {
+		    return 0;
+		}
+
+		barid -= Bar:MAX_PLAYERS;
+		return playerProgressBarData[playerid][barid][BAR_VALID];
+	}
+
+	return 0;
+}
+
+stock ProgressBarDestroy(Bar:barid, playerid = -1) {
+	if (!IsValidProgressBar(barid, playerid)) {
+		return 0;
+	}
+
+	if (playerid == -1) {
+		TextDrawDestroy(Text:globalProgressBarData[barid][BAR_TEXTDRAW_BORDER]);
+		globalProgressBarData[barid][BAR_TEXTDRAW_BORDER] = INVALID_TEXT_DRAW;
+
+		TextDrawDestroy(Text:globalProgressBarData[barid][BAR_TEXTDRAW_BACKGROUND]);
+		globalProgressBarData[barid][BAR_TEXTDRAW_BACKGROUND] = INVALID_TEXT_DRAW;
+
+		TextDrawDestroy(Text:globalProgressBarData[barid][BAR_TEXTDRAW_FILLER]);
+		globalProgressBarData[barid][BAR_TEXTDRAW_FILLER] = INVALID_TEXT_DRAW;
+
+		globalProgressBarData[barid][BAR_VALID] = false;
+	}
+	else {
+		barid -= Bar:MAX_PLAYERS;
+
+		PlayerTextDrawDestroy(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BORDER]);
+		playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BORDER] = INVALID_TEXT_DRAW;
+
+		PlayerTextDrawDestroy(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BACKGROUND]);
+		playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BACKGROUND] = INVALID_TEXT_DRAW;
+
+		PlayerTextDrawDestroy(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_FILLER]);
+		playerProgressBarData[playerid][barid][BAR_TEXTDRAW_FILLER] = INVALID_TEXT_DRAW;
+
+		playerProgressBarData[playerid][barid][BAR_VALID] = false;
+	}
+
 	return 1;
 }
 
-stock GetProgressBarDirection(Bar:barid)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0;
+stock ProgressBarColor(Bar:barid, color, playerid = -1) {
+	if (!IsValidProgressBar(barid, playerid)) {
+		return 0;
 	}
 
-	return PB_eBar[barid][PB_e_BAR_DIRECTION];
-}
+	if (playerid == -1) {
+		globalProgressBarData[barid][BAR_FILLER_COLOR] = color;
 
-stock GetProgressBarPos(Bar:barid, &Float:x, &Float:y)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0;
+		if ((color & 0xFF) == 0) {
+			if (globalProgressBarData[barid][BAR_TEXTDRAW_FILLER] == INVALID_TEXT_DRAW) {
+			    return 1;
+			}
+			else {
+				TextDrawDestroy(Text:globalProgressBarData[barid][BAR_TEXTDRAW_FILLER]);
+				globalProgressBarData[barid][BAR_TEXTDRAW_FILLER] = INVALID_TEXT_DRAW;
+			}
+		}
+		else {
+			if (globalProgressBarData[barid][BAR_TEXTDRAW_FILLER] == INVALID_TEXT_DRAW) {
+				globalProgressBarData[barid][BAR_TEXTDRAW_FILLER] = CreateBarFillerTextDraw(globalProgressBarData[barid][BAR_X],
+																							globalProgressBarData[barid][BAR_Y],
+																							globalProgressBarData[barid][BAR_WIDTH],
+																							globalProgressBarData[barid][BAR_HEIGHT],
+																							color,
+																							globalProgressBarData[barid][BAR_VALUE],
+																							globalProgressBarData[barid][BAR_MAX_VALUE],
+																							globalProgressBarData[barid][BAR_DIRECTION],
+																							playerid);
+			}
+			else {
+				TextDrawBoxColor(Text:globalProgressBarData[barid][BAR_TEXTDRAW_FILLER], color);
+			}
+		}
+	}
+	else {
+		barid -= Bar:MAX_PLAYERS;
+
+		playerProgressBarData[playerid][barid][BAR_FILLER_COLOR] = color;
+
+		if ((color & 0xFF) == 0) {
+			if (playerProgressBarData[playerid][barid][BAR_TEXTDRAW_FILLER] == INVALID_TEXT_DRAW) {
+			    return 1;
+			}
+			else {
+				PlayerTextDrawDestroy(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_FILLER]);
+				playerProgressBarData[playerid][barid][BAR_TEXTDRAW_FILLER] = INVALID_TEXT_DRAW;
+			}
+		}
+		else {
+			if (playerProgressBarData[playerid][barid][BAR_TEXTDRAW_FILLER] == INVALID_TEXT_DRAW) {
+				playerProgressBarData[playerid][barid][BAR_TEXTDRAW_FILLER] = CreateBarFillerTextDraw(playerProgressBarData[playerid][barid][BAR_X],
+																									  playerProgressBarData[playerid][barid][BAR_Y],
+																									  playerProgressBarData[playerid][barid][BAR_WIDTH],
+																									  playerProgressBarData[playerid][barid][BAR_HEIGHT],
+																									  color,
+																									  playerProgressBarData[playerid][barid][BAR_VALUE],
+																									  playerProgressBarData[playerid][barid][BAR_MAX_VALUE],
+																									  playerProgressBarData[playerid][barid][BAR_DIRECTION],
+																									  playerid);
+			}
+			else {
+				PlayerTextDrawBoxColor(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_FILLER], color);
+			}
+		}
 	}
 
-	x = PB_eBar[barid][PB_e_BAR_X];
-	y = PB_eBar[barid][PB_e_BAR_Y];
 	return 1;
 }
 
-stock Float:GetProgressBarHeight(Bar:barid)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0.0;
+stock ProgressBarBackgroundColor(Bar:barid, color, playerid = -1) {
+	if (!IsValidProgressBar(barid, playerid)) {
+		return 0;
 	}
 
-	return PB_eBar[barid][PB_e_BAR_HEIGHT];
-}
+	if (playerid == -1) {
+		if ((color & 0xFF) == 0) {
+			if (globalProgressBarData[barid][BAR_TEXTDRAW_BACKGROUND] == INVALID_TEXT_DRAW) {
+			    return 1;
+			}
+			else {
+				TextDrawDestroy(Text:globalProgressBarData[barid][BAR_TEXTDRAW_BACKGROUND]);
+				globalProgressBarData[barid][BAR_TEXTDRAW_BACKGROUND] = INVALID_TEXT_DRAW;
+			}
+		}
+		else {
+			if (globalProgressBarData[barid][BAR_TEXTDRAW_BACKGROUND] == INVALID_TEXT_DRAW) {
+				globalProgressBarData[barid][BAR_TEXTDRAW_BACKGROUND] = CreateBarBackgroundTextDraw(globalProgressBarData[barid][BAR_X],
+																									globalProgressBarData[barid][BAR_Y],
+																									globalProgressBarData[barid][BAR_WIDTH],
+																									globalProgressBarData[barid][BAR_HEIGHT],
+																									color,
+																									globalProgressBarData[barid][BAR_DIRECTION],
+																									playerid);
+			}
+			else {
+				TextDrawBoxColor(Text:globalProgressBarData[barid][BAR_TEXTDRAW_BACKGROUND], color);
+			}
+		}
+	}
+	else {
+		barid -= Bar:MAX_PLAYERS;
 
-stock Float:GetProgressBarWidth(Bar:barid)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0.0;
+		if ((color & 0xFF) == 0) {
+			if (playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BACKGROUND] == INVALID_TEXT_DRAW) {
+			    return 1;
+			}
+			else {
+				PlayerTextDrawDestroy(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BACKGROUND]);
+				playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BACKGROUND] = INVALID_TEXT_DRAW;
+			}
+		}
+		else {
+			if (playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BACKGROUND] == INVALID_TEXT_DRAW) {
+				playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BACKGROUND] = CreateBarBackgroundTextDraw(playerProgressBarData[playerid][barid][BAR_X],
+																											  playerProgressBarData[playerid][barid][BAR_Y],
+																											  playerProgressBarData[playerid][barid][BAR_WIDTH],
+																											  playerProgressBarData[playerid][barid][BAR_HEIGHT],
+																											  color,
+																											  playerProgressBarData[playerid][barid][BAR_DIRECTION],
+																											  playerid);
+			}
+			else {
+				PlayerTextDrawBoxColor(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BACKGROUND], color);
+			}
+		}
 	}
 
-	return PB_eBar[barid][PB_e_BAR_WIDTH];
-}
-
-stock GetProgressBarBGColor(Bar:barid)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0;
-	}
-
-	return PB_eBar[barid][PB_e_BAR_BACKGROUND_COLOR];
-}
-
-stock GetProgressBarColor(Bar:barid)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0;
-	}
-
-	return PB_eBar[barid][PB_e_BAR_COLOR];
-}
-
-#define GetProgressBarColour \
-    GetProgressBarColor
-
-stock Float:GetProgressBarValue(Bar:barid)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0.0;
-	}
-
-	return PB_eBar[barid][PB_e_BAR_VALUE];
-}
-
-stock Float:GetProgressBarMaxValue(Bar:barid)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0.0;
-	}
-
-	return PB_eBar[barid][PB_e_BAR_MAX_VALUE];
-}
-
-stock SetProgressBarDirection(Bar:barid, direction)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0;
-	}
-
-    PB_eBar[barid][PB_e_BAR_DIRECTION] = direction;
-	PB_RenderBar(barid);
 	return 1;
 }
 
-stock SetProgressBarPos(Bar:barid, Float:x, Float:y)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0;
+stock ProgressBarBorderColor(Bar:barid, color, playerid = -1) {
+	if (!IsValidProgressBar(barid, playerid)) {
+		return 0;
 	}
 
-	PB_eBar[barid][PB_e_BAR_X] = x;
-	PB_eBar[barid][PB_e_BAR_Y] = y;
-	PB_RenderBar(barid);
+	if (playerid == -1) {
+		if ((color & 0xFF) == 0) {
+			if (globalProgressBarData[barid][BAR_TEXTDRAW_BORDER] == INVALID_TEXT_DRAW) {
+			    return 1;
+			}
+			else {
+				TextDrawDestroy(Text:globalProgressBarData[barid][BAR_TEXTDRAW_BORDER]);
+				globalProgressBarData[barid][BAR_TEXTDRAW_BORDER] = INVALID_TEXT_DRAW;
+			}
+		}
+		else {
+			if (globalProgressBarData[barid][BAR_TEXTDRAW_BORDER] == INVALID_TEXT_DRAW) {
+				globalProgressBarData[barid][BAR_TEXTDRAW_BORDER] = CreateBarBorderTextDraw(globalProgressBarData[barid][BAR_X],
+																							globalProgressBarData[barid][BAR_Y],
+																							globalProgressBarData[barid][BAR_WIDTH],
+																							globalProgressBarData[barid][BAR_HEIGHT],
+																							color,
+																							globalProgressBarData[barid][BAR_DIRECTION],
+																							playerid);
+			}
+			else {
+				TextDrawBoxColor(Text:globalProgressBarData[barid][BAR_TEXTDRAW_BORDER], color);
+			}
+		}
+	}
+	else {
+		barid -= Bar:MAX_PLAYERS;
+
+		if ((color & 0xFF) == 0) {
+			if (playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BORDER] == INVALID_TEXT_DRAW) {
+			    return 1;
+			}
+			else {
+				PlayerTextDrawDestroy(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BORDER]);
+				playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BORDER] = INVALID_TEXT_DRAW;
+			}
+		}
+		else {
+			if (playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BORDER] == INVALID_TEXT_DRAW) {
+				playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BORDER] = CreateBarBorderTextDraw(playerProgressBarData[playerid][barid][BAR_X],
+																									  playerProgressBarData[playerid][barid][BAR_Y],
+																									  playerProgressBarData[playerid][barid][BAR_WIDTH],
+																									  playerProgressBarData[playerid][barid][BAR_HEIGHT],
+																									  color,
+																									  playerProgressBarData[playerid][barid][BAR_DIRECTION],
+																									  playerid);
+			}
+			else {
+				PlayerTextDrawBoxColor(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BORDER], color);
+			}
+		}
+	}
+
 	return 1;
 }
 
-stock SetProgressBarHeight(Bar:barid, Float:height)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0;
+stock ProgressBarSetValue(Bar:barid, Float:value, playerid = -1) {
+	if (!IsValidProgressBar(barid, playerid)) {
+		return 0;
 	}
 
-	PB_eBar[barid][PB_e_BAR_HEIGHT] = height;
-	PB_RenderBar(barid);
+	if (playerid == -1) {
+	    if (globalProgressBarData[barid][BAR_VALUE] == value) {
+			return 1;
+		}
+
+		if (value > globalProgressBarData[barid][BAR_MAX_VALUE]) {
+			return 0;
+		}
+
+	    globalProgressBarData[barid][BAR_VALUE] = value;
+
+		TextDrawDestroy(Text:globalProgressBarData[barid][BAR_TEXTDRAW_FILLER]);
+		globalProgressBarData[barid][BAR_TEXTDRAW_FILLER] = CreateBarFillerTextDraw(globalProgressBarData[barid][BAR_X],
+																					globalProgressBarData[barid][BAR_Y],
+																					globalProgressBarData[barid][BAR_WIDTH],
+																					globalProgressBarData[barid][BAR_HEIGHT],
+																					globalProgressBarData[barid][BAR_FILLER_COLOR],
+																					globalProgressBarData[barid][BAR_VALUE],
+																					globalProgressBarData[barid][BAR_MAX_VALUE],
+																					globalProgressBarData[barid][BAR_DIRECTION],
+																					playerid);
+
+		#if defined foreach
+		foreach(new i : Player) {
+		#else
+		for (new i = 0, j = GetPlayerPoolSize(); i <= j; i++) {
+      	if (IsPlayerConnected(i)) {
+		#endif
+			if (globalProgressBarShown[i][barid] == true) {
+				TextDrawShowForPlayer(i, Text:globalProgressBarData[barid][BAR_TEXTDRAW_FILLER]);
+			}
+		#if !defined foreach
+		}
+		#endif
+		}
+	}
+	else {
+		barid -= Bar:MAX_PLAYERS;
+
+	    if (playerProgressBarData[playerid][barid][BAR_VALUE] == value) {
+			return 1;
+		}
+
+		if (value > playerProgressBarData[playerid][barid][BAR_MAX_VALUE]) {
+			return 0;
+		}
+
+	    playerProgressBarData[playerid][barid][BAR_VALUE] = value;
+
+	    PlayerTextDrawDestroy(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_FILLER]);
+		playerProgressBarData[playerid][barid][BAR_TEXTDRAW_FILLER] = CreateBarFillerTextDraw(playerProgressBarData[playerid][barid][BAR_X],
+																							  playerProgressBarData[playerid][barid][BAR_Y],
+																							  playerProgressBarData[playerid][barid][BAR_WIDTH],
+																							  playerProgressBarData[playerid][barid][BAR_HEIGHT],
+																							  playerProgressBarData[playerid][barid][BAR_FILLER_COLOR],
+																							  playerProgressBarData[playerid][barid][BAR_VALUE],
+																							  playerProgressBarData[playerid][barid][BAR_MAX_VALUE],
+																							  playerProgressBarData[playerid][barid][BAR_DIRECTION],
+																							  playerid);
+
+		if (playerProgressBarShown[playerid][barid] == true) {
+			PlayerTextDrawShow(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_FILLER]);
+		}
+	}
+
 	return 1;
 }
 
-stock SetProgressBarWidth(Bar:barid, Float:width)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0;
+stock ProgressBarSetMaxValue(Bar:barid, Float:max_value, playerid = -1) {
+	if (!IsValidProgressBar(barid, playerid)) {
+		return 0;
 	}
 
-	PB_eBar[barid][PB_e_BAR_WIDTH] = width;
-	PB_RenderBar(barid);
+	if (playerid == -1) {
+	    if (globalProgressBarData[barid][BAR_MAX_VALUE] == max_value) {
+			return 1;
+		}
+
+	    globalProgressBarData[barid][BAR_MAX_VALUE] = max_value;
+
+	    if (max_value < globalProgressBarData[barid][BAR_VALUE]) {
+            globalProgressBarData[barid][BAR_VALUE] = max_value;
+		}
+
+		TextDrawDestroy(Text:globalProgressBarData[barid][BAR_TEXTDRAW_FILLER]);
+		globalProgressBarData[barid][BAR_TEXTDRAW_FILLER] = CreateBarFillerTextDraw(globalProgressBarData[barid][BAR_X],
+																					globalProgressBarData[barid][BAR_Y],
+																					globalProgressBarData[barid][BAR_WIDTH],
+																					globalProgressBarData[barid][BAR_HEIGHT],
+																					globalProgressBarData[barid][BAR_FILLER_COLOR],
+																					globalProgressBarData[barid][BAR_VALUE],
+																					globalProgressBarData[barid][BAR_MAX_VALUE],
+																					globalProgressBarData[barid][BAR_DIRECTION],
+																					playerid);
+
+		#if defined foreach
+		foreach(new i : Player) {
+		#else
+		for (new i = 0, j = GetPlayerPoolSize(); i <= j; i++) {
+      	if (IsPlayerConnected(i)) {
+		#endif
+			if (globalProgressBarShown[i][barid] == true) {
+				TextDrawShowForPlayer(i, Text:globalProgressBarData[barid][BAR_TEXTDRAW_FILLER]);
+			}
+		#if !defined foreach
+		}
+		#endif
+		}
+	}
+	else {
+		barid -= Bar:MAX_PLAYERS;
+
+	    if (playerProgressBarData[playerid][barid][BAR_MAX_VALUE] == max_value) {
+			return 1;
+		}
+
+	    playerProgressBarData[playerid][barid][BAR_MAX_VALUE] = max_value;
+
+	    if (max_value < playerProgressBarData[playerid][barid][BAR_VALUE]) {
+            playerProgressBarData[playerid][barid][BAR_VALUE] = max_value;
+		}
+
+	    PlayerTextDrawDestroy(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_FILLER]);
+		playerProgressBarData[playerid][barid][BAR_TEXTDRAW_FILLER] = CreateBarFillerTextDraw(playerProgressBarData[playerid][barid][BAR_X],
+																							  playerProgressBarData[playerid][barid][BAR_Y],
+																							  playerProgressBarData[playerid][barid][BAR_WIDTH],
+																							  playerProgressBarData[playerid][barid][BAR_HEIGHT],
+																							  playerProgressBarData[playerid][barid][BAR_FILLER_COLOR],
+																							  playerProgressBarData[playerid][barid][BAR_VALUE],
+																							  playerProgressBarData[playerid][barid][BAR_MAX_VALUE],
+																							  playerProgressBarData[playerid][barid][BAR_DIRECTION],
+																							  playerid);
+
+		if (playerProgressBarShown[playerid][barid] == true) {
+			PlayerTextDrawShow(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_FILLER]);
+		}
+	}
+
 	return 1;
 }
 
-stock SetProgressBarBGColor(Bar:barid, bgcolor)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0;
+stock ProgressBarShowForPlayer(playerid, Bar:barid) {
+    if (playerid < 0 || playerid >= MAX_PLAYERS) {
+		return 0;
+    }
+
+	if (barid < Bar:MAX_PLAYERS) {
+	   	if (barid < Bar:0 || barid >= Bar:MAX_GLOBAL_BARS) {
+			return 0;
+		}
+
+		TextDrawShowForPlayer(playerid, Text:globalProgressBarData[barid][BAR_TEXTDRAW_BORDER]);
+		TextDrawShowForPlayer(playerid, Text:globalProgressBarData[barid][BAR_TEXTDRAW_BACKGROUND]);
+		TextDrawShowForPlayer(playerid, Text:globalProgressBarData[barid][BAR_TEXTDRAW_FILLER]);
+		globalProgressBarShown[playerid][barid] = true;
+	}
+	else {
+	   	if (barid < Bar:MAX_PLAYERS || barid >= Bar:(MAX_PLAYERS + MAX_PLAYER_BARS)) {
+			return 0;
+		}
+
+		barid -= Bar:MAX_PLAYERS;
+
+		PlayerTextDrawShow(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BORDER]);
+		PlayerTextDrawShow(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BACKGROUND]);
+		PlayerTextDrawShow(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_FILLER]);
+		playerProgressBarShown[playerid][barid] = true;
 	}
 
-    PB_eBar[barid][PB_e_BAR_BACKGROUND_COLOR] = bgcolor;
-	PB_RenderBar(barid);
 	return 1;
 }
 
-stock SetProgressBarColor(Bar:barid, color)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0;
+stock ProgressBarHideForPlayer(playerid, Bar:barid) {
+    if (playerid < 0 || playerid >= MAX_PLAYERS) {
+		return 0;
+    }
+
+	if (barid < MAX_PLAYERS) {
+	   	if (barid < Bar:0 || barid >= Bar:MAX_GLOBAL_BARS) {
+			return 0;
+		}
+
+		TextDrawHideForPlayer(playerid, Text:globalProgressBarData[barid][BAR_TEXTDRAW_BORDER]);
+		TextDrawHideForPlayer(playerid, Text:globalProgressBarData[barid][BAR_TEXTDRAW_BACKGROUND]);
+		TextDrawHideForPlayer(playerid, Text:globalProgressBarData[barid][BAR_TEXTDRAW_FILLER]);
+		globalProgressBarShown[playerid][barid] = false;
+	}
+	else {
+	   	if (barid < Bar:MAX_PLAYERS || barid >= Bar:(MAX_PLAYERS + MAX_PLAYER_BARS)) {
+			return 0;
+		}
+
+		barid -= Bar:MAX_PLAYERS;
+
+		PlayerTextDrawHide(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BORDER]);
+		PlayerTextDrawHide(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_BACKGROUND]);
+		PlayerTextDrawHide(playerid, PlayerText:playerProgressBarData[playerid][barid][BAR_TEXTDRAW_FILLER]);
+		playerProgressBarShown[playerid][barid] = false;
 	}
 
-    PB_eBar[barid][PB_e_BAR_COLOR] = color;
-	PB_RenderBar(barid);
 	return 1;
-}
-
-#define SetProgressBarColour \
-    SetProgressBarColor
-
-stock SetProgressBarValue(Bar:barid, Float:value)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0;
-	}
-
-	PB_eBar[barid][PB_e_BAR_VALUE] = value;
-	PB_RenderBar(barid);
-	return 1;
-}
-
-stock SetProgressBarMaxValue(Bar:barid, Float:maxvalue)
-{
-	if (!IsValidProgressBar(barid))
-	{
-	    return 0;
-	}
-
-	PB_eBar[barid][PB_e_BAR_MAX_VALUE] = maxvalue;
-	PB_RenderBar(barid);
-	return 1;
-}
-
-stock CountProgressBars()
-{
-	return PB_iBarCount;
 }
