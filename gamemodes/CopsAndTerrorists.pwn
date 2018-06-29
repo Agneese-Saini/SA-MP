@@ -2774,18 +2774,19 @@ CMD:shop(playerid)
 
 Dialog:SHOP(playerid, response, listitem, inputtext[])
 {
-	if (!response)
-	    return 1;
-
-	if (listitem == 0)
+	if (!response) return 1;
+	switch (listitem)
 	{
-	    SendClientMessage(playerid, COLOR_DEFAULT, "Tip: You can also open this shop directly by /weapons.");
-		cmd_weapons(playerid);
-	}
-	else if (listitem == 1)
-	{
-	    SendClientMessage(playerid, COLOR_DEFAULT, "Tip: You can also open this shop directly by /vehicles.");
-		cmd_vehicles(playerid);
+		case 0:
+		{
+			SendClientMessage(playerid, COLOR_DEFAULT, "Tip: You can also open this shop directly by /weapons.");
+			cmd_weapons(playerid);	
+		}
+		case 1:
+		{
+			SendClientMessage(playerid, COLOR_DEFAULT, "Tip: You can also open this shop directly by /vehicles.");
+			cmd_vehicles(playerid);
+		}
 	}
 	return 1;
 }
