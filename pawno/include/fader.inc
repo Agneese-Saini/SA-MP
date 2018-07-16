@@ -5,7 +5,7 @@
 #define fader_included
 
 #if ! defined MAX_TEXT_DRAW_FADES
-	#define MAX_TEXT_DRAW_FADES (8)
+	#define MAX_TEXT_DRAW_FADES (16)
 #endif
 
 #define RGBA(%0,%1,%2,%3,%4) \
@@ -39,23 +39,135 @@ enum E_TEXTDRAW_FADE_DATA {
 static textDrawFader[MAX_PLAYERS][MAX_TEXT_DRAW_FADES][E_TEXTDRAW_FADE_DATA];
 static textDrawFaderCount[MAX_PLAYERS];
 
-// Global textdraw functions
+////////////////////////////////////
+// GLOBAL TEXTDRAW FADER FUNCTIONS
+////////////////////////////////////
+
+/****************************************************
+* Function:   	TextDrawFadeForPlayer()
+* Purpose:    	Start fadinga global textdraw text color for player!
+* Parameters:	"playerid" - player's id
+* 				"text" - textdraw id
+*				"from_color" - starting fade color
+* 				"to_color" - ending fade color
+* 				"update_rate" - rate at which the color fades during each timer's interval
+* 				"timer_interval" - speed of timer
+* Return:     	1 - success
+* 				0 - failure
+****************************************************/
 forward TextDrawFadeForPlayer(playerid, Text:text, from_color, to_color, update_rate = 2, timer_interval = 50);
+
+/****************************************************
+* Function:   	TextDrawBoxFadeForPlayer()
+* Purpose:    	Start fadinga global textdraw box color for player!
+* Parameters:	"playerid" - player's id
+* 				"text" - textdraw id
+*				"from_color" - starting fade color
+* 				"to_color" - ending fade color
+* 				"update_rate" - rate at which the color fades during each timer's interval
+* 				"timer_interval" - speed of timer
+* Return:     	1 - success
+* 				0 - failure
+****************************************************/
 forward TextDrawBoxFadeForPlayer(playerid, Text:text, from_color, to_color, update_rate = 2, timer_interval = 50);
+
+/****************************************************
+* Function:   	TextDrawStopFadeForPlayer()
+* Purpose:    	Stop fading a global textdraw text color for player!
+* Parameters:	"playerid" - player's id
+* 				"text" - textdraw id
+* Return:     	1 - success
+* 				0 - failure
+****************************************************/
 forward TextDrawStopFadeForPlayer(playerid, Text:text);
+
+/****************************************************
+* Function:   	TextDrawStopBoxFadeForPlayer()
+* Purpose:    	Stop fading a global textdraw box color for player!
+* Parameters:	"playerid" - player's id
+* 				"text" - textdraw id
+* Return:     	1 - success
+* 				0 - failure
+****************************************************/
 forward TextDrawStopBoxFadeForPlayer(playerid, Text:text);
+
 #if defined OnTextDrawFaded
+	/****************************************************
+	* Method:   	OnTextDrawFaded()
+	* Purpose:    	Called when the textdraw is fully faded to the final color
+	* Parameters:	"playerid" - player's id
+	* 				"text" - textdraw id
+	*               "type" - 0 (TEXTDRAW_FADE_TEXT), 1(TEXTDRAW_FADE_BOX)
+	* Return:     	-
+	****************************************************/
 	forward OnTextDrawFaded(playerid, Text:text, type);
 #endif
 
-// Player textdraw functions
+////////////////////////////////////
+// PLAYER TEXTDRAW FADER FUNCTIONS
+////////////////////////////////////
+
+/****************************************************
+* Function:   	PlayerTextDrawFade()
+* Purpose:    	Start fadinga player textdraw text color for player!
+* Parameters:	"playerid" - player's id
+* 				"text" - player textdraw id
+*				"from_color" - starting fade color
+* 				"to_color" - ending fade color
+* 				"update_rate" - rate at which the color fades during each timer's interval
+* 				"timer_interval" - speed of timer
+* Return:     	1 - success
+* 				0 - failure
+****************************************************/
 forward PlayerTextDrawFade(playerid, PlayerText:text, from_color, to_color, update_rate = 2, timer_interval = 50);
+
+/****************************************************
+* Function:   	PlayerTextDrawBoxFade()
+* Purpose:    	Start fadinga player textdraw box color for player!
+* Parameters:	"playerid" - player's id
+* 				"text" - player textdraw id
+*				"from_color" - starting fade color
+* 				"to_color" - ending fade color
+* 				"update_rate" - rate at which the color fades during each timer's interval
+* 				"timer_interval" - speed of timer
+* Return:     	1 - success
+* 				0 - failure
+****************************************************/
 forward PlayerTextDrawBoxFade(playerid, PlayerText:text, from_color, to_color, update_rate = 2, timer_interval = 50);
+
+/****************************************************
+* Function:   	PlayerTextDrawStopFade()
+* Purpose:    	Stop fading a player textdraw text color!
+* Parameters:	"playerid" - player's id
+* 				"text" - textdraw id
+* Return:     	1 - success
+* 				0 - failure
+****************************************************/
 forward PlayerTextDrawStopFade(playerid, PlayerText:text);
+
+/****************************************************
+* Function:   	PlayerTextDrawStopBoxFade()
+* Purpose:    	Stop fading a player textdraw box color!
+* Parameters:	"playerid" - player's id
+* 				"text" - textdraw id
+* Return:     	1 - success
+* 				0 - failure
+****************************************************/
 forward PlayerTextDrawStopBoxFade(playerid, PlayerText:text);
+
 #if defined OnPlayerTextDrawFaded
+	/****************************************************
+	* Method:   	OnPlayerTextDrawFaded()
+	* Purpose:    	Called when the player textdraw is fully faded to the final color
+	* Parameters:	"playerid" - player's id
+	* 				"text" - player textdraw id
+	*               "type" - 0 (TEXTDRAW_FADE_TEXT), 1(TEXTDRAW_FADE_BOX)
+	* Return:     	-
+	****************************************************/
 	forward OnPlayerTextDrawFaded(playerid, PlayerText:text, type);
 #endif
+
+////////////////////////////////////
 
 static Internal_StopFade(playerid, idx) {
     KillTimer(textDrawFader[playerid][idx][TEXTDRAW_FADE_TIMER]);
