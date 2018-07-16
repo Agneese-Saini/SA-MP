@@ -1,10 +1,11 @@
+// fader.inc by Gammix
 #if defined fader_included
 	#endinput
 #endif
 #define fader_included
 
 #if ! defined MAX_TEXT_DRAW_FADES
-	#define MAX_TEXT_DRAW_FADES (16) // max textdraws that can be faded once on a player's screen
+	#define MAX_TEXT_DRAW_FADES (8)
 #endif
 
 #define RGBA(%0,%1,%2,%3,%4) \
@@ -312,21 +313,19 @@ public OnTextDrawFade(playerid, idx, update_rate) {
 	if (textDrawFader[playerid][idx][TEXTDRAW_FADE_FROM_COLOR] == textDrawFader[playerid][idx][TEXTDRAW_FADE_TO_COLOR]) {
 		if (textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_TYPE] == TEXTDRAW_FADE_TYPE_GLOBAL) {
 			TextDrawHideForPlayer(playerid, Text:textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_ID]);
-
+			Internal_StopFade(playerid, idx);
+			
 			#if defined OnTextDrawFaded
 			    OnTextDrawFaded(playerid, Text:textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_ID], textDrawFader[playerid][idx][TEXTDRAW_FADE_TYPE]);
 			#endif
-
-			Internal_StopFade(playerid, idx);
 		}
 		else {
 			PlayerTextDrawHide(playerid, PlayerText:textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_ID]);
-
+			Internal_StopFade(playerid, idx);
+			
 			#if defined OnPlayerTextDrawFaded
 			    OnPlayerTextDrawFaded(playerid, PlayerText:textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_ID], textDrawFader[playerid][idx][TEXTDRAW_FADE_TYPE]);
 			#endif
-			
-			Internal_StopFade(playerid, idx);
 		}
 	}
 }
