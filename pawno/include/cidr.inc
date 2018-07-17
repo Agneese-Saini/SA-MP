@@ -2,7 +2,7 @@ stock cidr_ip2long(const ip[]) {
 	new parts[4];
 	
 	#if defined sscanf
-		if (sscanf(address, "p<.>a<i>[4]", parts) == SSCANF_FALSE_RETURN) {
+		if (sscanf(ip, "p<.>a<i>[4]", parts)) {
 		    return 0;
 		}
 	#else
