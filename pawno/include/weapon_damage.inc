@@ -1,5 +1,5 @@
 /******************************************************/
-// weapon_damage.inc | v1.0 [ALPHA] | Last Updated: 22 July, 2018 | By Gammix
+// weapon_damage.inc | v1.1 [ALPHA] | Last Updated: 22 July, 2018 | By Gammix
 // credits: Gammix | special thanks: Slice (WD_ProcessDamage() function)
 /******************************************************/
 
@@ -402,11 +402,11 @@ public OnPlayerConnect(playerid) {
 	WD_deathData[playerid][DEATH_VALID] = false;
 	WD_deathData[playerid][DEATH_KILLERID] = INVALID_PLAYER_ID;
 	WD_deathData[playerid][DEATH_REASON] = WEAPON_UNARMED;
-	
+
 	WD_lastExplosive[playerid] = WEAPON_UNARMED;
-	
+
 	WD_knifeTimer[playerid] = -1;
-	
+
 	WD_teamID[playerid] = NO_TEAM;
 	SetPlayerTeam(playerid, 0x255);
 
@@ -432,7 +432,7 @@ public OnPlayerSpawn(playerid) {
 	WD_deathData[playerid][DEATH_REASON] = WEAPON_UNARMED;
 
 	WD_lastExplosive[playerid] = WEAPON_UNARMED;
-	
+
 	KillTimer(WD_knifeTimer[playerid]);
 	WD_knifeTimer[playerid] = -1;
 
@@ -462,7 +462,7 @@ public OnPlayerDeath(playerid, killerid, reason) {
 
 	killerid = WD_deathData[playerid][DEATH_KILLERID];
 	reason = WD_deathData[playerid][DEATH_REASON];
-	
+
 	WD_deathData[playerid][DEATH_VALID] = false;
 
 	#if defined WD_OnPlayerDeath
@@ -484,7 +484,7 @@ public OnPlayerDeath(playerid, killerid, reason) {
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
     if (newkeys & KEY_FIRE) {
 		new weapon = GetPlayerWeapon(playerid);
-		
+
 		switch (weapon) {
 			case WEAPON_BOMB, WEAPON_SATCHEL: {
 				WD_lastExplosive[playerid] = WEAPON_SATCHEL;
@@ -567,7 +567,7 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
 	if (damagedid == INVALID_PLAYER_ID) {
 		return 1;
 	}
-	
+
 	if (!WD_IsPlayerSpawned(playerid) || !WD_IsPlayerSpawned(damagedid)) {
 		return 1;
 	}
@@ -599,26 +599,26 @@ public OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart)
 			return 1;
 		}
 	}
-	
+
 	if (!WD_ProcessDamage(damagedid, playerid, amount, weaponid, bodypart)) {
 		return 1;
 	}
-	
+
 	#if defined OnPlayerDamage
 		if (OnPlayerDamage(damagedid, playerid, amount, weaponid, bodypart) == 0) {
 		    return 0;
 		}
 	#endif
-	
+
 	WD_InflictDamage(damagedid, amount, false);
-	
+
 	GetPlayerHealth(damagedid, health);
 	if (health == 0.0) {
 	    WD_deathData[damagedid][DEATH_VALID] = true;
 	    WD_deathData[damagedid][DEATH_KILLERID] = playerid;
 	    WD_deathData[damagedid][DEATH_REASON] = weaponid;
 	}
-	
+
 	return 1;
 }
 
@@ -630,7 +630,10 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart) 
 			 WEAPON_EXPLOSION,
 			 WEAPON_DROWN,
 		 	 WEAPON_COLLISION: {
+			new bool:explosive = false;
             if (weaponid == WEAPON_EXPLOSION) {
+                explosive = true;
+            
             	if (issuerid == INVALID_PLAYER_ID) {
 			    	if (IsPlayerInAnyVehicle(playerid) && GetPlayerVehicleSeat(playerid) == 0) {
 					    weaponid = WEAPON_VEHICLE_ROCKETLAUNCHER;
@@ -650,7 +653,7 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart) 
 					}
 				}
 			}
-			
+
 			#if defined OnPlayerDamage
 				OnPlayerDamage(playerid, issuerid, amount, weaponid, bodypart);
 			#endif
@@ -658,19 +661,31 @@ public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart) 
 			new Float:armour, Float:health;
 			GetPlayerArmour(playerid, armour);
 			GetPlayerHealth(playerid, health);
-
-			if (weaponid == WEAPON_DROWN || weaponid == WEAPON_COLLISION) {
+			
+			if (issuerid != INVALID_PLAYER_ID && (weaponid == WEAPON_FLAMETHROWER || weaponid == WEAPON_CARPARK || weaponid == WEAPON_VEHICLE || explosive == true)) {
+                new team1 = GetPlayerTeam(playerid);
+				new team2 = GetPlayerTeam(issuerid);
+				if (team1 != NO_TEAM && team2 != NO_TEAM && team1 == team2) {
+					return 1;
+				}
+				
+                WD_InflictDamage(playerid, amount, false);
+			}
+			else {
 				armour = 0.0;
+				health -= amount;
+				if (health < 0.0) health = 0.0;
 			}
 
-            if (((armour + health) - amount) <= 0.0) {
+			GetPlayerHealth(playerid, health);
+            if (health <= 0.0) {
 			    WD_deathData[playerid][DEATH_VALID] = true;
 			    WD_deathData[playerid][DEATH_KILLERID] = playerid;
 			    WD_deathData[playerid][DEATH_REASON] = weaponid;
 			}
 		}
 	}
-	
+
 	return 1;
 }
 
