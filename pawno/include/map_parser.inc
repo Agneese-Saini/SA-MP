@@ -66,7 +66,7 @@ stock map_parse(const path[]) {
 		"256x64", "256x128", "256x256", "512x64", "512x256","512x512"
 	};
 	
-	if (!fexist(mapname)) {
+	if (!fexist(path)) {
 		printf("[map_parser.inc] Error: Cannot open map location \"%s\"", path);
 		return 0;
  	}
@@ -76,7 +76,7 @@ stock map_parse(const path[]) {
 		return 0;
 	}
 	
-	new File:file = fopen(mapname, io_read);
+	new File:file = fopen(path, io_read);
 	if (file == File:0) {
 		return 0;
  	}
