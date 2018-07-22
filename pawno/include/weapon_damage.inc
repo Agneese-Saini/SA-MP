@@ -1,5 +1,6 @@
 /******************************************************/
 // weapon_damage.inc | v1.0 [ALPHA] | Last Updated: 22 July, 2018 | By Gammix
+// credits: Gammix | special thanks: Slice (WD_ProcessDamage() function)
 /******************************************************/
 
 #if defined weapon_damage_included
@@ -54,11 +55,11 @@ static WD_IsPlayerSpawned(playerid) {
 	return false;
 }
 
-static WD_IsMeleeWeapon(weaponid) {
+static WD_IsMeleeWeapon(weaponid) { // by Slice
 	return (WEAPON_UNARMED <= weaponid <= WEAPON_KATANA) || (WEAPON_DILDO <= weaponid <= WEAPON_CANE) || weaponid == WEAPON_PISTOLWHIP;
 }
 
-static WD_ProcessDamage(playerid, issuerid, &Float:amount, &weaponid, &bodypart) {
+static WD_ProcessDamage(playerid, issuerid, &Float:amount, &weaponid, &bodypart) { // by Slice
 	// Adjust invalid amounts caused by an animation bug
 	switch (amount) {
 		case 3.63000011444091796875,
