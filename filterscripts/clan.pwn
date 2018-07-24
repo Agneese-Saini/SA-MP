@@ -1373,7 +1373,7 @@ public OnPlayerSpawn(playerid) {
 public OnPlayerPickUpDynamicPickup(playerid, pickupid) {
     foreach_clans(i) {
 		if (clanData[i][CLAN_PICKUPID] == pickupid) {
-		    new string[MAX_CLAN_TAG_NAME + 16];
+		    new string[MAX_CLAN_TAG_NAME + 24];
 		    format(string, sizeof(string), "~g~~h~(%s) SPAWN POINT", clanData[i][CLAN_TAG]);
 		    GameTextForPlayer(playerid, string, 5000, 3);
 			break;
@@ -2289,7 +2289,7 @@ CMD:cpromote(playerid, params[]) {
 
 	new targetid;
 	if (sscanf(params, "u", targetid))
-	    return SendClientMessage(playerid, COLOR_LIGHT_AQUA, "Usage: /cpromot [id/name]");
+	    return SendClientMessage(playerid, COLOR_LIGHT_AQUA, "Usage: /cpromote [id/name]");
 
 	if (targetid == playerid)
 	    return SendClientMessage(playerid, COLOR_TOMATO, "Error: You don't need promotion, you already have highest possible level!");
