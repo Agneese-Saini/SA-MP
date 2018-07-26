@@ -4,7 +4,7 @@
 #endif
 #define fader_included
 
-#if ! defined MAX_TEXT_DRAW_FADES
+#if !defined MAX_TEXT_DRAW_FADES
 	#define MAX_TEXT_DRAW_FADES (16)
 #endif
 
@@ -98,9 +98,11 @@ forward TextDrawStopBoxFadeForPlayer(playerid, Text:text);
 	* Parameters:	"playerid" - player's id
 	* 				"text" - textdraw id
 	*               "type" - 0 (TEXTDRAW_FADE_TEXT), 1(TEXTDRAW_FADE_BOX)
+	*               "from_color" - intial color
+	*               "to_color" - final color the TD faded to
 	* Return:     	-
 	****************************************************/
-	forward OnTextDrawFaded(playerid, Text:text, type);
+	forward OnTextDrawFaded(playerid, Text:text, type, from_color, to_color);
 #endif
 
 ////////////////////////////////////
@@ -162,9 +164,11 @@ forward PlayerTextDrawStopBoxFade(playerid, PlayerText:text);
 	* Parameters:	"playerid" - player's id
 	* 				"text" - player textdraw id
 	*               "type" - 0 (TEXTDRAW_FADE_TEXT), 1(TEXTDRAW_FADE_BOX)
+	*               "from_color" - intial color
+	*               "to_color" - final color the TD faded to
 	* Return:     	-
 	****************************************************/
-	forward OnPlayerTextDrawFaded(playerid, PlayerText:text, type);
+	forward OnPlayerTextDrawFaded(playerid, PlayerText:text, type, from_color, to_color);
 #endif
 
 ////////////////////////////////////
@@ -198,7 +202,7 @@ stock TextDrawFadeForPlayer(playerid, Text:text, from_color, to_color, update_ra
 	textDrawFader[playerid][idx][TEXTDRAW_FADE_VALID] = true;
 	textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_ID] = _:text;
 	textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_TYPE] = TEXTDRAW_FADE_TYPE_GLOBAL;
-	textDrawFader[playerid][idx][TEXTDRAW_FADE_TIMER] = SetTimerEx("OnTextDrawFade", timer_interval, true, "iii", playerid, idx, update_rate);
+	textDrawFader[playerid][idx][TEXTDRAW_FADE_TIMER] = SetTimerEx("OnTextDrawFade", timer_interval, true, "iiii", playerid, idx, update_rate, from_color);
 	textDrawFader[playerid][idx][TEXTDRAW_FADE_FROM_COLOR] = from_color;
 	textDrawFader[playerid][idx][TEXTDRAW_FADE_TO_COLOR] = to_color;
 	textDrawFader[playerid][idx][TEXTDRAW_FADE_TYPE] = TEXTDRAW_FADE_TEXT;
@@ -225,7 +229,7 @@ stock TextDrawBoxFadeForPlayer(playerid, Text:text, from_color, to_color, update
 	textDrawFader[playerid][idx][TEXTDRAW_FADE_VALID] = true;
 	textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_ID] = _:text;
 	textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_TYPE] = TEXTDRAW_FADE_TYPE_GLOBAL;
-	textDrawFader[playerid][idx][TEXTDRAW_FADE_TIMER] = SetTimerEx("OnTextDrawFade", timer_interval, true, "iii", playerid, idx, update_rate);
+	textDrawFader[playerid][idx][TEXTDRAW_FADE_TIMER] = SetTimerEx("OnTextDrawFade", timer_interval, true, "iiii", playerid, idx, update_rate, from_color);
 	textDrawFader[playerid][idx][TEXTDRAW_FADE_FROM_COLOR] = from_color;
 	textDrawFader[playerid][idx][TEXTDRAW_FADE_TO_COLOR] = to_color;
 	textDrawFader[playerid][idx][TEXTDRAW_FADE_TYPE] = TEXTDRAW_FADE_BOX;
@@ -377,14 +381,14 @@ stock PlayerTextDrawStopBoxFade(playerid, PlayerText:text) {
 	return 0;
 }
 
-forward OnTextDrawFade(playerid, idx, update_rate);
-public OnTextDrawFade(playerid, idx, update_rate) {
+forward OnTextDrawFade(playerid, idx, update_rate, from_color);
+public OnTextDrawFade(playerid, idx, update_rate, from_color) {
 	new newcolor[4];
 	new finalcolor[4];
-	
+
     RGBA(textDrawFader[playerid][idx][TEXTDRAW_FADE_FROM_COLOR], newcolor[0], newcolor[1], newcolor[2], newcolor[3]);
 	RGBA(textDrawFader[playerid][idx][TEXTDRAW_FADE_TO_COLOR], finalcolor[0], finalcolor[1], finalcolor[2], finalcolor[3]);
-	
+
 	for (new i; i < sizeof newcolor; i++) {
 		if (newcolor[i] > finalcolor[i]) {
 		    newcolor[i] -= update_rate;
@@ -401,9 +405,9 @@ public OnTextDrawFade(playerid, idx, update_rate) {
 		    }
 		}
 	}
-	
+
 	HEX(textDrawFader[playerid][idx][TEXTDRAW_FADE_FROM_COLOR], newcolor[0], newcolor[1], newcolor[2], newcolor[3]);
-	
+
 	if (textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_TYPE] == TEXTDRAW_FADE_TYPE_GLOBAL) {
 		if (textDrawFader[playerid][idx][TEXTDRAW_FADE_TYPE] == TEXTDRAW_FADE_TEXT) {
 			TextDrawColor(Text:textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_ID], textDrawFader[playerid][idx][TEXTDRAW_FADE_FROM_COLOR]);
@@ -426,17 +430,17 @@ public OnTextDrawFade(playerid, idx, update_rate) {
 		if (textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_TYPE] == TEXTDRAW_FADE_TYPE_GLOBAL) {
 			TextDrawHideForPlayer(playerid, Text:textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_ID]);
 			Internal_StopFade(playerid, idx);
-			
+
 			#if defined OnTextDrawFaded
-			    OnTextDrawFaded(playerid, Text:textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_ID], textDrawFader[playerid][idx][TEXTDRAW_FADE_TYPE]);
+			    OnTextDrawFaded(playerid, Text:textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_ID], textDrawFader[playerid][idx][TEXTDRAW_FADE_TYPE], from_color, textDrawFader[playerid][idx][TEXTDRAW_FADE_TO_COLOR]);
 			#endif
 		}
 		else {
 			PlayerTextDrawHide(playerid, PlayerText:textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_ID]);
 			Internal_StopFade(playerid, idx);
-			
+
 			#if defined OnPlayerTextDrawFaded
-			    OnPlayerTextDrawFaded(playerid, PlayerText:textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_ID], textDrawFader[playerid][idx][TEXTDRAW_FADE_TYPE]);
+			    OnPlayerTextDrawFaded(playerid, PlayerText:textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_ID], textDrawFader[playerid][idx][TEXTDRAW_FADE_TYPE], from_color, textDrawFader[playerid][idx][TEXTDRAW_FADE_TO_COLOR]);
 			#endif
 		}
 	}
