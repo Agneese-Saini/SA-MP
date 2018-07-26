@@ -53,7 +53,7 @@ public OnFilterScriptInit() {
 	TextDrawUseBox(enterExitTextDraw, 1);
 
 	for (new i = 0; i < sizeof(ENTER_EXITS); i++) {
-		ENTER_EXITS[i][ENTER_EXIT_OBJECTID] = CreateObject(1559,
+		ENTER_EXITS[i][ENTER_EXIT_OBJECTID] = CreateDynamicObject(1559,
 		    ENTER_EXITS[i][ENTER_EXIT_POSITION][0], ENTER_EXITS[i][ENTER_EXIT_POSITION][1], ENTER_EXITS[i][ENTER_EXIT_POSITION][2],
 		    0.0, 0.0, 0.0
 		);
@@ -76,8 +76,8 @@ public OnFilterScriptInit() {
 
 public OnFilterScriptExit() {
 	for (new i = 0; i < sizeof(ENTER_EXITS); i++) {
-		DestroyObject(ENTER_EXITS[i][ENTER_EXIT_OBJECTID]);
-		DestroyPickup(ENTER_EXITS[i][ENTER_EXIT_PICKUPID]);
+		DestroyDynamicObject(ENTER_EXITS[i][ENTER_EXIT_OBJECTID]);
+		DestroyDynamicPickup(ENTER_EXITS[i][ENTER_EXIT_PICKUPID]);
 	}
 
 	return 1;
@@ -88,7 +88,7 @@ public OnPlayerConnect(playerid) {
 	return 1;
 }
 
-public OnPlayerPickUpPickup(playerid, pickupid) {
+public OnPlayerPickUpDynamicPickup(playerid, pickupid) {
 	if (playerEnterExitID[playerid] == -1) {
 		for (new i = 0; i < sizeof(ENTER_EXITS); i++) {
 		    if (pickupid == ENTER_EXITS[i][ENTER_EXIT_PICKUPID]) {
@@ -107,20 +107,20 @@ public OnPlayerPickUpPickup(playerid, pickupid) {
 	return 1;
 }
 
-public OnObjectMoved(objectid) {
+public OnDynamicObjectMoved(objectid) {
 	for (new i = 0; i < sizeof(ENTER_EXITS); i++) {
 	    if (objectid == ENTER_EXITS[i][ENTER_EXIT_OBJECTID]) {
 	        if (ENTER_EXITS[i][ENTER_EXIT_MOVEDUP] == true) {
 	            ENTER_EXITS[i][ENTER_EXIT_MOVEDUP] = false;
 
-		        MoveObject(ENTER_EXITS[i][ENTER_EXIT_OBJECTID],
+		        MoveDynamicObject(ENTER_EXITS[i][ENTER_EXIT_OBJECTID],
 					ENTER_EXITS[i][ENTER_EXIT_POSITION][0], ENTER_EXITS[i][ENTER_EXIT_POSITION][1], (ENTER_EXITS[i][ENTER_EXIT_POSITION][2]),
 					MOVEMENT_SPEED, 0.0, 0.0, 0.0);
 	        }
 	        else {
 	            ENTER_EXITS[i][ENTER_EXIT_MOVEDUP] = true;
 
-		        MoveObject(ENTER_EXITS[i][ENTER_EXIT_OBJECTID],
+		        MoveDynamicObject(ENTER_EXITS[i][ENTER_EXIT_OBJECTID],
 					ENTER_EXITS[i][ENTER_EXIT_POSITION][0], ENTER_EXITS[i][ENTER_EXIT_POSITION][1], (ENTER_EXITS[i][ENTER_EXIT_POSITION][2] + MOVEMENT_HEIGHT),
 					MOVEMENT_SPEED, 360.0, 360.0, 360.0);
 	        }
