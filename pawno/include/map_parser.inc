@@ -122,7 +122,7 @@ stock map_parse(const path[]) {
  	new line[256],
 		linenumber = 1,
 		funcname[32],
-		funcargs[156]
+		funcargs[256]
 	;
 
 	new modelid,
