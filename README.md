@@ -1,42 +1,55 @@
-# SA-MP-Files
-All my SA-MP libraries/gamemodes/filterscripts!
-This bag of libraries is in one github repo because it would have been harder for me to manage/maintain all individually. There are many useful codes available in here, have a tour!
+# Gammix's SA-MP Package
 
-<b>Note:</b> If you have a issue or pull request, just make sure you put the script name in front so that i know what its about, thanks.
-For example, i have a issue against HitReg.inc:
-```
-[HitReg.inc] Its not working?
-```
+Includes a full package of FilterScripts/GameModes/Includes written and supported by me(Gammix)!
 
-# Road Map
-Click on the embedded links to directly goto the following's page.
+Please read the [LICENSE.md](https://github.com/Agneese-Saini/SA-MP/blob/master/LICENSE.md) before re-distributing the code with your addons! 
+___
 
-* filterscripts
-	* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/filterscripts/spectate.pwn">Spectate.pwn</a></b> - Advance visually stunning spectate filterscript!
-	* <b><a href="https://github.com/Agneese-Saini/SA-MP/tree/master/filterscripts/tdeditor.pwn">TDEditor.pwn</a></b> - Textdraw editor by gammix with amazing features!
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/filterscripts/attachments.pwn">attachments.pwn</a></b> - player attachment editor with preview model dialogs.
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/filterscripts/gban.pwn">gban.pwn</a></b> - SQLite based ban system with CIDR ip range detection.
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/filterscripts/inventory.pwn">inventory.pwn</a></b> - Textdraw menu inventory and items script
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/filterscripts/throw_deagle.pwn">throw_deagle.pwn</a></b> - projectile.inc example script (throwing a desert eagle on ground).
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/filterscripts/grenade_launcher.pwn">grenade_launcher.pwn</a></b> - projectile.inc example script (Grenade launcher for M4).
-* gamemodes
-	* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/gamemodes/CopsAndTerrorists.pwn">CopsAndTerrorists.pwn</a></b> - A simple capture zone based cops vs terrorists gamemode, team deathmatch in a small town of los santos (near vinewood)!
-  	* base
-   		* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/gamemodes/base/mysql.pwn">mysql.pwn</a></b> - an advance MYSQL R41+ base gamemode
-   		* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/gamemodes/base/sqlite.pwn">sqlite.pwn</a></b> - an advance SQLite base gamemode
-* includes
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/Fixes/EnableVehicleFriendlyFire.inc">EnableVehicleFriendlyFire.inc</a></b> - Fix for tire poping when using Friendly fire on vehicles (fixes the annoying bug)
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/list.inc">list.inc</a></b> - amazing array manipulation include
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/attachments.inc">attachments.inc</a></b> - player attachments auto remove while aiming with scope weapons (e.g. snipers)
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/PreviewModelDialog.inc">PreviewModelDialog.inc</a></b> - Adds in new dialog styles "DIALOG_STYLE_PREVMODEL" and "DIALOG_STYLE_PREVMODEL_LIST"
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/easyDialog.inc">easyDialog.inc</a></b> - Manage dialogs in ZCMD style! (originally by Emmet_)
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/map.inc">map.inc</a></b> - C++ std::map in PAWN, somewhat same funcionality!
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/dini2.inc">dini2.inc</a></b> - Improved dini processor with multi file processing and fast! *you can use this really)
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/gangzones.inc">gangzones.inc</a></b> - GangZones with borders and interior & virtual world support
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/gmenu.inc">gmenu.inc</a></b> - GTA 5 styled menus with response control, even switching to one item to next
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/pause.inc">pause.inc</a></b> - detects when a player pause/unpause their game (press ESC)
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/progress2.inc">progress2.inc</a></b> - SouthClaw's progress2 with global textdraw support and some minor changes for productivity!
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/projectile.inc">projectile.inc</a></b> - Lets you create object physics simulation
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP-Files/blob/master/pawno/include/script_init.inc">script_init.inc</a></b> - callback called when script inits and exits with two macros for depicting if the script is a GAMEMODE or FILTERSCRIPT
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/fader.inc">fader.inc</a></b> - textdraw box and text color fader
-  	* <b><a href="https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/vending.inc">vending.inc</a></b> - include to detect usage of vending machines, the include destroys the client vending machines and make them server sided
+## [FilterScripts](https://github.com/Agneese-Saini/SA-MP/tree/master/filterscripts)
+
+| FileName		| Information	| Thread   |
+| ------------- |:-------------:| --------:|
+| [EnterExit.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/filterscripts/EnterExit.pwn) | GTA SA type moving arrow pickups, used to make enterance and exits | N/A |
+| [TDEditor.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/filterscripts/TDEditor.pwn) | Keyboard based textdraw editor with modern features like having a Canvas panel allowing you to group textdraws and modify position together and lot more.. | http://forum.sa-mp.com/showthread.php?t=642981 |
+| [clan.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/filterscripts/clan.pwn) | MySQL clan system, with nice textdraws. The system was build for a TeamDeathmatch type of gamemode | http://forum.sa-mp.com/showthread.php?t=656790 |
+| [gban.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/filterscripts/gban.pwn) | SQLite ban system with IP Range ban support (player also see textdraw saying "You are banned" when banned) | http://forum.sa-mp.com/showthread.php?t=637472 |
+| [grenade_launcher.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/filterscripts/grenade_launcher.pwn) | Example script of [projectile.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/projectile.inc). Basically your M4 rifle will get 5 grenades which you can shoot by pressing "N" (uses physics to calcualte path and also collides with SA world and players) | N/A |
+| [inventory.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/filterscripts/inventory.pwn) | Basic textdraw menu inventory system for Survival servers | http://forum.sa-mp.com/showthread.php?t=636974 | 
+| [mysql_ban.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/filterscripts/mysql_ban.pwn) | Similar to "GBan.pwn" but built with MySQL plugin and more optimized or up-to-date | N/A |
+| [spectate.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/filterscripts/spectate.pwn) | Nice clickable textdraw spectate menu with auto transition for virtual-world/vehicle/death state changes | http://forum.sa-mp.com/showthread.php?t=652367 |
+| [throw_deagle.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/filterscripts/throw_deagle.pwn) | Another example of [projectile.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/projectile.inc), this one is very basic, you can throw your deagle on ground, showing off physics in collision with SA world! | N/A |
+___
+
+## [GameModes](https://github.com/Agneese-Saini/SA-MP/tree/master/gamemodes)
+
+| FileName		| Information	| Thread   |
+| ------------- |:-------------:| --------:|
+| [base/mysql.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/gamemodes/base/mysql.pwn) | Starter MySQL login and register system with Security question addon for recovering/reseting password when user forgets! | http://forum.sa-mp.com/showthread.php?t=625195 |
+| [base/sqlite.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/gamemodes/base/sqlite.pwn) | Similar to above but in SQLite | http://forum.sa-mp.com/showthread.php?t=625195 |
+| [CopsAndTerrorists.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/gamemodes/CopsAndTerrorists.pwn) | A small los santos town is under war between Cops and Local Terrorists, there are 3 flags to capture for both teams! | N/A |
+___
+
+## [Includes](https://github.com/Agneese-Saini/SA-MP/tree/master/pawno/include)
+
+| FileName		| Information	| Thread   |
+| ------------- |:-------------:| --------:|
+| [EnableVehicleFriendlyFire.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/EnableVehicleFriendlyFire.inc) | A fix for annoying bug, when you have "EnableVehicleFriendlyFire()" toggled ON but your teammates can still pop your vehicle's tires! | http://forum.sa-mp.com/showthread.php?t=648320 |
+| [PreviewModelDialog.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/PreviewModelDialog.inc) | Alternative to "mSelection.inc", more modern styled preview model textdraw menu with similar style to SA-MP dialogs | http://forum.sa-mp.com/showthread.php?t=570213 |
+| [attachments.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/attachments.inc) | Fix: When you aim with scoped weapons (like sniper, RPG, etc.), attachments change bone automatically and comes infront of screen making it hard to view.<br><br>There is a better fix using Pawn-RakNet plugin, posted by Jelly on forums somewhere! | N/A |
+| [cidr.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/cidr.inc) | Functions to check IP's range, can be used for range ban, AKA script! | http://forum.sa-mp.com/showpost.php?p=4037582&postcount=10 |
+| [dini2.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/dini2.inc) | Hevaily improved version of original and old dini INI file processor! Gives a great speed boost! | http://forum.sa-mp.com/showthread.php?t=611399 |
+| [easyDialog.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/easyDialog.inc) | (originally by Emmet_) Emmet's easy dialog mirror and with addon of support to my "PreviewModelDialog.inc", checkout function: "Dialog_OpenPreviewModel()" | http://forum.sa-mp.com/showthread.php?t=475838
+| [fader.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/fader.inc) | Textdraw text color and box color fader | http://forum.sa-mp.com/showthread.php?t=644785 |
+| [gangzones.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/gangzones.inc) | Adds borders and numbers to gangzones | http://forum.sa-mp.com/showthread.php?t=649230 |
+| [gmenu.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/gmenu.inc) | Textdraw menu, alternative to GTA SA menus, works similarly but better functionality | http://forum.sa-mp.com/showthread.php?t=574271 |
+| [map_parser.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/map_parser.inc) | (originally by "SouthClaws") You can load maps from text files now, plug'n'play features | N/A |
+| [pause.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/pause.inc) | Allows you to detect players who are away from keyboard | N/A |
+| [progress.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/progress.inc) | (originally by Toribio and SouthClaws for new styles) This have all progress2 features with ability to customize border/background/filler colors or even remove them (set color to 0x00).<br><br>And this include also adds support for Global Progress bars! | N/A |
+| [projectile.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/projectile.inc) | (originally by Pepe) Physics simulator include. Uses ColAndreas plugin for collision detection with SA World too! | http://forum.sa-mp.com/showthread.php?t=630602 |
+| [script_init.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/script_init.inc) | Adds two callbacks "OnScriptInit()" and "OnScriptExit()". So you no longer have to check if the script your include is being included in is a gamemode or a filterscript, just use these callbacks instead! | N/A |
+| [vending.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/vending.inc) | Serversided vending machines, you can control how much helth to give, how much money to deduct etc. using the callback "OnPlayerUseVendingMachine()".<br><br>Also, to get a vending machine (default SA machines) data, use this function: "GetVendingMachineData()". | N/A |
+| [weapon_damage.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/weapon_damage.inc) | Serversided weapons, the server will control weapon damage which also means, this works as an anti cheat!<br><br>You can prevent weapon damage cheat, weapon range cheat, fake kill, and this also uses OnPlayerGiveDamage which makes hit registeratio 10 times more accurate in terms of hitting player on your screen! | N/A |
+___
+
+### Any Issues or Questions, post an issue: https://github.com/Agneese-Saini/SA-MP/issues/new
+To post an issue about a library/mode, please include the filename so i know what you're talking about!
