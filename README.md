@@ -18,6 +18,8 @@ ___
 | [mysql_ban.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/filterscripts/mysql_ban.pwn) | Similar to "GBan.pwn" but built with MySQL plugin and more optimized or up-to-date | N/A |
 | [spectate.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/filterscripts/spectate.pwn) | Nice clickable textdraw spectate menu with auto transition for virtual-world/vehicle/death state changes | http://forum.sa-mp.com/showthread.php?t=652367 |
 | [throw_deagle.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/filterscripts/throw_deagle.pwn) | Another example of [projectile.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/projectile.inc), this one is very basic, you can throw your deagle on ground, showing off physics in collision with SA world! | N/A |
+| signature.pwn | Fully customizable Call of duty styled signature textdraws (display on deaths, from - who killed you) | http://forum.sa-mp.com/showthread.php?t=582950 |
+| plabels.pwn | Player statistics label; similar to /dl, but for players! You can also have one label to concentrate on single player: /pl <playerid> | http://forum.sa-mp.com/showthread.php?t=573495 |
 ___
 
 ## [GameModes](https://github.com/Agneese-Saini/SA-MP/tree/master/gamemodes)
@@ -27,6 +29,10 @@ ___
 | [base/mysql.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/gamemodes/base/mysql.pwn) | Starter MySQL login and register system with Security question addon for recovering/reseting password when user forgets! | http://forum.sa-mp.com/showthread.php?t=625195 |
 | [base/sqlite.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/gamemodes/base/sqlite.pwn) | Similar to above but in SQLite | http://forum.sa-mp.com/showthread.php?t=625195 |
 | [CopsAndTerrorists.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/gamemodes/CopsAndTerrorists.pwn) | A small los santos town is under war between Cops and Local Terrorists, there are 3 flags to capture for both teams! | N/A |
+| Los Santos - Gangwars | 5 gangs fight over turfs in los santos teritory | http://forum.sa-mp.com/showthread.php?t=590991 |
+| RedRex Freeroam | Fun freeroam gamemode with sub modes like: Team Deathmatch, Deathmatch, Race, Parkour and lot more... | http://forum.sa-mp.com/showthread.php?t=582050 |
+| World War III | Team deathmatch set in desert of Las Venturas | http://forum.sa-mp.com/showthread.php?t=576348 |
+| World War IV | Modern Team deathmatch set in desert of Las Venturas | http://forum.sa-mp.com/showthread.php?t=597799 |
 ___
 
 ## [Includes](https://github.com/Agneese-Saini/SA-MP/tree/master/pawno/include)
