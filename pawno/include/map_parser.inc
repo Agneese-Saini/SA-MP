@@ -13,21 +13,24 @@
 map_parse(const path[]);
 map_close(const path[]);
 map_num_items(const path[]);
-map_get_item(const path[], idx, &item_id, &item_type);
+map_get_item_id(const path[], idx);
+map_get_item_type(const path[], idx);
 
 #if !defined MAX_MAPS
-	#define MAX_MAPS (20)
+	#define MAX_MAPS 20
 #endif
 
 #if !defined MAX_MAP_PATH_LENGTH
-	#define MAX_MAP_PATH_LENGTH (128)
+	#define MAX_MAP_PATH_LENGTH 128
 #endif
 
 #if !defined MAX_MAP_ITEMS
-	#define MAX_MAP_ITEMS (5000)
+	#define MAX_MAP_ITEMS 5000
 #endif
 
-#define MAX_REMOVE_BUILDINGS (1000)
+#define MAX_REMOVE_BUILDINGS 1000
+
+#define INVALID_MAP_ITEM -1
 
 enum E_ITEM_DATA {
 	ITEM_TYPE,
@@ -161,7 +164,7 @@ stock map_parse(const path[]) {
 			continue;
 		}
 
-	    if (sscanf(line, "p<(>s[32]p<)>s[156]{s[96]}", funcname, funcargs)) {
+	    if (sscanf(line, "p<(>s[32]p<)>s[256]{s[96]}", funcname, funcargs)) {
 			++linenumber;
 	        continue;
 	    }
@@ -282,7 +285,7 @@ stock map_parse(const path[]) {
 
 		// Remove building
 		if (!strcmp(funcname, "RemoveBuildingForPlayer", true)) {
-			if (!sscanf(funcargs, "p<,>ddffff", playerid, modelid, x, y, z, size)) {
+			if (!sscanf(funcargs, "p<,>{s[16]}dffff", modelid, x, y, z, size)) {
 			    if (MAX_removeBuildingsCount == MAX_REMOVE_BUILDINGS) {
 					printf("[map_parser.inc] Warning(line: %i): Cannot remove more than %i buildings for player (map: \"%s\")!", linenumber, MAX_REMOVE_BUILDINGS, path);
 					continue;
@@ -311,7 +314,7 @@ stock map_parse(const path[]) {
     MAP_paths[mapid][0] = EOS;
 	strcat(MAP_paths[mapid], path);
 	
-	printf("[map_parser.inc] Success: Map \"%s\" loaded!", MAP_paths[mapid]);
+	printf("[map_parser.inc] Success: Map \"%s\" loaded with %i items!", MAP_paths[mapid], MAP_itemsCount[mapid]);
 	return 1;
 }
 
@@ -377,17 +380,28 @@ stock map_num_items(const path[]) {
  	return MAP_itemsCount[mapid];
 }
 
-stock map_get_item(const path[], idx, &item_id, &item_type) {
+stock map_get_item_type(const path[], idx) {
 	new mapid = MAP_internal_find(path);
 	if (mapid == -1) {
-		return 0;
+		return INVALID_MAP_ITEM;
 	}
 
 	if (idx < 0 || idx >= MAP_itemsCount[mapid]) {
-		return 0;
+		return INVALID_MAP_ITEM;
 	}
 
-	item_id = MAP_items[mapid][idx][ITEM_ID];
-	item_type = MAP_items[mapid][idx][ITEM_TYPE];
- 	return 1;
+	return MAP_items[mapid][idx][ITEM_TYPE];
+}
+
+stock map_get_item_id(const path[], idx) {
+	new mapid = MAP_internal_find(path);
+	if (mapid == -1) {
+		return INVALID_MAP_ITEM;
+	}
+
+	if (idx < 0 || idx >= MAP_itemsCount[mapid]) {
+		return INVALID_MAP_ITEM;
+	}
+
+	return MAP_items[mapid][idx][ITEM_ID];
 }
