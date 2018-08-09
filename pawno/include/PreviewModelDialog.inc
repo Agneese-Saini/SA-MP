@@ -4,7 +4,7 @@
 #define previewmodel_dialog_included
 
 /**************************************/
-// PreviewModelDialog.inc - v4.7 - Last Updated: 6 August, 2018 - By Gammix
+// PreviewModelDialog.inc - v4.7.1 - Last Updated: 8 August, 2018 - By Gammix
 /***************************************/
 
 // by BigETI
@@ -681,7 +681,7 @@ static Prev_UpdateListitems(playerid, page, selected, totalItems) {
 			    PlayerTextDrawHide(playerid, Prev@ModelTextPTD[playerid][textdrawid][1]);
 			    PlayerTextDrawHide(playerid, Prev@ModelTextPTD[playerid][textdrawid][2]);
 			}
-			
+
 			if (listitemTextPointer != MEM_NULLPTR) {
 				MEM_get_arr(listitemTextPointer, 0, text, MEM_get_size(listitemTextPointer));
 				PlayerTextDrawSetString(playerid, Prev@ModelTextPTD[playerid][textdrawid][0], text);
@@ -695,6 +695,26 @@ static Prev_UpdateListitems(playerid, page, selected, totalItems) {
 	new string[16];
  	format(string, sizeof string, "PAGE: %i/%i", (page + 1), Prev_GetNumPages(playerid));
 	PlayerTextDrawSetString(playerid, Prev@PageNumberPTD[playerid], string);
+}
+
+static Prev_DeletePointers(playerid) {
+    new Pointer:listitemPointer;
+	new Pointer:listitemTextPointer;
+
+	for (new i = 0; i < Prev@PlayerDialogNumListitems[playerid]; i++) {
+	    listitemPointer = Pointer:MEM_get_val(Prev@PlayerListitemPointer[playerid], i);
+
+	    listitemTextPointer = Pointer:MEM_get_val(listitemPointer, 1);
+		if (listitemTextPointer != MEM_NULLPTR) {
+			MEM_delete(listitemTextPointer);
+		}
+
+		MEM_delete(listitemPointer);
+	}
+
+	MEM_delete(Prev@PlayerListitemPointer[playerid]);
+
+	Prev@PlayerListitemPointer[playerid] = MEM_NULLPTR;
 }
 
 static Prev_HidePlayerDialog(playerid) {
@@ -740,29 +760,11 @@ static Prev_HidePlayerDialog(playerid) {
 	*/
 	Prev_DestroyPlayerTextDraws(playerid);
 
+    Prev_DeletePointers(playerid);
+
 	Prev@PlayerDialogID[playerid] = -1;
 
 	return Prev_CancelSelectTextDraw(playerid);
-}
-
-static Prev_DeletePointers(playerid) {
-    if (Prev@PlayerListitemPointer[playerid] != MEM_NULLPTR) {
-	    new Pointer:listitemPointer;
-		new Pointer:listitemTextPointer;
-
-		for (new i = 0; i < Prev@PlayerDialogNumListitems[playerid]; i++) {
-		    listitemPointer = Pointer:MEM_get_val(Prev@PlayerListitemPointer[playerid], i);
-
-		    listitemTextPointer = Pointer:MEM_get_val(listitemPointer, 1);
-			if (listitemTextPointer != MEM_NULLPTR) {
-				MEM_delete(listitemTextPointer);
-   			}
-
-			MEM_delete(listitemPointer);
-		}
-
-		MEM_delete(Prev@PlayerListitemPointer[playerid]);
-	}
 }
 
 static Prev_FetchListitemData(const listitem[], &modelid, text[], &Float:rx, &Float:ry, &Float:rz, &Float:zoom, &color1, &color2, text_size = sizeof(text)) {
@@ -925,8 +927,10 @@ public OnPlayerConnect(playerid) {
 #endif
 
 public OnPlayerDisconnect(playerid, reason) {
-	Prev_DeletePointers(playerid);
-
+    if (Prev@PlayerListitemPointer[playerid] != MEM_NULLPTR) {
+		Prev_DeletePointers(playerid);
+	}
+	
 	#if defined PDialog_OnPlayerDisconnect
 		return PDialog_OnPlayerDisconnect(playerid, reason);
 	#else
@@ -1188,12 +1192,10 @@ stock Prev_ShowPlayerDialog(playerid, dialogid, style, caption[], info[], button
 		return 0;
 	}
 
-    Prev_DeletePointers(playerid);
-    
 	Prev@PlayerListitemPointer[playerid] = MEM_new(DEFAULT_DIALOG_INCREMENT_SIZE);
 
 	new pos, next, count;
-	
+
 	new listitem[MAX_DIALOG_PREVIEW_TEXTSIZE + 64];
 	new modelid, text[MAX_DIALOG_PREVIEW_TEXTSIZE], Float:rx, Float:ry, Float:rz, Float:zoom, color1, color2;
 
@@ -1221,16 +1223,15 @@ stock Prev_ShowPlayerDialog(playerid, dialogid, style, caption[], info[], button
 		MEM_set_val(listitemPointer, 5, _:zoom);
 		MEM_set_val(listitemPointer, 6, color1);
 		MEM_set_val(listitemPointer, 7, color2);
-		
+
 		if (count == MEM_get_size(Prev@PlayerListitemPointer[playerid])) {
 			new Pointer:tmpPointer = MEM_new(count + DEFAULT_DIALOG_INCREMENT_SIZE);
-			for (new i = 0, j = MEM_get_size(Prev@PlayerListitemPointer[playerid]); i < j; i++) {
-                MEM_set_val(tmpPointer, i, MEM_get_val(Prev@PlayerListitemPointer[playerid], i));
-			}
-			
+			MEM_copy(tmpPointer, Prev@PlayerListitemPointer[playerid], MEM_get_size(tmpPointer));
+
+			MEM_delete(Prev@PlayerListitemPointer[playerid]);
 			Prev@PlayerListitemPointer[playerid] = tmpPointer;
 		}
-		
+
 		MEM_set_val(Prev@PlayerListitemPointer[playerid], count++, _:listitemPointer);
 	} while (pos != -1);
 
