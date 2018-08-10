@@ -130,14 +130,14 @@ ConnectMySQLDatabase() {
     mysql_set_option(option, POOL_SIZE, 2);
     mysql_set_option(option, SERVER_PORT, 3306);
 
-	printf("[GBan.pwn] Connecting to MySQL server....");
+	printf("[mysql_ban.pwn] Connecting to MySQL server....");
 	for (;;) {
 		database = mysql_connect(MYSQL_HOST, MYSQL_USER, MYSQL_PASS, MYSQL_DATABASE, option);
 
 		if (mysql_errno(database) != 0) {
-		    printf("[GBan.pwn] Connection error, retrying...");
+		    printf("[mysql_ban.pwn] Connection error, retrying...");
 		} else {
-            printf("[GBan.pwn] Connection successfull!");
+            printf("[mysql_ban.pwn] Connection successfull!");
             break;
 		}
 	}
@@ -191,6 +191,8 @@ public DelayKick(playerid) {
 public OnFilterScriptInit() {
 	ConnectMySQLDatabase();
     CreateBanTextDraws();
+    
+    printf("[mysql_ban.pwn] Filterscript loaded successfully!");
 
 	return 1;
 }
@@ -271,6 +273,7 @@ public OnUserBanDataLoad(playerid) {
 
 		SetTimerEx("DelayKick", KICK_TIMER_DELAY, 0, "i", playerid);
 	}
+	
 	return;
 }
 
