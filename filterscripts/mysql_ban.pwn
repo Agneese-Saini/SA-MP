@@ -1,4 +1,4 @@
-// mysql_ban.pwn by Gammix 
+// mysql_ban.pwn by Gammix
 // Commands: /ban, /findban, /unban
 
 #include <a_samp>
@@ -14,7 +14,6 @@
 #define MYSQL_DATABASE	"sa-mp"
 
 // General filterscript settings
-#define MAX_BANS_PER_PAGE 25 // how many bans to show in a single page of /banslist
 #define MAX_BAN_REASON_LENGTH 64 // max string length of ban reason
 #define KICK_TIMER_DELAY 150 // in miliseconds - a timer delay added to Kick(); function
 
@@ -54,12 +53,6 @@ new MySQL:database;
 new Text:banTextDraw[2];
 new adminBanData[MAX_PLAYERS][E_BAN_DATA];
 new adminUnBanData[MAX_PLAYERS][E_UNBAN_DATA];
-
-forward IpToLong(const address[]);
-forward ReturnDate(timestamp);
-forward ReturnTimelapse(start, till);
-forward ConnectMySQLDatabase();
-forward CreateBanTextDraws();
 
 IpToLong(const address[]) {
 	new parts[4];
@@ -239,7 +232,7 @@ public OnUserBanDataLoad(playerid) {
 		new ban_expire_timestamp;
    		cache_get_value_name_int(0, "id", ban_id);
    		cache_get_value_name_int(0, "ban_expire_timestamp", ban_expire_timestamp);
-   		
+
    		if (ban_expire_timestamp != 0 && gettime() >= ban_expire_timestamp) {
             mysql_format(database, string, sizeof(string),
                 "DELETE FROM bans WHERE id = %i",
@@ -254,7 +247,7 @@ public OnUserBanDataLoad(playerid) {
 		new ban_timestamp;
 		new ban_admin[MAX_PLAYER_NAME];
 		new ban_reason[MAX_BAN_REASON_LENGTH];
-		
+
    		cache_get_value_name_int(0, "ban_timestamp", ban_timestamp);
    		cache_get_value_name(0, "ban_admin", ban_admin, sizeof(ban_admin));
    		cache_get_value_name(0, "ban_reason", ban_reason, sizeof(ban_reason));
@@ -262,7 +255,7 @@ public OnUserBanDataLoad(playerid) {
  		for (new i = 0; i < sizeof(banTextDraw); i++) {
 			TextDrawShowForPlayer(playerid, banTextDraw[i]);
 		}
-		
+
 	    for (new i = 0; i < 100; i++) {
 			SendClientMessage(playerid, COLOR_TOMATO, "");
 	    }
@@ -285,7 +278,7 @@ CMD:ban(playerid, params[]) {
     if (!IsPlayerAdmin(playerid)) {
 	    return SendClientMessage(playerid, COLOR_TOMATO, "You should be RCON Admin to use this command.");
 	}
-	
+
 	if (!strcmp(params, "yes", true)) {
 		if (adminBanData[playerid][BAN_TARGET_ID] != INVALID_PLAYER_ID) {
 		    if (gettime() > (adminBanData[playerid][BAN_CMD_TIMESTAMP] + 60)) {
@@ -340,7 +333,7 @@ CMD:ban(playerid, params[]) {
 			    format(string, sizeof(string), "%s was banned, even he went offline but ban was successfull!", adminBanData[playerid][BAN_TARGET_NAME]);
 			    SendClientMessage(playerid, COLOR_TOMATO, string);
 			}
-			
+
             adminBanData[playerid][BAN_TARGET_ID] = INVALID_PLAYER_ID;
 		}
 		return 1;
@@ -351,14 +344,14 @@ CMD:ban(playerid, params[]) {
 		        adminBanData[playerid][BAN_TARGET_ID] = INVALID_PLAYER_ID;
    				return SendClientMessage(playerid, COLOR_TOMATO, "Error: /ban command timeout, you have to respond to confirmation within a minute!");
 			}
-			
+
 		    adminBanData[playerid][BAN_TARGET_ID] = INVALID_PLAYER_ID;
 
 		    SendClientMessage(playerid, COLOR_TOMATO, "Ban was canceled.");
 		}
 		return 1;
 	}
-	
+
 	new targetid, reason[MAX_BAN_REASON_LENGTH], days;
 	if (sscanf(params, "uis["#MAX_BAN_REASON_LENGTH"]", targetid, days, reason)) {
 		SendClientMessage(playerid, COLOR_WHITE, "Usage: /ban [id/name] [days] [reason]");
@@ -407,7 +400,7 @@ CMD:findban(playerid, params[]) {
     if (!IsPlayerAdmin(playerid)) {
 	    return SendClientMessage(playerid, COLOR_TOMATO, "You should be RCON Admin to use this command.");
 	}
-	
+
 	new match[32];
 	if (sscanf(params, "s[32]", match)) {
 		return SendClientMessage(playerid, COLOR_WHITE, "Usage: /unban [name/ip]");
@@ -474,7 +467,7 @@ public OnFindBanSearchDataLoad(playerid, const match[]) {
 			match, name, ip, admin, ReturnDate(date), ReturnTimelapse(date, gettime()), ReturnDate(unban_date), ReturnTimelapse(gettime(), unban_date), reason, ReturnDate(gettime())
 		);
 	}
-	
+
 	ShowPlayerDialog(playerid, 0, DIALOG_STYLE_MSGBOX, "Server ban info:", string, "Close", "");
 }
 
@@ -490,12 +483,12 @@ CMD:unban(playerid, params[]) {
 		        adminUnBanData[playerid][UNBAN_TARGET_ID] = -1;
    				return SendClientMessage(playerid, COLOR_TOMATO, "Error: /unban command timeout, you have to respond to confirmation within a minute!");
 			}
-			
+
 			new string[144];
 
 			new name[MAX_PLAYER_NAME];
 		    GetPlayerName(playerid, name, MAX_PLAYER_NAME);
-	
+
 			mysql_format(database, string, sizeof(string),
 	     		"DELETE FROM bans WHERE id = %i",
 				 adminUnBanData[playerid][UNBAN_TARGET_ID]
@@ -506,7 +499,7 @@ CMD:unban(playerid, params[]) {
 
 			format(string, sizeof(string), "* Admin %s has unbanned %s || Today's Date: %s", name, adminUnBanData[playerid][UNBAN_TARGET_NAME], ReturnDate(gettime()));
 			SendClientMessageToAll(COLOR_TOMATO, string);
-			
+
 			adminUnBanData[playerid][UNBAN_TARGET_ID] = -1;
 		}
   		return 1;
@@ -529,13 +522,13 @@ CMD:unban(playerid, params[]) {
 	if (sscanf(params, "s[32]", match)) {
 		return SendClientMessage(playerid, COLOR_WHITE, "Usage: /unban [name/ip]");
 	}
-	
+
 	new string[MAX_PLAYER_NAME + 256];
 	mysql_format(database, string, sizeof(string),
 		"SELECT * FROM bans WHERE (name = '%e') OR (ip = '%e') OR (longip & %i = %i) LIMIT 1",
 		match, match, CIDR_BAN_MASK, (IpToLong(match) & CIDR_BAN_MASK)
 	);
-	
+
     return mysql_tquery(database, string, "OnUnBanSearchDataLoad", "i", playerid);
 }
 
@@ -545,7 +538,7 @@ public OnUnBanSearchDataLoad(playerid) {
 	    SendClientMessage(playerid, COLOR_TOMATO, "Error: User not found in ban database!");
 	    return;
 	}
-	
+
 	new string[144];
 
 	new ban_expire_timestamp;
@@ -560,7 +553,7 @@ public OnUnBanSearchDataLoad(playerid) {
 
 		mysql_tquery(database, string);
 		mysql_tquery(database, "ALTER TABLE bans AUTO_INCREMENT = 1");
-		
+
 	    SendClientMessage(playerid, COLOR_TOMATO, "Error: User not found in ban database!");
 	    return;
 	}
@@ -577,25 +570,25 @@ public OnUnBanSearchDataLoad(playerid) {
    	cache_get_value_name_int(0, "ban_expire_timestamp", unban_date);
 	cache_get_value_name(0, "ban_admin", admin, MAX_PLAYER_NAME);
 	cache_get_value_name(0, "ban_reason", reason, MAX_BAN_REASON_LENGTH);
-	
+
 	SendClientMessage(playerid, COLOR_TOMATO, "");
-	
-	format(string, sizeof(string),
-		"Are you sure you want to unban \"%s\" (ip: %s)?", adminUnBanData[playerid][UNBAN_TARGET_NAME], ip
-	);
+
+	format(string, sizeof(string), "Are you sure you want to unban \"%s\" (ip: %s)?", adminUnBanData[playerid][UNBAN_TARGET_NAME], ip);
 	SendClientMessage(playerid, COLOR_TOMATO, string);
-	
+
 	if (unban_date == 0) {
 		format(string, sizeof(string),
-			"%s was banned by admin %s, on %s (%s ago) || Unban On: %s || Reason: %s", adminUnBanData[playerid][UNBAN_TARGET_NAME], admin, ReturnDate(date), ReturnTimelapse(date, gettime()), ReturnDate(unban_date), reason
+			"%s was banned by admin %s, on %s (%s ago) || Unban On: %s || Reason: %s",
+			adminUnBanData[playerid][UNBAN_TARGET_NAME], admin, ReturnDate(date), ReturnTimelapse(date, gettime()), ReturnDate(unban_date), reason
 		);
 	} else {
 		format(string, sizeof(string),
-			"%s was banned by admin %s, on %s (%s ago) || Ban Type: Permanent || Reason: %s", adminUnBanData[playerid][UNBAN_TARGET_NAME], admin, ReturnDate(date), ReturnTimelapse(date, gettime()), reason
+			"%s was banned by admin %s, on %s (%s ago) || Ban Type: Permanent || Reason: %s",
+			adminUnBanData[playerid][UNBAN_TARGET_NAME], admin, ReturnDate(date), ReturnTimelapse(date, gettime()), reason
 		);
 	}
 	SendClientMessage(playerid, COLOR_TOMATO, string);
-	
+
 	SendClientMessage(playerid, COLOR_TOMATO, "Type \"/unban yes\" to unban this player, or type \"/unban no\" to cancel");
 
 	adminUnBanData[playerid][UNBAN_CMD_TIMESTAMP] = gettime();
