@@ -55,6 +55,7 @@ ___
 | [script_init.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/script_init.inc) | Adds two callbacks "OnScriptInit()" and "OnScriptExit()". So you no longer have to check if the script your include is being included in is a gamemode or a filterscript, just use these callbacks instead! | N/A |
 | [vending.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/vending.inc) | Serversided vending machines, you can control how much helth to give, how much money to deduct etc. using the callback "OnPlayerUseVendingMachine()".<br><br>Also, to get a vending machine (default SA machines) data, use this function: "GetVendingMachineData()". | N/A |
 | [weapon_damage.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/weapon_damage.inc) | Serversided weapons, the server will control weapon damage which also means, this works as an anti cheat!<br><br>You can prevent weapon damage cheat, weapon range cheat, fake kill, and this also uses OnPlayerGiveDamage which makes hit registeratio 10 times more accurate in terms of hitting player on your screen! | N/A |
+| [strcalc.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/strcalc.inc) | A simple string calculator, you provide a string with maths/numbers involved in it, and this function *strcalc()* will give you the result of it. | http://forum.sa-mp.com/showthread.php?t=657830 |
 ___
 
 ### Any Issues or Questions, post an issue: https://github.com/Agneese-Saini/SA-MP/issues/new
