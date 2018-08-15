@@ -96,9 +96,6 @@ stock strcalc(const string[], start = 0, end = -1) {
     if (operation_index != -1) {
     	new a = strcalc(string, start, operation_index - 1);
 		new b = strcalc(string, operation_index + 1, end);
-
-		printf("%d %c %d = %d", a, string[operation_index], b, STRCALC_calculate(string[operation_index], a, b));
-
   		return STRCALC_calculate(string[operation_index], a, b);
     }
 
