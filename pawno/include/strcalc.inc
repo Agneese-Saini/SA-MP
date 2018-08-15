@@ -60,7 +60,7 @@ static STRCALC_calculate(opr, a, b) {
 }
 
 stock strcalc(const string[], start = 0, end = -1) {
-	new c, bracket_length, current_operation = -1, operation_index = -1;
+	new c, num_brackets, current_operation = -1, operation_index = -1;
 	
 	if (end == -1) {
 		end = strlen(string) - 1;
@@ -70,16 +70,16 @@ stock strcalc(const string[], start = 0, end = -1) {
         c = string[i];
 
         if (c == '(') {
-            ++bracket_length;
+            ++num_brackets;
         }
 		else if (c == ')') {
-            if (bracket_length == 0) {
+            if (num_brackets == 0) {
                 return 0;
             }
-            --bracket_length;
+            --num_brackets;
         }
 		else {
-			if (bracket_length == 0) {
+			if (num_brackets == 0) {
 	            current_operation = STRCALC_operation(c);
 
 	            if (current_operation != 0 && (operation_index == -1 || current_operation < STRCALC_operation(string[operation_index]))) {
@@ -89,7 +89,7 @@ stock strcalc(const string[], start = 0, end = -1) {
         }
     }
 
-    if (bracket_length > 0) {
+    if (num_brackets > 0) {
         return 0;
     }
 
