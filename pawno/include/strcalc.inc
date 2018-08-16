@@ -1,5 +1,5 @@
 /**************************************/
-// strcalc.inc - v1.0 - Last Updated: 15 August, 2018 - By Gammix
+// strcalc.inc - v1.1 - Last Updated: 16 August, 2018 - By Gammix
 /***************************************/
 
 #if defined strcalc_included
@@ -7,20 +7,19 @@
 #endif
 #define strcalc_included
 
-static STRCALC_number(const string[], start, end) {
-    new c, ret;
+#if !defined FLOAT_INFINITY
+	#define FLOAT_INFINITY Float:0x7F800000
+#endif
 
-    for (new i = start; i <= end; i++) {
-        c = string[i] - '0';
+static Float:STRCALC_number(const string[], start, end) {
+	new tmp[16];
+	strmid(tmp, string, start, end + 1);
 
-        if (c < 0 || c > 9) {
-			return 0;
-		}
-		
-        ret = (10 * ret) + c;
-    }
-
-    return ret;
+	if (strfind(tmp, ".", true) != -1) {
+	    return floatstr(tmp);
+	}
+	
+    return float(strval(tmp));
 }
 
 static STRCALC_operation(opr) {
@@ -34,7 +33,7 @@ static STRCALC_operation(opr) {
     return 0;
 }
 
-static STRCALC_calculate(opr, a, b) {
+static Float:STRCALC_calculate(opr, Float:a, Float:b) {
     switch (opr) {
 	    case '+': { // addition
 			return a + b;
@@ -49,17 +48,17 @@ static STRCALC_calculate(opr, a, b) {
 		}
 
 		case '/': { // division
-			if (b == 0) {
-				return 0x7F800000;
+			if (b == 0.0) {
+				return FLOAT_INFINITY;
 			}
 			return a / b;
 		}
 	}
 	
-    return 0;
+    return 0.0;
 }
 
-stock strcalc(const string[], start = 0, end = -1) {
+stock Float:strcalc(const string[], start = 0, end = -1) {
 	new c, num_brackets, current_operation = -1, operation_index = -1;
 	
 	if (end == -1) {
@@ -74,7 +73,7 @@ stock strcalc(const string[], start = 0, end = -1) {
         }
 		else if (c == ')') {
             if (num_brackets == 0) {
-                return 0;
+                return 0.0;
             }
             --num_brackets;
         }
@@ -90,12 +89,12 @@ stock strcalc(const string[], start = 0, end = -1) {
     }
 
     if (num_brackets > 0) {
-        return 0;
+        return 0.0;
     }
 
     if (operation_index != -1) {
-    	new a = strcalc(string, start, operation_index - 1);
-		new b = strcalc(string, operation_index + 1, end);
+    	new Float:a = strcalc(string, start, operation_index - 1);
+		new Float:b = strcalc(string, operation_index + 1, end);
   		return STRCALC_calculate(string[operation_index], a, b);
     }
 
