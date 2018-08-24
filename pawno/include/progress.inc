@@ -1,6 +1,6 @@
 /****************************************************************
 * progress.inc - Player and Global progress bars with all 4 styles - By Gammix (a modified version of Toribo's and Southclaw's version, so thanks to them for their contribution!)
-* v1.0 - Last updated: 24 July, 2018
+* v1.1 - Last updated: 22 Aug, 2018
 ****************************************************************/
 #if defined progress_included
 	#endinput
@@ -72,7 +72,9 @@ static Float:GetBarFill(Float:x, Float:widthorheight, Float:max, Float:value, di
 ****************************************************************/
 
 // definitions
+#if !defined MAX_GLOBAL_BARS
 #define MAX_GLOBAL_BARS (MAX_TEXT_DRAWS / 3)
+#endif
 
 #define INVALID_BAR_ID (Bar:-1)
 
@@ -86,27 +88,29 @@ static globalBarData[Bar:MAX_GLOBAL_BARS][E_PROGRESS_BAR_DATA];
 static bool:globalBarShown[MAX_PLAYERS][Bar:MAX_GLOBAL_BARS];
 
 // internal functions
-forward Text:CreateGlobalBarBorder(Float:x, Float:y, Float:width, Float:height, border_color, direction);
-forward Text:CreateGlobalBarBackground(Float:x, Float:y, Float:width, Float:height, background_color, direction);
-forward Text:CreateGlobalBarFiller(Float:x, Float:y, Float:width, Float:height, fill_color, Float:value, Float:max_value, direction);
+Text:CreateGlobalBarBorder(Float:x, Float:y, Float:width, Float:height, border_color, direction);
+Text:CreateGlobalBarBackground(Float:x, Float:y, Float:width, Float:height, background_color, direction);
+Text:CreateGlobalBarFiller(Float:x, Float:y, Float:width, Float:height, fill_color, Float:value, Float:max_value, direction);
 
 // public functions (API)
-forward Bar:ProgressBarCreate(Float:x, Float:y, Float:width = 55.5, Float:height = 3.2, direction = BAR_DIRECTION_RIGHT);
-forward IsValidProgressBar(Bar:barid);
-forward ProgressBarDestroy(Bar:barid);
-forward ProgressBarColor(Bar:barid, color);
-forward ProgressBarBackgroundColor(Bar:barid, color);
-forward ProgressBarBorderColor(Bar:barid, color);
-forward ProgressBarSetValue(Bar:barid, Float:value);
-forward ProgressBarSetMaxValue(Bar:barid, Float:max_value);
-forward ProgressBarShowForPlayer(playerid, Bar:barid);
-forward ProgressBarHideForPlayer(playerid, Bar:barid);
-forward ProgressBarShowForAll(Bar:barid);
-forward ProgressBarHideForAll(Bar:barid);
-forward Float:GetProgressBarValue(Bar:barid);
+#if defined _progress_natives_
+native Bar:ProgressBarCreate(Float:x, Float:y, Float:width = 55.5, Float:height = 3.2, direction = BAR_DIRECTION_RIGHT);
+native IsValidProgressBar(Bar:barid);
+native ProgressBarDestroy(Bar:barid);
+native ProgressBarColor(Bar:barid, color);
+native ProgressBarBackgroundColor(Bar:barid, color);
+native ProgressBarBorderColor(Bar:barid, color);
+native ProgressBarSetValue(Bar:barid, Float:value);
+native ProgressBarSetMaxValue(Bar:barid, Float:max_value);
+native ProgressBarShowForPlayer(playerid, Bar:barid);
+native ProgressBarHideForPlayer(playerid, Bar:barid);
+native ProgressBarShowForAll(Bar:barid);
+native ProgressBarHideForAll(Bar:barid);
+native Float:GetProgressBarValue(Bar:barid);
+#endif
 
 // implementation...
-static Text:CreateGlobalBarBorder(Float:x, Float:y, Float:width, Float:height, border_color, direction) {
+static stock Text:CreateGlobalBarBorder(Float:x, Float:y, Float:width, Float:height, border_color, direction) {
 	new Text:ret = Text:INVALID_TEXT_DRAW;
 
     switch (direction) {
@@ -147,7 +151,7 @@ static Text:CreateGlobalBarBorder(Float:x, Float:y, Float:width, Float:height, b
 }
 
 
-static Text:CreateGlobalBarBackground(Float:x, Float:y, Float:width, Float:height, background_color, direction) {
+static stock Text:CreateGlobalBarBackground(Float:x, Float:y, Float:width, Float:height, background_color, direction) {
 	new Text:ret = Text:INVALID_TEXT_DRAW;
 
     switch (direction) {
@@ -187,7 +191,7 @@ static Text:CreateGlobalBarBackground(Float:x, Float:y, Float:width, Float:heigh
 	return ret;
 }
 
-static Text:CreateGlobalBarFiller(Float:x, Float:y, Float:width, Float:height, fill_color, Float:value, Float:max_value, direction) {
+static stock Text:CreateGlobalBarFiller(Float:x, Float:y, Float:width, Float:height, fill_color, Float:value, Float:max_value, direction) {
 	new Text:ret = Text:INVALID_TEXT_DRAW;
 
 	switch (direction) {
@@ -300,10 +304,10 @@ stock ProgressBarDestroy(Bar:barid) {
 
 	TextDrawDestroy(globalBarBorderTxd[barid]);
 	globalBarBorderTxd[barid] = Text:INVALID_TEXT_DRAW;
-	
+
 	TextDrawDestroy(globalBarBackgroundTxd[barid]);
 	globalBarBackgroundTxd[barid] = Text:INVALID_TEXT_DRAW;
-	
+
 	TextDrawDestroy(globalBarFillerTxd[barid]);
 	globalBarFillerTxd[barid] = Text:INVALID_TEXT_DRAW;
 
@@ -406,22 +410,18 @@ stock ProgressBarSetValue(Bar:barid, Float:value) {
 		return 1;
 	}
 
-	if (value > globalBarData[barid][BAR_MAX_VALUE]) {
-		return 0;
-	}
-
-	globalBarData[barid][BAR_VALUE] = value;
+	globalBarData[barid][BAR_VALUE] = (value > globalBarData[barid][BAR_MAX_VALUE]) ? globalBarData[barid][BAR_MAX_VALUE] : value;
 	
 	if (globalBarFillerTxd[barid] == Text:INVALID_TEXT_DRAW) {
 		return 1;
 	}
-	
+
 	TextDrawDestroy(globalBarFillerTxd[barid]);
 	globalBarFillerTxd[barid] = CreateGlobalBarFiller(globalBarData[barid][BAR_X], globalBarData[barid][BAR_Y], globalBarData[barid][BAR_WIDTH], globalBarData[barid][BAR_HEIGHT], globalBarData[barid][BAR_FILLER_COLOR], globalBarData[barid][BAR_VALUE], globalBarData[barid][BAR_MAX_VALUE], globalBarData[barid][BAR_DIRECTION]);
 	if (globalBarFillerTxd[barid] == Text:INVALID_TEXT_DRAW) {
  		return 0;
 	}
-	
+
 	#if defined foreach
 	foreach(new i : Player) {
 	#else
@@ -431,7 +431,7 @@ stock ProgressBarSetValue(Bar:barid, Float:value) {
 			TextDrawShowForPlayer(i, globalBarFillerTxd[barid]);
 		}
 	}
-	
+
 	return 1;
 }
 
@@ -563,7 +563,9 @@ stock Float:GetProgressBarValue(Bar:barid) {
 ****************************************************************/
 
 // definitions
+#if !defined MAX_PLAYER_BARS
 #define MAX_PLAYER_BARS (MAX_PLAYER_TEXT_DRAWS / 3)
+#endif
 
 #define INVALID_PLAYER_BAR_ID (PlayerBar:-1)
 
@@ -577,25 +579,27 @@ static playerBarData[MAX_PLAYERS][PlayerBar:MAX_PLAYER_BARS][E_PROGRESS_BAR_DATA
 static bool:playerBarShown[MAX_PLAYERS][PlayerBar:MAX_PLAYER_BARS];
 
 // internal functions
-forward PlayerText:CreatePlayerBarBorder(playerid, Float:x, Float:y, Float:width, Float:height, border_color, direction);
-forward PlayerText:CreatePlayerBarFiller(playerid, Float:x, Float:y, Float:width, Float:height, fill_color, Float:value, Float:max_value, direction);
-forward PlayerText:CreatePlayerBarBackground(playerid, Float:x, Float:y, Float:width, Float:height, background_color, direction);
+PlayerText:CreatePlayerBarBorder(playerid, Float:x, Float:y, Float:width, Float:height, border_color, direction);
+PlayerText:CreatePlayerBarFiller(playerid, Float:x, Float:y, Float:width, Float:height, fill_color, Float:value, Float:max_value, direction);
+PlayerText:CreatePlayerBarBackground(playerid, Float:x, Float:y, Float:width, Float:height, background_color, direction);
 
 // public functions (API)
-forward PlayerBar:PlayerProgressBarCreate(playerid, Float:x, Float:y, Float:width = 55.5, Float:height = 3.2, direction = BAR_DIRECTION_RIGHT);
-forward IsValidPlayerProgressBar(playerid, PlayerBar:player_barid);
-forward PlayerProgressBarDestroy(playerid, PlayerBar:player_barid);
-forward PlayerProgressBarColor(playerid, PlayerBar:player_barid, color);
-forward PlayerProgressBarBGColor(playerid, PlayerBar:player_barid, color);
-forward PlayerProgressBarBorderColor(playerid, PlayerBar:player_barid, color);
-forward PlayerProgressBarSetValue(playerid, PlayerBar:player_barid, Float:value);
-forward PlayerProgressBarSetMaxValue(playerid, PlayerBar:player_barid, Float:max_value);
-forward PlayerProgressBarShow(playerid, PlayerBar:player_barid);
-forward PlayerProgressBarHide(playerid, PlayerBar:player_barid);
-forward Float:GetPlayerProgressBarValue(playerid, PlayerBar:player_barid);
+#if defined _progress_natives_
+native PlayerBar:PlayerProgressBarCreate(playerid, Float:x, Float:y, Float:width = 55.5, Float:height = 3.2, direction = BAR_DIRECTION_RIGHT);
+native IsValidPlayerProgressBar(playerid, PlayerBar:player_barid);
+native PlayerProgressBarDestroy(playerid, PlayerBar:player_barid);
+native PlayerProgressBarColor(playerid, PlayerBar:player_barid, color);
+native PlayerProgressBarBGColor(playerid, PlayerBar:player_barid, color);
+native PlayerProgressBarBorderColor(playerid, PlayerBar:player_barid, color);
+native PlayerProgressBarSetValue(playerid, PlayerBar:player_barid, Float:value);
+native PlayerProgressBarSetMaxValue(playerid, PlayerBar:player_barid, Float:max_value);
+native PlayerProgressBarShow(playerid, PlayerBar:player_barid);
+native PlayerProgressBarHide(playerid, PlayerBar:player_barid);
+native Float:GetPlayerProgressBarValue(playerid, PlayerBar:player_barid);
+#endif
 
 // implementation...
-static PlayerText:CreatePlayerBarBorder(playerid, Float:x, Float:y, Float:width, Float:height, border_color, direction) {
+static stock PlayerText:CreatePlayerBarBorder(playerid, Float:x, Float:y, Float:width, Float:height, border_color, direction) {
 	new PlayerText:ret = PlayerText:INVALID_TEXT_DRAW;
 
     switch (direction) {
@@ -635,7 +639,7 @@ static PlayerText:CreatePlayerBarBorder(playerid, Float:x, Float:y, Float:width,
 	return ret;
 }
 
-static PlayerText:CreatePlayerBarBackground(playerid, Float:x, Float:y, Float:width, Float:height, background_color, direction) {
+static stock PlayerText:CreatePlayerBarBackground(playerid, Float:x, Float:y, Float:width, Float:height, background_color, direction) {
 	new PlayerText:ret = PlayerText:INVALID_TEXT_DRAW;
 
     switch (direction) {
@@ -675,7 +679,7 @@ static PlayerText:CreatePlayerBarBackground(playerid, Float:x, Float:y, Float:wi
 	return ret;
 }
 
-static PlayerText:CreatePlayerBarFiller(playerid, Float:x, Float:y, Float:width, Float:height, fill_color, Float:value, Float:max_value, direction) {
+static stock PlayerText:CreatePlayerBarFiller(playerid, Float:x, Float:y, Float:width, Float:height, fill_color, Float:value, Float:max_value, direction) {
 	new PlayerText:ret = PlayerText:INVALID_TEXT_DRAW;
 
 	switch (direction) {
@@ -894,11 +898,7 @@ stock PlayerProgressBarSetValue(playerid, PlayerBar:player_barid, Float:value) {
 		return 1;
 	}
 
-	if (value > playerBarData[playerid][player_barid][BAR_MAX_VALUE]) {
-		return 0;
-	}
-
-	playerBarData[playerid][player_barid][BAR_VALUE] = value;
+	playerBarData[playerid][player_barid][BAR_VALUE] = (value > playerBarData[playerid][player_barid][BAR_MAX_VALUE]) ? playerBarData[playerid][player_barid][BAR_MAX_VALUE] : value;
 
 	if (playerBarFillerTxd[playerid][player_barid] == PlayerText:INVALID_TEXT_DRAW) {
 		return 1;
@@ -944,7 +944,7 @@ stock PlayerProgressBarSetMaxValue(playerid, PlayerBar:player_barid, Float:max_v
 	if (playerBarShown[playerid][player_barid] == true) {
 		PlayerTextDrawShow(playerid, playerBarFillerTxd[playerid][player_barid]);
 	}
-	
+
 	return 1;
 }
 
@@ -952,7 +952,7 @@ stock PlayerProgressBarShow(playerid, PlayerBar:player_barid) {
     if (playerid < 0 || playerid >= MAX_PLAYERS) {
 		return 0;
     }
-    
+
 	if (player_barid < PlayerBar:0 || player_barid >= PlayerBar:MAX_PLAYER_BARS) {
  		return 0;
 	}
