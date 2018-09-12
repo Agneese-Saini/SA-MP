@@ -19,7 +19,7 @@ ___
 | [spectate.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/filterscripts/spectate.pwn) | Nice clickable textdraw spectate menu with auto transition for virtual-world/vehicle/death state changes | http://forum.sa-mp.com/showthread.php?t=652367 |
 | [throw_deagle.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/filterscripts/throw_deagle.pwn) | Another example of [projectile.inc](https://github.com/Agneese-Saini/SA-MP/blob/master/pawno/include/projectile.inc), this one is very basic, you can throw your deagle on ground, showing off physics in collision with SA world! | N/A |
 | signature.pwn | Fully customizable Call of duty styled signature textdraws (display on deaths, from - who killed you) | http://forum.sa-mp.com/showthread.php?t=582950 |
-| plabels.pwn | Player statistics label; similar to /dl, but for players! You can also have one label to concentrate on single player: /pl <playerid> | http://forum.sa-mp.com/showthread.php?t=573495 |
+| [plabels.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/filterscripts/plabels.pwn) | Player statistics label; similar to /dl, but for players! You can also have one label for a specific player via: /pl <playerid> | http://forum.sa-mp.com/showthread.php?t=573495 |
 ___
 
 ## [GameModes](https://github.com/Agneese-Saini/SA-MP/tree/master/gamemodes)
