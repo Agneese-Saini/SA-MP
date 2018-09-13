@@ -10,8 +10,8 @@
 #define MAX_LABEL_STRING 256
 
 #define LABEL_COLOR 0x20B2AAFF // light sea green
-#define LABEL_DRAW_DISTANCE 50.0
-#define LABEL_STREAM_DISTANCE 100.0
+#define LABEL_DRAW_DISTANCE 20.0
+#define LABEL_STREAM_DISTANCE 20.0
 
 enum LabelMode {
 	MODE_DISABLED,
@@ -83,6 +83,28 @@ GetLabelString(playerid, targetid, dest[], maxlength = sizeof(dest)) {
 	return 1;
 }
 
+CreatePlayerLabel(playerid, targetid) {
+	new string[MAX_LABEL_STRING];
+	GetLabelString(playerid, targetid, string);
+	
+    playerLabels[playerid][targetid] = CreateDynamic3DTextLabel(string, LABEL_COLOR, 0.0, 0.0, 0.0, LABEL_DRAW_DISTANCE, targetid, _, _, _, _, playerid, LABEL_STREAM_DISTANCE);
+
+	return 1;
+}
+
+DestroyPlayerLabel(playerid) {
+    foreach (new i : Player) {
+		DestroyDynamic3DTextLabel(playerLabels[i][playerid]);
+
+		if (playerLabelMode[i] == MODE_PLAYER && playerLabelTargetID[i] == playerid) {
+			playerLabelMode[i] = MODE_DISABLED;
+			SendClientMessage(i, 0xFFFFFFFF, "SERVER: Player labels disabled");
+		}
+	}
+	
+	return 1;
+}
+
 UpdatePlayerLabel(playerid, targetid) {
 	new string[MAX_LABEL_STRING];
 
@@ -97,7 +119,7 @@ UpdatePlayerLabel(playerid, targetid) {
 
 	GetLabelString(playerid, targetid, string);
 	UpdateDynamic3DTextLabelText(playerLabels[playerid][targetid], LABEL_COLOR, string);
-	
+
 	return 1;
 }
 
@@ -108,33 +130,48 @@ public OnPlayerConnect(playerid) {
 
 	playerLabelMode[playerid] = MODE_DISABLED;
 	playerLabelTargetID[playerid] = INVALID_PLAYER_ID;
-	
-	foreach (new i : Player) {
-		if (i != playerid) {
-            playerLabels[i][playerid] = CreateDynamic3DTextLabel("", LABEL_COLOR, 0.0, 0.0, 0.0, LABEL_DRAW_DISTANCE, playerid, _, _, _, _, i, LABEL_STREAM_DISTANCE);
-		}
-	}
-	
+
 	return 1;
 }
 
 public OnPlayerDisconnect(playerid, reason) {
 	foreach (new i : Player) {
 		DestroyDynamic3DTextLabel(playerLabels[i][playerid]);
+		
+		if (playerLabelMode[i] == MODE_PLAYER && playerLabelTargetID[i] == playerid) {
+			playerLabelMode[i] = MODE_DISABLED;
+			SendClientMessage(i, 0xFFFFFFFF, "SERVER: Player labels disabled");
+		}
 	}
+
+	return 1;
+}
+
+public OnPlayerSpawn(playerid) {
+    foreach (new i : Player) {
+		if (i != playerid) {
+            CreatePlayerLabel(i, playerid);
+		}
+	}
+
+	return 1;
+}
+
+public OnPlayerDeath(playerid, killerid, reason) {
+    DestroyPlayerLabel(playerid);
 
 	return 1;
 }
 
 public OnPlayerInteriorChange(playerid, newinteriorid, oldinteriorid) {
     playerData[playerid][PLAYER_INTERIOR] = newinteriorid;
-    
+
     foreach (new i : Player) {
  		if (i != playerid) {
 	    	UpdatePlayerLabel(i, playerid);
 		}
 	}
-    
+
 	return 1;
 }
 
@@ -175,7 +212,7 @@ public OnPlayerUpdate(playerid) {
 	    playerData[playerid][PLAYER_AMMO] = ammo;
 	    goto Update;
 	}
-	
+
 	new Float:health;
 	GetPlayerHealth(playerid, health);
 	if (health != playerData[playerid][PLAYER_HEALTH]) {
@@ -189,7 +226,7 @@ public OnPlayerUpdate(playerid) {
 	    playerData[playerid][PLAYER_ARMOUR] = armour;
 	    goto Update;
 	}
-	
+
 	new Float:angle;
 	GetPlayerFacingAngle(playerid, angle);
 	if (angle != playerData[playerid][PLAYER_ANGLE]) {
@@ -211,7 +248,7 @@ public OnPlayerUpdate(playerid) {
 	    playerData[playerid][PLAYER_PING] = ping;
 	    goto Update;
 	}
-	
+
 Update:
 	foreach (new i : Player) {
  		if (i != playerid) {
@@ -225,6 +262,12 @@ Update:
 CMD:pl(playerid, params[]) {
 	if (playerLabelMode[playerid] != MODE_DISABLED) {
         playerLabelMode[playerid] = MODE_DISABLED;
+        
+        foreach (new i : Player) {
+			DestroyDynamic3DTextLabel(playerLabels[playerid][i]);
+			playerLabels[playerid][i] = Text3D:-1;
+		}
+        
         return SendClientMessage(playerid, 0xFFFFFFFF, "SERVER: Player labels disabled");
 	}
 
@@ -235,7 +278,7 @@ CMD:pl(playerid, params[]) {
 	else {
 	    if (!IsPlayerConnected(targetid))
 	        return SendClientMessage(playerid, 0xAAAAAAFF, "SERVER: Player is not connected.");
-	        
+
 	    if (targetid == playerid)
 	        return SendClientMessage(playerid, 0xAAAAAAFF, "SERVER: The player entered is yourself!");
 	}
@@ -243,21 +286,21 @@ CMD:pl(playerid, params[]) {
 	if (targetid == INVALID_PLAYER_ID) {
 		playerLabelMode[playerid] = MODE_GLOBAL;
 		playerLabelTargetID[playerid] = INVALID_PLAYER_ID;
-		
+
 		foreach (new i : Player) {
 		    if (i != playerid) {
-		        playerLabels[playerid][i] = CreateDynamic3DTextLabel("", LABEL_COLOR, 0.0, 0.0, 0.0, LABEL_DRAW_DISTANCE, i, _, _, _, _, playerid, LABEL_STREAM_DISTANCE);
-		        UpdatePlayerLabel(playerid, i);
+		        CreatePlayerLabel(playerid, i);
 			}
 		}
 	}
 	else {
 		playerLabelMode[playerid] = MODE_PLAYER;
 		playerLabelTargetID[playerid] = targetid;
-		
-		playerLabels[playerid][targetid] = CreateDynamic3DTextLabel("", LABEL_COLOR, 0.0, 0.0, 0.0, LABEL_DRAW_DISTANCE, targetid, _, _, _, _, playerid, LABEL_STREAM_DISTANCE);
-		UpdatePlayerLabel(playerid, targetid);
+
+		CreatePlayerLabel(playerid, targetid);
 	}
-	
+
+    SendClientMessage(playerid, 0xFFFFFFFF, "SERVER: Player labels enabled");
+    
 	return 1;
 }
