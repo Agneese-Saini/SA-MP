@@ -3,24 +3,63 @@
 #endif
 #define vending_included
 
-/**********************************************/
-// vending.inc | v1.0 | Updated: 26 Dec, 2017 | By Gammix
-/**********************************************/
+/***********************************************
 
-enum E_VENDING_MACHINE {
-	E_VENDING_MACHINE_MODEL,
-	E_VENDING_MACHINE_INTERIOR,
-	Float:E_VENDING_MACHINE_X,
-	Float:E_VENDING_MACHINE_Y,
-	Float:E_VENDING_MACHINE_Z,
-	Float:E_VENDING_MACHINE_RX,
-	Float:E_VENDING_MACHINE_RY,
-	Float:E_VENDING_MACHINE_RZ,
-	Float:E_VENDING_MACHINE_FRONT_X,
-	Float:E_VENDING_MACHINE_FRONT_Y
+// vending.inc | v1.1 | Updated: 17 Sept, 2018 | By Gammix
+
+************************************************
+
+// List of functions
+
+native CreateVendingMachine(modelid, Float:x, Float:y, Float:z, Float:rx, Float:ry, Float:rz, Float:frontX, Float:frontY, interiorid = 0, Float:health_given = 35.0);
+native DestroyVendingMachine(machineid);
+native IsValidVendingMachine(machineid);
+native SetVendingMachineHealthGiven(machineid, Float:health);
+native Float:GetVendingMachineHealthGiven(machineid);
+native GetVendingMachineData(machineid, &modelid, &Float:x, &Float:y, &Float:z, &Float:rx, &Float:ry, &Float:rz, &Float:frontX, &Float:frontY, &interiorid);
+
+************************************************
+
+// Callback
+
+forward OnPlayerUseVendingMachine(playerid, machineid, &Float:health_given);
+
+***********************************************/
+
+#if !defined MAX_VENDING_MACHINES
+	#define MAX_VENDING_MACHINES (sizeof(DEFAULT_VENDING_MACHINES) + 100)
+#endif
+
+#define MACHINE_SNACK 956
+#define MACHINE_SNACK2 1776
+#define MACHINE_SPRUNK 955
+#define MACHINE_SPRUNK2 1775
+#define MACHINE_SODA 1302
+#define MACHINE_SODA2 1209
+#define MACHINE_BLACK 1977
+
+#define INVALID_VENDING_MACHINE_ID -1
+
+enum E_VENDING_MACHINE_DATA {
+	VENDING_MACHINE_MODEL,
+	VENDING_MACHINE_INTERIOR,
+	Float:VENDING_MACHINE_X,
+	Float:VENDING_MACHINE_Y,
+	Float:VENDING_MACHINE_Z,
+	Float:VENDING_MACHINE_RX,
+	Float:VENDING_MACHINE_RY,
+	Float:VENDING_MACHINE_RZ,
+	Float:VENDING_MACHINE_FRONT_X,
+	Float:VENDING_MACHINE_FRONT_Y,
+	Float:VENDING_MACHINE_HEALTH_GIVEN,
+	VENDING_MACHINE_OBJECT,
+	#if defined _streamer_included
+		VENDING_MACHINE_AREA,
+	#endif
+	bool:VENDING_MACHINE_VALID
 };
 
-static const Float:VENDING_MACHINES[][E_VENDING_MACHINE] = {
+static const Float:DEFAULT_VENDING_MACHINES[][E_VENDING_MACHINE_DATA] = {
 	{955, 0, -862.82, 1536.60, 21.98, 0.00, 0.00, 180.00, -862.84, 1537.60},
 	{956, 0, 2271.72, -76.46, 25.96, 0.00, 0.00, 0.00, 2271.72, -77.46},
 	{955, 0, 1277.83, 372.51, 18.95, 0.00, 0.00, 64.00, 1278.73, 372.07},
@@ -107,26 +146,35 @@ static const Float:VENDING_MACHINES[][E_VENDING_MACHINE] = {
 	{1775, 16, -35.72, -140.22, 1003.63, 0.00, 0.00, 180.00, -35.74, -139.22}
 };
 
-static vendingMachineObject[sizeof VENDING_MACHINES] = {
-	#if defined STREAMER_TYPE_OBJECT
-		INVALID_STREAMER_ID, ...
-	#else
-	    INVALID_OBJECT_ID, ...
-	#endif
-};
+static vendingMachineData[MAX_VENDING_MACHINES][E_VENDING_MACHINE_DATA];
 
 #if defined OnPlayerUseVendingMachine
-	forward OnPlayerUseVendingMachine(playerid, machineid);
+	forward OnPlayerUseVendingMachine(playerid, machineid, &Float:health_given);
 #endif
 
-public OnGameModeInit() {
-	for (new i = 0; i < sizeof VENDING_MACHINES; i++) {
-        #if defined STREAMER_TYPE_OBJECT
-            vendingMachineObject[i]	= CreateDynamicObject(VENDING_MACHINES[i][E_VENDING_MACHINE_MODEL], VENDING_MACHINES[i][E_VENDING_MACHINE_X], VENDING_MACHINES[i][E_VENDING_MACHINE_Y], VENDING_MACHINES[i][E_VENDING_MACHINE_Z], VENDING_MACHINES[i][E_VENDING_MACHINE_RX], VENDING_MACHINES[i][E_VENDING_MACHINE_RY], VENDING_MACHINES[i][E_VENDING_MACHINE_RZ]);
-			Streamer_SetIntData(STREAMER_TYPE_OBJECT, vendingMachineObject[i], E_STREAMER_EXTRA_ID, CreateDynamicRectangle(VENDING_MACHINES[i][E_VENDING_MACHINE_X], VENDING_MACHINES[i][E_VENDING_MACHINE_Y], (VENDING_MACHINES[i][E_VENDING_MACHINE_X] + 1.2), (VENDING_MACHINES[i][E_VENDING_MACHINE_Y] + 1.2)));
+public OnGameModeInit()
+{
+	for (new i = 0; i < sizeof(DEFAULT_VENDING_MACHINES); i++) {
+	    vendingMachineData[i][VENDING_MACHINE_MODEL] = DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_MODEL];
+	    vendingMachineData[i][VENDING_MACHINE_INTERIOR] = DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_INTERIOR];
+	    vendingMachineData[i][VENDING_MACHINE_X] = DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_X];
+	    vendingMachineData[i][VENDING_MACHINE_Y] = DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_Y];
+	    vendingMachineData[i][VENDING_MACHINE_Z] = DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_Z];
+	    vendingMachineData[i][VENDING_MACHINE_RX] = DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_RX];
+	    vendingMachineData[i][VENDING_MACHINE_RY] = DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_RY];
+	    vendingMachineData[i][VENDING_MACHINE_RZ] = DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_RZ];
+	    vendingMachineData[i][VENDING_MACHINE_FRONT_X] = DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_FRONT_X];
+	    vendingMachineData[i][VENDING_MACHINE_FRONT_Y] = DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_FRONT_Y];
+
+        #if defined _streamer_included
+            vendingMachineData[i][VENDING_MACHINE_OBJECT] = CreateDynamicObject(DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_MODEL], DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_X], DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_Y], DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_Z], DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_RX], DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_RY], DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_RZ], .interiorid = DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_INTERIOR]);
+			vendingMachineData[i][VENDING_MACHINE_AREA] = CreateDynamicRectangle(DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_X], DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_Y], (DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_X] + 1.2), (DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_Y] + 1.2), .interiorid = DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_INTERIOR]);
         #else
-			vendingMachineObject[i]	= CreateObject(VENDING_MACHINES[i][E_VENDING_MACHINE_MODEL], VENDING_MACHINES[i][E_VENDING_MACHINE_X], VENDING_MACHINES[i][E_VENDING_MACHINE_Y], VENDING_MACHINES[i][E_VENDING_MACHINE_Z], VENDING_MACHINES[i][E_VENDING_MACHINE_RX], VENDING_MACHINES[i][E_VENDING_MACHINE_RY], VENDING_MACHINES[i][E_VENDING_MACHINE_RZ], 300.0);
+			vendingMachineData[i][VENDING_MACHINE_OBJECT] = CreateObject(DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_MODEL], DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_X], DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_Y], DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_Z], DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_RX], DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_RY], DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_RZ], 300.0);
         #endif
+
+        vendingMachineData[i][VENDING_MACHINE_HEALTH_GIVEN] = 35.0;
+        vendingMachineData[i][VENDING_MACHINE_VALID] = true;
 	}
 
 	#if defined VM_OnGameModeInit
@@ -145,14 +193,17 @@ public OnGameModeInit() {
 	forward VM_OnGameModeInit();
 #endif
 
-public OnGameModeExit() {
-	for (new i = 0; i < sizeof VENDING_MACHINES; i++) {
-        #if defined STREAMER_TYPE_OBJECT
-            DestroyDynamicArea(Streamer_GetIntData(STREAMER_TYPE_OBJECT, vendingMachineObject[i], E_STREAMER_EXTRA_ID));
-            DestroyDynamicObject(vendingMachineObject[i]);
-		#else
-			DestroyObject(vendingMachineObject[i]);
-		#endif
+public OnGameModeExit()
+{
+	for (new i = 0; i < MAX_VENDING_MACHINES; i++) {
+	    if (vendingMachineData[i][VENDING_MACHINE_VALID] == true) {
+	        #if defined _streamer_included
+	            DestroyDynamicObject(vendingMachineData[i][VENDING_MACHINE_OBJECT]);
+	            DestroyDynamicArea(vendingMachineData[i][VENDING_MACHINE_AREA]);
+			#else
+				DestroyObject(vendingMachineData[i][VENDING_MACHINE_OBJECT]);
+			#endif
+		}
 	}
 
 	#if defined VM_OnGameModeExit
@@ -171,11 +222,12 @@ public OnGameModeExit() {
 	forward VM_OnGameModeExit();
 #endif
 
-public OnPlayerConnect(playerid) {
-	for (new i = 0; i < sizeof VENDING_MACHINES; i++) {
-        RemoveBuildingForPlayer(playerid, VENDING_MACHINES[i][E_VENDING_MACHINE_MODEL], VENDING_MACHINES[i][E_VENDING_MACHINE_X], VENDING_MACHINES[i][E_VENDING_MACHINE_Y], VENDING_MACHINES[i][E_VENDING_MACHINE_Z], 0.25);
+public OnPlayerConnect(playerid)
+{
+	for (new i = 0; i < sizeof(DEFAULT_VENDING_MACHINES); i++) {
+        RemoveBuildingForPlayer(playerid, DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_MODEL], DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_X], DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_Y], DEFAULT_VENDING_MACHINES[i][VENDING_MACHINE_Z], 0.25);
 	}
-	
+
 	#if defined VM_OnPlayerConnect
 		return VM_OnPlayerConnect(playerid);
 	#else
@@ -193,50 +245,62 @@ public OnPlayerConnect(playerid) {
 	forward VM_OnPlayerConnect(playerid);
 #endif
 
-public OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
+public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
+{
 	if ((newkeys & KEY_SECONDARY_ATTACK) && (GetPlayerAnimationIndex(playerid) != 1660)) {
-		for (new i = 0; i < sizeof VENDING_MACHINES; i++) {
-            #if defined STREAMER_TYPE_OBJECT
-				if (!IsPlayerInDynamicArea(playerid, Streamer_GetIntData(STREAMER_TYPE_OBJECT, vendingMachineObject[i], E_STREAMER_EXTRA_ID)))
-				    continue;
-			#else
-				new Float:x = VENDING_MACHINES[i][E_VENDING_MACHINE_X];
-				new Float:y = VENDING_MACHINES[i][E_VENDING_MACHINE_Y];
-				new Float:a = VENDING_MACHINES[i][E_VENDING_MACHINE_RZ];
+		for (new i = 0; i < MAX_VENDING_MACHINES; i++) {
+		    if (vendingMachineData[i][VENDING_MACHINE_VALID] == true) {
+		    
+	            #if defined _streamer_included
+					if (!IsPlayerInDynamicArea(playerid, vendingMachineData[i][VENDING_MACHINE_AREA]))
+					    continue;
+				#else
+					new Float:x = vendingMachineData[i][VENDING_MACHINE_X];
+					new Float:y = vendingMachineData[i][VENDING_MACHINE_Y];
+					new Float:a = vendingMachineData[i][VENDING_MACHINE_RZ];
 
-				a += 180.0;
-				if (a > 359.0) {
-					a -= 359.0;
+					a += 180.0;
+					if (a > 359.0)
+						a -= 359.0;
+
+					x += (0.5 * floatsin(-a, degrees));
+					y += (0.5 * floatcos(-a, degrees));
+
+					if (!IsPlayerInRangeOfPoint(playerid, 1.2, x, y, vendingMachineData[i][VENDING_MACHINE_Z]))
+						continue;
+				#endif
+
+				new Float:health_given = vendingMachineData[i][VENDING_MACHINE_HEALTH_GIVEN];
+
+				new bool:ret = true;
+				#if defined OnPlayerUseVendingMachine
+				    ret = bool:OnPlayerUseVendingMachine(playerid, i, health_given);
+				#endif
+
+				if (!ret) {
+	                PlayerPlaySound(playerid, 1055, 0.0, 0.0, 0.0);
+					break;
 				}
 
-				x += (0.5 * floatsin(-a, degrees));
-				y += (0.5 * floatcos(-a, degrees));
+				SetPlayerFacingAngle(playerid, vendingMachineData[i][VENDING_MACHINE_RZ]);
 
-				if (!IsPlayerInRangeOfPoint(playerid, 1.2, x, y, VENDING_MACHINES[i][E_VENDING_MACHINE_Z]))
-					continue;
-			#endif
+				ApplyAnimation(playerid, "VENDING", "VEND_USE", 10.0, 0, 0, 0, 0, 0, 1);
 
-			new bool:ret = true;
-			#if defined OnPlayerUseVendingMachine
-			    ret = bool:OnPlayerUseVendingMachine(playerid, i);
-			#endif
+				PlayerPlaySound(playerid, (vendingMachineData[i][VENDING_MACHINE_MODEL] == 956) ? 42601 : 42600, 0.0, 0.0, 0.0);
 
-			if (!ret) {
-                PlayerPlaySound(playerid, 1055, 0.0, 0.0, 0.0);
+				// give health (35 hp increase)
+				new Float:health;
+				GetPlayerHealth(playerid, health);
+
+				health += health_given;
+				if (health > 100.0)
+					health = 100.0;
+
+				SetPlayerHealth(playerid, health);
+				//
+				
 				break;
 			}
-
-			SetPlayerFacingAngle(playerid, VENDING_MACHINES[i][E_VENDING_MACHINE_RZ]);
-
-			ApplyAnimation(playerid, "VENDING", "VEND_USE", 10.0, 0, 0, 0, 0, 0, 1);
-
-			if (VENDING_MACHINES[i][E_VENDING_MACHINE_MODEL] == 956) {
-				PlayerPlaySound(playerid, 42601, 0.0, 0.0, 0.0);
-			}
-			else {
-				PlayerPlaySound(playerid, 42600, 0.0, 0.0, 0.0);
-			}
-			break;
 		}
 	}
 
@@ -256,18 +320,103 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
 	forward VM_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
 #endif
 
-stock GetVendingMachineData(machineid, &x, &y, &z, &rx, &ry, &rz, &frontX, &frontY) {
-	if (machineid < 0 || machineid >= sizeof VENDING_MACHINES) {
-		return 0;
+stock CreateVendingMachine(modelid, Float:x, Float:y, Float:z, Float:rx, Float:ry, Float:rz, Float:frontX, Float:frontY, interiorid = 0, Float:health_given = 35.0) {
+	switch (modelid) {
+        case MACHINE_SNACK, MACHINE_SNACK2, MACHINE_SPRUNK, MACHINE_SPRUNK2, MACHINE_SODA, MACHINE_SODA2, MACHINE_BLACK: {
+            // modelid is valid
+		}
+        
+        default: return INVALID_VENDING_MACHINE_ID;
 	}
 
-	x = VENDING_MACHINES[machineid][E_VENDING_MACHINE_X];
-	y = VENDING_MACHINES[machineid][E_VENDING_MACHINE_Y];
-	z = VENDING_MACHINES[machineid][E_VENDING_MACHINE_Z];
-	rx = VENDING_MACHINES[machineid][E_VENDING_MACHINE_RX];
-	ry = VENDING_MACHINES[machineid][E_VENDING_MACHINE_RY];
-	rz = VENDING_MACHINES[machineid][E_VENDING_MACHINE_RZ];
-	frontX = VENDING_MACHINES[machineid][E_VENDING_MACHINE_FRONT_X];
-	frontY = VENDING_MACHINES[machineid][E_VENDING_MACHINE_FRONT_Y];
+	new idx = INVALID_VENDING_MACHINE_ID;
+	
+	for (new i = 0; i < MAX_VENDING_MACHINES; i++) {
+		if (vendingMachineData[i][VENDING_MACHINE_VALID] == false) {
+			idx = i;
+			break;
+		}
+	}
+	
+	if (idx == INVALID_VENDING_MACHINE_ID)
+	    return INVALID_VENDING_MACHINE_ID;
+	    
+ 	vendingMachineData[idx][VENDING_MACHINE_MODEL] = modelid;
+  	vendingMachineData[idx][VENDING_MACHINE_INTERIOR] = interiorid;
+    vendingMachineData[idx][VENDING_MACHINE_X] = x;
+    vendingMachineData[idx][VENDING_MACHINE_Y] = y;
+    vendingMachineData[idx][VENDING_MACHINE_Z] = z;
+    vendingMachineData[idx][VENDING_MACHINE_RX] = rx;
+    vendingMachineData[idx][VENDING_MACHINE_RY] = ry;
+    vendingMachineData[idx][VENDING_MACHINE_RZ] = rz;
+    vendingMachineData[idx][VENDING_MACHINE_FRONT_X] = frontX;
+    vendingMachineData[idx][VENDING_MACHINE_FRONT_Y] = frontY;
+    vendingMachineData[idx][VENDING_MACHINE_HEALTH_GIVEN] = health_given;
+
+	#if defined _streamer_included
+        vendingMachineData[idx][VENDING_MACHINE_OBJECT] = CreateDynamicObject(modelid, x, y, z, rx, ry, rz, .interiorid = interiorid);
+		vendingMachineData[idx][VENDING_MACHINE_AREA] = CreateDynamicRectangle(x, y, (x + 1.2), (y + 1.2), .interiorid = interiorid);
+  	#else
+		vendingMachineData[idx][VENDING_MACHINE_OBJECT] = CreateObject(modelid, x, y, z, rx, ry, rz, 300.0);
+  	#endif
+
+    vendingMachineData[idx][VENDING_MACHINE_VALID] = true;
+    
+	return idx;
+}
+
+stock DestroyVendingMachine(machineid) {
+	if (machineid < 0 || machineid >= MAX_VENDING_MACHINES)
+	    return 0;
+	    
+ 	if (vendingMachineData[machineid][VENDING_MACHINE_VALID] == true) {
+  		#if defined _streamer_included
+    		DestroyDynamicObject(vendingMachineData[machineid][VENDING_MACHINE_OBJECT]);
+      		DestroyDynamicArea(vendingMachineData[machineid][VENDING_MACHINE_AREA]);
+		#else
+			DestroyObject(vendingMachineData[machineid][VENDING_MACHINE_OBJECT]);
+		#endif
+
+		vendingMachineData[machineid][VENDING_MACHINE_VALID] = false;
+	}
+	
+	return 1;
+}
+
+stock IsValidVendingMachine(machineid) {
+	if (machineid < 0 || machineid >= MAX_VENDING_MACHINES)
+	    return 0;
+
+ 	return vendingMachineData[machineid][VENDING_MACHINE_VALID];
+}
+
+stock SetVendingMachineHealthGiven(machineid, Float:health) {
+    if (!IsValidVendingMachine(machineid))
+		return 0;
+
+	vendingMachineData[machineid][VENDING_MACHINE_HEALTH_GIVEN] = health;
+
+	return 1;
+}
+
+stock Float:GetVendingMachineHealthGiven(machineid) {
+	return (!IsValidVendingMachine(machineid)) ? 0.0 : vendingMachineData[machineid][VENDING_MACHINE_HEALTH_GIVEN];
+}
+
+stock GetVendingMachineData(machineid, &modelid, &Float:x, &Float:y, &Float:z, &Float:rx, &Float:ry, &Float:rz, &Float:frontX, &Float:frontY, &interiorid) {
+	if (!IsValidVendingMachine(machineid))
+		return 0;
+
+	modelid = vendingMachineData[machineid][VENDING_MACHINE_MODEL];
+	x = vendingMachineData[machineid][VENDING_MACHINE_X];
+	y = vendingMachineData[machineid][VENDING_MACHINE_Y];
+	z = vendingMachineData[machineid][VENDING_MACHINE_Z];
+	rx = vendingMachineData[machineid][VENDING_MACHINE_RX];
+	ry = vendingMachineData[machineid][VENDING_MACHINE_RY];
+	rz = vendingMachineData[machineid][VENDING_MACHINE_RZ];
+	frontX = vendingMachineData[machineid][VENDING_MACHINE_FRONT_X];
+	frontY = vendingMachineData[machineid][VENDING_MACHINE_FRONT_Y];
+	interiorid = vendingMachineData[machineid][VENDING_MACHINE_INTERIOR];
+	
 	return 1;
 }
