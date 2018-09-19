@@ -1,3 +1,23 @@
+/******************************************
+
+// easyDialog.inc || v2.0 || Last Update: 19 Sept, 2018 || By Emmet_ || Reworked By Gammix
+
+*******************************************
+
+// Functions
+native Dialog_Show(playerid, function[], style, caption[], info[], button1[], button2[]);
+native Dialog_Hide(playerid);
+native Dialog_IsActive(playerid);
+native Dialog_GetID(playerid, dest[], maxlength = sizeof(dest));
+
+*******************************************
+
+// Callbacks
+forward OnDialogRecieved(playerid, dialog[], response, listitem, inputtext[]);
+forward OnDialogPerformed(playerid, dialog[], response, listitem, inputtext[], bool:success);
+
+******************************************/
+
 #if defined easydialog_included
 	#endinput
 #endif
@@ -5,6 +25,10 @@
 
 #if !defined easyDialog_ID
 	#define easyDialog_ID (32700)
+#endif
+
+#if !defined MAX_DIALOG_INPUTTEXT
+	#define MAX_DIALOG_INPUTTEXT (128)
 #endif
 
 #define Dialog:%0(%1) \
@@ -19,28 +43,27 @@
 #define Dialog_Show(%0,%1, \
 	Dialog_Open(%0, #%1,
 
-#if defined previewmodel_dialog_included
-	#define Dialog_ShowPreviewModel(%0,%1, \
-		Dialog_OpenPreviewModel(%0, #%1,
-#endif
-
 #define Dialog_Opened \
     Dialog_IsActive
 
 #define Dialog_Close \
     Dialog_Hide
 
-#if defined OnDialogPerformed
-	forward OnDialogPerformed(playerid, dialog[], response, success);
+#if defined OnDialogRecieved
+	forward OnDialogRecieved(playerid, dialog[], response, listitem, inputtext[]);
 #endif
 
-forward @dialog_format(); @dialog_format() {
-	format("", 1, "");
+#if defined OnDialogPerformed
+	forward OnDialogPerformed(playerid, dialog[], response, listitem, inputtext[], bool:success);
+#endif
+
+forward _dialog_format();
+public _dialog_format() {
+	format("", 0, "");
 }
 
 stock Dialog_Open(playerid, function[], style, caption[], info[], button1[], button2[]) {
 	new ret = ShowPlayerDialog(playerid, easyDialog_ID, style, caption, info, button1, button2);
-
 	if (ret != 0) {
 	    SetPVarString(playerid, "dialogid", function);
 	}
@@ -54,20 +77,16 @@ stock Dialog_Open(playerid, function[], style, caption[], info[], button1[], but
 #endif
 #define ShowPlayerDialog(%0,%1,%2) Dialog_Open(%0, #%1, %2)
 
-#if defined previewmodel_dialog_included
-	stock Dialog_OpenPreviewModel(playerid, function[], caption[], models[], texts[][], button1[], button2[], size = sizeof(models)) {
-		new ret = ShowPreviewModelDialog(playerid, easyDialog_ID, caption, models, texts, button1, button2, size);
-
-		if (ret != 0) {
-		    SetPVarString(playerid, "dialogid", function);
-		}
-
-		return ret;
-	}
-#endif
-
 stock Dialog_IsActive(playerid) {
 	return (GetPVarType(playerid, "dialogid") != PLAYER_VARTYPE_NONE);
+}
+
+stock Dialog_GetID(playerid, dest[], maxlength = sizeof(dest)) {
+	if (GetPVarType(playerid, "dialogid") != PLAYER_VARTYPE_NONE)
+	    return 0;
+	    
+	GetPVarString(playerid, "dialogid", dest, maxlength);
+	return 1;
 }
 
 stock Dialog_Hide(playerid) {
@@ -77,42 +96,39 @@ stock Dialog_Hide(playerid) {
 }
 
 public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]) {
-	new input[128];
-	strcat(input, inputtext);
-
-	for (new i = 0; input[i] != EOS; i++) {
-	    if (input[i] != '%') {
-			continue;
-		}
-
-		input[i] = '#';
-	}
-
-	if (dialogid == easyDialog_ID) {
-	    new _dialogid[31];
-		GetPVarString(playerid, "dialogid", _dialogid, sizeof(_dialogid));
-    	DeletePVar(playerid, "dialogid");
-
-		new func[31] = "dialog_";
-		strcat(func, _dialogid);
-
-		new bool:ret = true;
-		#if defined OnDialogPerformed
-		    ret = bool:OnDialogPerformed(playerid, _dialogid, response, (funcidx(func) != -1)) == 0);
+	if (dialogid != easyDialog_ID) {
+	    #if defined ED_OnDialogResponse
+		    return ED_OnDialogResponse(playerid, dialogid, response, listitem, input);
+		#else
+		    return 0;
 		#endif
-
-		if (ret) {
-			CallLocalFunction(func, "iiis", playerid, response, listitem, (!input[0]) ? ("\1") : (input));
-		}
 	}
+	
+	new dialogstr[31];
+	GetPVarString(playerid, "dialogid", dialogstr, sizeof(dialogstr));
+	DeletePVar(playerid, "dialogid");
+    	
+	#if defined OnDialogRecieved
+ 		if (OnDialogRecieved(playerid, dialogstr, response, listitem, inputtext) == 0)
+ 		    return 1;
+	#endif
+	
+    new input[MAX_DIALOG_INPUTTEXT * 2];
+    new pos;
 
-	#if defined ED_OnDialogResponse
-	    ED_OnDialogResponse(playerid, dialogid, response, listitem, input);
+	strcat(input, inputtext);
+	while ((pos = strfind(input, "%", true, pos), pos) != -1)
+		strins(input, "%", pos + 1);
+
+	new func[31] = "dialog_";
+	strcat(func, dialogstr);
+
+	#if defined OnDialogPerformed
+	    OnDialogPerformed(playerid, dialogstr, response, listitem, input, (funcidx(func) != -1));
 	#endif
 
 	return 0;
 }
-
 #if defined _ALS_OnDialogResponse
 	#undef OnDialogResponse
 #else
