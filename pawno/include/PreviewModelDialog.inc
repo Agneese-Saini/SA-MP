@@ -69,10 +69,6 @@ static Prev@PlayerDialogTickCount[MAX_PLAYERS];
 
 static Pointer:Prev@PlayerListitemPointer[MAX_PLAYERS];
 
-// public function decleration
-ShowPreviewModelDialog(playerid, dialogid, caption[], models[], labels[][], button1[], button2[], size = sizeof models);
-SetDialogPreviewRotation(playerid, listitem, Float:rx, Float:ry, Float:rz, Float:zoom);
-
 // internal functions
 static Prev_GetNumPages(playerid) {
 	new size = Prev@PlayerDialogNumListitems[playerid];
