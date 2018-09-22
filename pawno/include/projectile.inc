@@ -1,4 +1,28 @@
-//projectile.inc - By Gammix (originally by PeppeAC) - v1.3.5 - updated: 9 April,2017
+/********************************************
+
+// projectile.inc || v1.3.6 || Last Updated: 22 Sept, 2018 || Orignally By: PeppeAC || Reworked By: Gammix
+
+*********************************************
+
+// Functions
+native Projectile(Float:x, Float:y, Float:z, Float:vx, Float:vy, Float:vz, Float:rx = 0.0, Float:ry = 0.0, Float:rz = 0.0, Float:sphere_radius = 1.0, Float:ground_friction = 5.0, Float:collision_friction = 0.2, Float:air_resistance = 0.5, Float:gravity = 10.0, Float:playercol_radius = 0.8);
+native IsValidProjectile(projid)
+native StopProjectile(projid);
+native GetProjectilePoolSize();
+native GetProjectilePos(projid, &Float:x, &Float:y, &Float:z);
+native GetProjectileRot(projid, &Float:rx, &Float:ry, &Float:rz);
+native GetProjectileVel(projid, &Float:vx, &Float:vy, &Float:vz);
+native UpdateProjectileVel(projid, Float:vx, Float:vy, Float:vz);
+
+*********************************************
+
+// Callbacks
+forward OnProjectileUpdate(projid);
+forward OnProjectileStop(projid);
+forward OnProjectileCollide(projid, type, Float:x, Float:y, Float:z, extraid);
+
+********************************************/
+
 #if defined projectile_included
 	#endinput
 #endif
@@ -21,6 +45,31 @@
 		Float:0x7F800000
 #endif
 
+#define INVALID_PROJECTILE_ID -1
+
+enum E_PROJECTILE_DATA {
+    bool:PROJECTILE_IS_VALID,
+    Float:PROJECTILE_X,
+    Float:PROJECTILE_Y,
+    Float:PROJECTILE_Z,
+    Float:PROJECTILE_RX,
+    Float:PROJECTILE_RY,
+    Float:PROJECTILE_RZ,
+	Float:PROJECTILE_VX,
+	Float:PROJECTILE_VY,
+	Float:PROJECTILE_VZ,
+	Float:PROJECTILE_GRAVITY,
+	Float:PROJECTILE_GROUND_FRICTION,
+	Float:PROJECTILE_COLLISION_FRICTION,
+	Float:PROJECTILE_AIR_RESISTANCE,
+	Float:PROJECTILE_OBJECT_COL_RADIUS,
+	Float:PROJECTILE_PLAYER_COL_RADIUS
+};
+
+static projectileTimer;
+static projectilePoolSize;
+static projectileData[MAX_PROJECTILES][E_PROJECTILE_DATA];
+
 #if defined OnProjectileUpdate
 	forward OnProjectileUpdate(projid);
 #endif
@@ -33,185 +82,136 @@
 	forward OnProjectileCollide(projid, type, Float:x, Float:y, Float:z, extraid);
 #endif
 
-/*
-native Projectile(Float:x, Float:y, Float:z, Float:vx, Float:vy, Float:vz, Float:rx = 0.0, Float:ry = 0.0, Float:rz = 0.0, Float:sphere_radius = 1.0, Float:ground_friction = 5.0, Float:collision_friction = 0.2, Float:air_resistance = 0.5, Float:gravity = 10.0, Float:playercol_radius = 0.8);
-native IsValidProjectile(projid);
-native StopProjectile(projid);
-native PushProjectile(projid, Float:vx, Float:vy, Float:vz);
-native GetProjectilePos(projid, &Float:x, &Float:y, &Float:z);
-native GetProjectileRot(projid, &Float:rx, &Float:ry, &Float:rz);
-native GetProjectileVelocity(projid, &Float:vx, &Float:vy, &Float:vz);
-native GetProjectilePoolSize();
-*/
-
-static iInitializetimer;
-
-enum e_PROJECTILE
-{
-    bool:e_PROJECTILE_VALID,
-    Float:e_PROJECTILE_X,
-    Float:e_PROJECTILE_Y,
-	Float:e_PROJECTILE_Z,
-    Float:e_PROJECTILE_RX,
-    Float:e_PROJECTILE_RY,
-	Float:e_PROJECTILE_RZ,
-	Float:e_PROJECTILE_VX,
-	Float:e_PROJECTILE_VY,
-	Float:e_PROJECTILE_VZ,
-	Float:e_PROJECTILE_RADIUS,
-	Float:e_PROJECTILE_MASS,
-	Float:e_PROJECTILE_GROUND_FRICTION,
-	Float:e_PROJECTILE_COLLISION_FRICTION,
-	Float:e_PROJECTILE_GRAVITY,
-	Float:e_PROJECTILE_AIR_RESISTANCE,
-	Float:e_PROJECTILE_PLAYERCOL_RADIUS
-};
-
-static eProjectile[MAX_PROJECTILES][e_PROJECTILE];
-static iProjectilePoolSize;
-
 stock Projectile(Float:x, Float:y, Float:z, Float:vx, Float:vy, Float:vz, Float:rx = 0.0, Float:ry = 0.0, Float:rz = 0.0, Float:sphere_radius = 1.0, Float:ground_friction = 5.0, Float:collision_friction = 0.2, Float:air_resistance = 0.5, Float:gravity = 10.0, Float:playercol_radius = 0.8)
 {
 	if (sphere_radius <= 0.0)
-	{
-	    print("[projectile.inc] - Error: \"sphere_radius\" in function \"Projectile(..)\" cannot be negative or 0.");
-	    return -1;
-	}
+	    return INVALID_PROJECTILE_ID;
 
 	if (playercol_radius < 0.0)
-	{
-	    print("[projectile.inc] - Error: \"playercol_radius\" in function \"Projectile(..)\" cannot be negative; use 0.0 to disable player collision.");
-	    return -1;
+	    return INVALID_PROJECTILE_ID;
+
+	if (projectileTimer == 0) {
+	    projectileTimer = SetTimer("Internal_OnProjectilesUpdate", PROJECTILE_TIMER_INTERVAL, true);
 	}
 
-	if (iInitializetimer == 0)
-	{
-	    iInitializetimer = SetTimer("Internal_OnProjectilesUpdate", PROJECTILE_TIMER_INTERVAL, true);
-	}
-	
-	new id = -1;
-	for (new i; i < MAX_PROJECTILES; i++)
-	{
-	    if (!eProjectile[i][e_PROJECTILE_VALID])
-	    {
-	        id = i;
+	new projid = INVALID_PROJECTILE_ID;
+	for (new i = 0; i < MAX_PROJECTILES; i++) {
+	    if (projectileData[i][PROJECTILE_IS_VALID] == true) {
+	        projid = i;
 			break;
 	    }
 	}
-	
-	if (id == -1)
-	{
-	    printf("[projectile.inc] - Error: Cannot create more than \"%i\" active projectiles. Increase the value of \"MAX_PROJECTILES\" in your script.", MAX_PROJECTILES);
-		return -1;
-	}
-	
-	if (id > iProjectilePoolSize)
-	{
-	    iProjectilePoolSize = id;
-	}
- 	eProjectile[id][e_PROJECTILE_VALID] = true;
-	eProjectile[id][e_PROJECTILE_X] = x;
- 	eProjectile[id][e_PROJECTILE_Y] = y;
- 	eProjectile[id][e_PROJECTILE_Z] = z;
-  	eProjectile[id][e_PROJECTILE_RX] = rx;
-    eProjectile[id][e_PROJECTILE_RY] = ry;
-    eProjectile[id][e_PROJECTILE_RZ] = rz;
-    eProjectile[id][e_PROJECTILE_VX] = vx;
-    eProjectile[id][e_PROJECTILE_VY] = vy;
-    eProjectile[id][e_PROJECTILE_VZ] = vz;
-    eProjectile[id][e_PROJECTILE_RADIUS] = sphere_radius;
-    eProjectile[id][e_PROJECTILE_GROUND_FRICTION] = ground_friction;
-    eProjectile[id][e_PROJECTILE_COLLISION_FRICTION] = collision_friction;
-    eProjectile[id][e_PROJECTILE_AIR_RESISTANCE] = air_resistance;
-    eProjectile[id][e_PROJECTILE_GRAVITY] = gravity;
-    eProjectile[id][e_PROJECTILE_PLAYERCOL_RADIUS] = playercol_radius;
-	return id;
+
+	if (projid == INVALID_PROJECTILE_ID)
+		return INVALID_PROJECTILE_ID;
+
+ 	projectileData[projid][PROJECTILE_IS_VALID] = true;
+	projectileData[projid][PROJECTILE_X] = x;
+ 	projectileData[projid][PROJECTILE_Y] = y;
+ 	projectileData[projid][PROJECTILE_Z] = z;
+  	projectileData[projid][PROJECTILE_RX] = rx;
+    projectileData[projid][PROJECTILE_RY] = ry;
+    projectileData[projid][PROJECTILE_RZ] = rz;
+    projectileData[projid][PROJECTILE_VX] = vx;
+    projectileData[projid][PROJECTILE_VY] = vy;
+    projectileData[projid][PROJECTILE_VZ] = vz;
+    projectileData[projid][PROJECTILE_GRAVITY] = gravity;
+    projectileData[projid][PROJECTILE_GROUND_FRICTION] = ground_friction;
+    projectileData[projid][PROJECTILE_COLLISION_FRICTION] = collision_friction;
+    projectileData[projid][PROJECTILE_AIR_RESISTANCE] = air_resistance;
+    projectileData[projid][PROJECTILE_OBJECT_COL_RADIUS] = sphere_radius;
+    projectileData[projid][PROJECTILE_PLAYER_COL_RADIUS] = playercol_radius;
+
+	if (projid > projectilePoolSize) {
+	    projectilePoolSize = projid;
+ 	}
+    
+	return projid;
 }
 
 stock IsValidProjectile(projid)
 {
-    if (projid < 0 || projid > iProjectilePoolSize)
+    if (projid < 0 || projid > projectilePoolSize)
         return 0;
 
-	return eProjectile[projid][e_PROJECTILE_VALID];
+	return _:projectileData[projid][PROJECTILE_IS_VALID];
 }
 
 stock StopProjectile(projid)
 {
-    if (projid < 0 || projid > iProjectilePoolSize)
+    if (IsValidProjectile(projid) == 0)
         return 0;
 
-	if (!eProjectile[projid][e_PROJECTILE_VALID])
-	    return 0;
+ 	projectileData[projid][PROJECTILE_IS_VALID] = false;
 
- 	eProjectile[projid][e_PROJECTILE_VALID] = false;
-	if (projid == iProjectilePoolSize)
-	{
-	    for (new i = iProjectilePoolSize; i != -1; i--)
-	    {
-	        if (eProjectile[i][e_PROJECTILE_VALID])
-	        {
-	            iProjectilePoolSize = i;
-	            break;
-	        }
-	    }
+	for (new i = projid - 1; i > -1; i--) {
+		if (projectileData[i][PROJECTILE_IS_VALID] == true) {
+            projectilePoolSize = i;
+            break;
+		}
 	}
-
-	if (iProjectilePoolSize == 0)
-	{
-	    KillTimer(iInitializetimer);
-	    iInitializetimer = 0;
+	
+	if (projectilePoolSize == projid) {
+	    KillTimer(projectileTimer);
+	    
+        projectilePoolSize = -1;
+        projectileTimer = 0;
 	}
-	return 1;
-}
-
-stock PushProjectile(projid, Float:vx, Float:vy, Float:vz)
-{
-    if (projid < 0 || projid > iProjectilePoolSize)
-        return 0;
-
-  	eProjectile[projid][e_PROJECTILE_VX] += vx;
-    eProjectile[projid][e_PROJECTILE_VY] += vy;
-    eProjectile[projid][e_PROJECTILE_VZ] += vz;
-	return 1;
-}
-
-stock GetProjectilePos(projid, &Float:x, &Float:y, &Float:z)
-{
-    if (projid < 0 || projid > iProjectilePoolSize)
-        return 0;
-
-    x = eProjectile[projid][e_PROJECTILE_X];
-    y = eProjectile[projid][e_PROJECTILE_Y];
-    z = eProjectile[projid][e_PROJECTILE_Z];
-	return 1;
-}
-
-stock GetProjectileRot(projid, &Float:rx, &Float:ry, &Float:rz)
-{
-    if (projid < 0 || projid > iProjectilePoolSize)
-        return 0;
-
-    rx = eProjectile[projid][e_PROJECTILE_RX];
-    ry = eProjectile[projid][e_PROJECTILE_RY];
-    rz = eProjectile[projid][e_PROJECTILE_RZ];
-	return 1;
-}
-
-stock GetProjectileVelocity(projid, &Float:vx, &Float:vy, &Float:vz)
-{
-    if (projid < 0 || projid > iProjectilePoolSize)
-        return 0;
-
-    vx = eProjectile[projid][e_PROJECTILE_VX];
-    vy = eProjectile[projid][e_PROJECTILE_VY];
-    vz = eProjectile[projid][e_PROJECTILE_VZ];
+	
 	return 1;
 }
 
 stock GetProjectilePoolSize()
 {
-    return iProjectilePoolSize;
+    return projectilePoolSize;
+}
+
+stock GetProjectilePos(projid, &Float:x, &Float:y, &Float:z)
+{
+    if (IsValidProjectile(projid) == 0)
+        return 0;
+
+    x = projectileData[projid][PROJECTILE_X];
+    y = projectileData[projid][PROJECTILE_Y];
+    z = projectileData[projid][PROJECTILE_Z];
+
+	return 1;
+}
+
+stock GetProjectileRot(projid, &Float:rx, &Float:ry, &Float:rz)
+{
+    if (IsValidProjectile(projid) == 0)
+        return 0;
+
+    rx = projectileData[projid][PROJECTILE_RX];
+    ry = projectileData[projid][PROJECTILE_RY];
+    rz = projectileData[projid][PROJECTILE_RZ];
+
+	return 1;
+}
+
+stock GetProjectileVel(projid, &Float:vx, &Float:vy, &Float:vz)
+{
+    if (IsValidProjectile(projid) == 0)
+        return 0;
+
+    vx = projectileData[projid][PROJECTILE_VX];
+    vy = projectileData[projid][PROJECTILE_VY];
+    vz = projectileData[projid][PROJECTILE_VZ];
+
+	return 1;
+}
+
+stock UpdateProjectileVel(projid, Float:vx, Float:vy, Float:vz)
+{
+    if (IsValidProjectile(projid) == 0)
+        return 0;
+
+    projectileData[projid][PROJECTILE_VX] = vx;
+    projectileData[projid][PROJECTILE_VY] = vy;
+    projectileData[projid][PROJECTILE_VZ] = vz;
+
+	return 1;
 }
 
 forward Internal_OnProjectilesUpdate();
@@ -237,199 +237,195 @@ public Internal_OnProjectilesUpdate()
 		Float:speed,
 		bool:collision;
 
-	for (new i; i <= iProjectilePoolSize; i++)
+	for (new i = 0; i <= projectilePoolSize; i++)
 	{
-	    if (!eProjectile[i][e_PROJECTILE_VALID])
+	    if (projectileData[i][PROJECTILE_IS_VALID] == false)
 	        continue;
-	        
+
 		collision = false;
 
-		// calculate next position at timestep
-	    new_x = eProjectile[i][e_PROJECTILE_X] + eProjectile[i][e_PROJECTILE_VX] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
-		new_y = eProjectile[i][e_PROJECTILE_Y] + eProjectile[i][e_PROJECTILE_VY] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
-		new_z = eProjectile[i][e_PROJECTILE_Z] + eProjectile[i][e_PROJECTILE_VZ] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
+		// calculate next position after this timer step
+	    new_x = projectileData[i][PROJECTILE_X] + projectileData[i][PROJECTILE_VX] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
+		new_y = projectileData[i][PROJECTILE_Y] + projectileData[i][PROJECTILE_VY] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
+		new_z = projectileData[i][PROJECTILE_Z] + projectileData[i][PROJECTILE_VZ] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
 
- 		// calculate max & min height the sphere can reach
-		min_height = 0.0;
-		if (CA_RayCastLine(eProjectile[i][e_PROJECTILE_X], eProjectile[i][e_PROJECTILE_Y], eProjectile[i][e_PROJECTILE_Z], new_x, new_y, new_z - 1000.0, unused, unused, min_height) != 0)
-		{
-			min_height += eProjectile[i][e_PROJECTILE_RADIUS];
-		}
+ 		// calculate minimum height the sphere can reach
+		if (CA_RayCastLine(projectileData[i][PROJECTILE_X], projectileData[i][PROJECTILE_Y], projectileData[i][PROJECTILE_Z], new_x, new_y, new_z - 1000.0, unused, unused, min_height) != 0)
+			min_height += projectileData[i][PROJECTILE_OBJECT_COL_RADIUS];
 		else
-		{
-			min_height = eProjectile[i][e_PROJECTILE_Z] - 1.0;
-		}
+			min_height = projectileData[i][PROJECTILE_Z] - 1.0;
 
-		max_height = 0.0;
-		if (CA_RayCastLine(eProjectile[i][e_PROJECTILE_X], eProjectile[i][e_PROJECTILE_Y], eProjectile[i][e_PROJECTILE_Z], new_x, new_y, new_z + 1000.0, unused, unused, max_height) != 0)
-		{
-			if (max_height > min_height)
-				max_height -= eProjectile[i][e_PROJECTILE_RADIUS];
-			else
+ 		// calculate maximum height the sphere can reach
+		if (CA_RayCastLine(projectileData[i][PROJECTILE_X], projectileData[i][PROJECTILE_Y], projectileData[i][PROJECTILE_Z], new_x, new_y, new_z + 1000.0, unused, unused, max_height) != 0) {
+			if (max_height > min_height) {
+				max_height -= projectileData[i][PROJECTILE_OBJECT_COL_RADIUS];
+			} else {
 				max_height = FLOAT_INFINITY;
+			}
 		}
-		else
-		{
+		else {
 		    max_height = FLOAT_INFINITY;
 		}
 
-	    if (new_z > max_height)
-		{
-			if (eProjectile[i][e_PROJECTILE_VZ] > 0)
-				eProjectile[i][e_PROJECTILE_VZ] = -eProjectile[i][e_PROJECTILE_VZ] * 0.8;
-
+		// if the new z is greater than max height possible
+	    if (new_z > max_height) {
+			if (projectileData[i][PROJECTILE_VZ] > 0) {
+				projectileData[i][PROJECTILE_VZ] = -projectileData[i][PROJECTILE_VZ] * 0.8;
+			}
+			
 			#if defined OnProjectileCollide
 				OnProjectileCollide(i, 1, new_x, new_y, new_z, 0); // COLLIDE_HIGH_Z_BOUND
 			#endif
+			
 			new_z = max_height;
 		}
-		else if (new_z < min_height)
-		{
-			if (eProjectile[i][e_PROJECTILE_VZ] < 0)
-				eProjectile[i][e_PROJECTILE_VZ] = -eProjectile[i][e_PROJECTILE_VZ] * 0.8;
-
+		// or, if new z is smaller than the min height possbile
+		else if (new_z < min_height) {
+			if (projectileData[i][PROJECTILE_VZ] < 0) {
+				projectileData[i][PROJECTILE_VZ] = -projectileData[i][PROJECTILE_VZ] * 0.8;
+			}
+			
 			#if defined OnProjectileCollide
 				OnProjectileCollide(i, 2, new_x, new_y, new_z, 0); // COLLIDE_LOW_Z_BOUND
 			#endif
+			
 			new_z = min_height;
 		}
 
-		// apply gravitation force
-		if (eProjectile[i][e_PROJECTILE_GRAVITY] != 0.0)
-		{
-			if (eProjectile[i][e_PROJECTILE_VZ] > 0)
-			{
-		    	eProjectile[i][e_PROJECTILE_VZ] -= eProjectile[i][e_PROJECTILE_GRAVITY] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
-		    	if (eProjectile[i][e_PROJECTILE_VZ] < 0)
-		    	    eProjectile[i][e_PROJECTILE_VZ] = 0;
-			}
-			else
-		    	eProjectile[i][e_PROJECTILE_VZ] -= eProjectile[i][e_PROJECTILE_GRAVITY] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
-		}
+		// apply gravitation force (if gravity is set to non-zero)
+		if (projectileData[i][PROJECTILE_GRAVITY] != 0.0) {
+			if (projectileData[i][PROJECTILE_VZ] > 0) {
+		    	projectileData[i][PROJECTILE_VZ] -= projectileData[i][PROJECTILE_GRAVITY] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
 
+				if (projectileData[i][PROJECTILE_VZ] < 0) {
+		    	    projectileData[i][PROJECTILE_VZ] = 0;
+				}
+			} else {
+		    	projectileData[i][PROJECTILE_VZ] -= projectileData[i][PROJECTILE_GRAVITY] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
+			}
+		}
+		
 		// collision check with SA-World
-		cx = cy = cz = crx = cry = 0.0;
-		if ((extraid = CA_RayCastLineAngle(eProjectile[i][e_PROJECTILE_X], eProjectile[i][e_PROJECTILE_Y], eProjectile[i][e_PROJECTILE_Z], new_x, new_y, new_z, cx, cy, cz, crx, cry, unused)) != 0)
-		{
+		if ((extraid = CA_RayCastLineAngle(projectileData[i][PROJECTILE_X], projectileData[i][PROJECTILE_Y], projectileData[i][PROJECTILE_Z], new_x, new_y, new_z, cx, cy, cz, crx, cry, unused)) != 0) {
 			moveangle = atan2(-cry, crx);
-			new_vx = ((eProjectile[i][e_PROJECTILE_VX] * floatcos(moveangle, degrees)) - (eProjectile[i][e_PROJECTILE_VY] * floatsin(moveangle, degrees)));
-			new_vy = -((eProjectile[i][e_PROJECTILE_VX] * floatsin(moveangle, degrees)) + (eProjectile[i][e_PROJECTILE_VY] * floatcos(moveangle, degrees)));
+			new_vx = ((projectileData[i][PROJECTILE_VX] * floatcos(moveangle, degrees)) - (projectileData[i][PROJECTILE_VY] * floatsin(moveangle, degrees)));
+			new_vy = -((projectileData[i][PROJECTILE_VX] * floatsin(moveangle, degrees)) + (projectileData[i][PROJECTILE_VY] * floatcos(moveangle, degrees)));
 
 			moveangle *= -1;
-			eProjectile[i][e_PROJECTILE_VX] = ((new_vx * floatcos(moveangle, degrees)) - (new_vy * floatsin(moveangle, degrees)));
-			eProjectile[i][e_PROJECTILE_VY] = ((new_vx * floatsin(moveangle, degrees)) + (new_vy * floatcos(moveangle, degrees)));
+			projectileData[i][PROJECTILE_VX] = ((new_vx * floatcos(moveangle, degrees)) - (new_vy * floatsin(moveangle, degrees)));
+			projectileData[i][PROJECTILE_VY] = ((new_vx * floatsin(moveangle, degrees)) + (new_vy * floatcos(moveangle, degrees)));
 
 			moveangle += ((new_vy > 0) ? (90.0) : (-90.0));
-			new_x = (cx + (eProjectile[i][e_PROJECTILE_RADIUS] * floatcos(moveangle, degrees)));
-			new_y = (cy + (eProjectile[i][e_PROJECTILE_RADIUS] * floatsin(moveangle, degrees)));
+			new_x = (cx + (projectileData[i][PROJECTILE_OBJECT_COL_RADIUS] * floatcos(moveangle, degrees)));
+			new_y = (cy + (projectileData[i][PROJECTILE_OBJECT_COL_RADIUS] * floatsin(moveangle, degrees)));
 
 	        collision = true;
 
 			#if defined OnProjectileCollide
 				OnProjectileCollide(i, 3, cx, cy, cz, extraid); // COLLIDE_SA_WORLD
 			#else
-				#pragma unused extraid
+			    #pragma unused extraid
 			#endif
 		}
 
 		// collision check with players
-		if (eProjectile[i][e_PROJECTILE_PLAYERCOL_RADIUS] != 0.0)
-		{
-			for (new a, b = GetPlayerPoolSize(); a <= b; a++)
-			{
-			    if (IsPlayerConnected(a))
-			    {
-			        GetPlayerPos(a, cx, cy, cz);
-			        if ((cz - (min_height - eProjectile[i][e_PROJECTILE_RADIUS])) < new_z < (cz + (max_height + eProjectile[i][e_PROJECTILE_RADIUS])))
-					{
-						dx = new_x - cx;
-						dy = new_y - cy;
-						if (((dx * dx) + (dy * dy)) < ((eProjectile[i][e_PROJECTILE_RADIUS] + eProjectile[i][e_PROJECTILE_PLAYERCOL_RADIUS]) * (eProjectile[i][e_PROJECTILE_RADIUS] + eProjectile[i][e_PROJECTILE_PLAYERCOL_RADIUS])))
-						{
-							if (((eProjectile[i][e_PROJECTILE_VX] * dx) + (eProjectile[i][e_PROJECTILE_VY] * dy)) < 0.0)
-							{
-                                moveangle = -atan2(dy, dx);
-								new_vx = ((eProjectile[i][e_PROJECTILE_VX] * floatcos(moveangle, degrees)) - (eProjectile[i][e_PROJECTILE_VY] * floatsin(moveangle, degrees)));
-								new_vy = ((eProjectile[i][e_PROJECTILE_VX] * floatsin(moveangle, degrees)) + (eProjectile[i][e_PROJECTILE_VY] * floatcos(moveangle, degrees)));
+		if (projectileData[i][PROJECTILE_PLAYER_COL_RADIUS] != 0.0) {
+		    #if defined foreach
+		        foreach(new a : Player) {
+			#else
+				for (new a = 0, b = GetPlayerPoolSize(); a <= b; a++) if (IsPlayerConnected(a)) {
+			#endif
+				GetPlayerPos(a, cx, cy, cz);
 
-								moveangle *= -1;
-								eProjectile[i][e_PROJECTILE_VX] = ((new_vx * floatcos(moveangle, degrees)) - (new_vy * floatsin(moveangle, degrees)));
-								eProjectile[i][e_PROJECTILE_VY] = ((new_vx * floatsin(moveangle, degrees)) + (new_vy * floatcos(moveangle, degrees)));
+		        if ((cz - (min_height - projectileData[i][PROJECTILE_OBJECT_COL_RADIUS])) < new_z < (cz + (max_height + projectileData[i][PROJECTILE_OBJECT_COL_RADIUS]))) {
+					dx = new_x - cx;
+					dy = new_y - cy;
 
-								collision = true;
+					if (((dx * dx) + (dy * dy)) < ((projectileData[i][PROJECTILE_OBJECT_COL_RADIUS] + projectileData[i][PROJECTILE_PLAYER_COL_RADIUS]) * (projectileData[i][PROJECTILE_OBJECT_COL_RADIUS] + projectileData[i][PROJECTILE_PLAYER_COL_RADIUS]))) {
+						if (((projectileData[i][PROJECTILE_VX] * dx) + (projectileData[i][PROJECTILE_VY] * dy)) < 0.0) {
+      						moveangle = -atan2(dy, dx);
+							new_vx = ((projectileData[i][PROJECTILE_VX] * floatcos(moveangle, degrees)) - (projectileData[i][PROJECTILE_VY] * floatsin(moveangle, degrees)));
+							new_vy = ((projectileData[i][PROJECTILE_VX] * floatsin(moveangle, degrees)) + (projectileData[i][PROJECTILE_VY] * floatcos(moveangle, degrees)));
 
-								#if defined OnProjectileCollide
-									OnProjectileCollide(i, 4, cx, cy, cz, a); // COLLIDE_PLAYER
-								#endif
-							}
+							moveangle *= -1;
+							projectileData[i][PROJECTILE_VX] = ((new_vx * floatcos(moveangle, degrees)) - (new_vy * floatsin(moveangle, degrees)));
+							projectileData[i][PROJECTILE_VY] = ((new_vx * floatsin(moveangle, degrees)) + (new_vy * floatcos(moveangle, degrees)));
+
+							collision = true;
+
+							#if defined OnProjectileCollide
+								OnProjectileCollide(i, 4, cx, cy, cz, a); // COLLIDE_PLAYER
+							#endif
+							
+							break;
 						}
 					}
-			    }
-			}
+				}
+		    }
 		}
 
 		// apply collision friction
-		moveangle = (atan2(eProjectile[i][e_PROJECTILE_VY], eProjectile[i][e_PROJECTILE_VX]) - 90.0);
-		speed = floatsqroot((eProjectile[i][e_PROJECTILE_VX] * eProjectile[i][e_PROJECTILE_VX]) + (eProjectile[i][e_PROJECTILE_VY] * eProjectile[i][e_PROJECTILE_VY]));
-		if (eProjectile[i][e_PROJECTILE_COLLISION_FRICTION] != 0.0 && speed > 0.0 && collision)
-		{
-			speed -= eProjectile[i][e_PROJECTILE_COLLISION_FRICTION];
-			if (speed < 0.001)
-				speed = 0;
+		moveangle = (atan2(projectileData[i][PROJECTILE_VY], projectileData[i][PROJECTILE_VX]) - 90.0);
+		speed = floatsqroot((projectileData[i][PROJECTILE_VX] * projectileData[i][PROJECTILE_VX]) + (projectileData[i][PROJECTILE_VY] * projectileData[i][PROJECTILE_VY]));
 
-			eProjectile[i][e_PROJECTILE_VX] = speed * floatsin(-moveangle, degrees);
-			eProjectile[i][e_PROJECTILE_VY] = speed * floatcos(-moveangle, degrees);
+		if (projectileData[i][PROJECTILE_COLLISION_FRICTION] != 0.0 && speed > 0.0 && collision) {
+			speed -= projectileData[i][PROJECTILE_COLLISION_FRICTION];
+			if (speed < 0.001) {
+				speed = 0;
+			}
+			
+			projectileData[i][PROJECTILE_VX] = speed * floatsin(-moveangle, degrees);
+			projectileData[i][PROJECTILE_VY] = speed * floatcos(-moveangle, degrees);
 		}
 
 		// apply ground friction
-		if (eProjectile[i][e_PROJECTILE_GROUND_FRICTION] != 0.0 && speed > 0.0 && new_z == min_height)
-		{
-			speed -= eProjectile[i][e_PROJECTILE_GROUND_FRICTION] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
-			if (speed < 0.001)
+		if (projectileData[i][PROJECTILE_GROUND_FRICTION] != 0.0 && speed > 0.0 && new_z == min_height) {
+			speed -= projectileData[i][PROJECTILE_GROUND_FRICTION] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
+			if (speed < 0.001) {
 				speed = 0;
-
-			eProjectile[i][e_PROJECTILE_VX] = speed * floatsin(-moveangle, degrees);
-			eProjectile[i][e_PROJECTILE_VY] = speed * floatcos(-moveangle, degrees);
+			}
+			
+			projectileData[i][PROJECTILE_VX] = speed * floatsin(-moveangle, degrees);
+			projectileData[i][PROJECTILE_VY] = speed * floatcos(-moveangle, degrees);
 		}
 
 		// apply air resistance
-		if (eProjectile[i][e_PROJECTILE_AIR_RESISTANCE] != 0.0)
-	    {
-			if ((new_z == min_height && floatabs(eProjectile[i][e_PROJECTILE_AIR_RESISTANCE]) > eProjectile[i][e_PROJECTILE_GROUND_FRICTION]) || (collision && floatabs(eProjectile[i][e_PROJECTILE_AIR_RESISTANCE]) > eProjectile[i][e_PROJECTILE_COLLISION_FRICTION]) || new_z > min_height)
-			{
-				eProjectile[i][e_PROJECTILE_VX] -= eProjectile[i][e_PROJECTILE_VX] * eProjectile[i][e_PROJECTILE_AIR_RESISTANCE] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
-				eProjectile[i][e_PROJECTILE_VY] -= eProjectile[i][e_PROJECTILE_VY] * eProjectile[i][e_PROJECTILE_AIR_RESISTANCE] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
+		if (projectileData[i][PROJECTILE_AIR_RESISTANCE] != 0.0) {
+			if ((new_z == min_height && floatabs(projectileData[i][PROJECTILE_AIR_RESISTANCE]) > projectileData[i][PROJECTILE_GROUND_FRICTION]) || (collision && floatabs(projectileData[i][PROJECTILE_AIR_RESISTANCE]) > projectileData[i][PROJECTILE_COLLISION_FRICTION]) || new_z > min_height) {
+				projectileData[i][PROJECTILE_VX] -= projectileData[i][PROJECTILE_VX] * projectileData[i][PROJECTILE_AIR_RESISTANCE] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
+				projectileData[i][PROJECTILE_VY] -= projectileData[i][PROJECTILE_VY] * projectileData[i][PROJECTILE_AIR_RESISTANCE] * (PROJECTILE_TIMER_INTERVAL / 1000.0);
 			}
 	    }
 
 		// update rotation
-		speed = floatsqroot((eProjectile[i][e_PROJECTILE_VX] * eProjectile[i][e_PROJECTILE_VX]) + (eProjectile[i][e_PROJECTILE_VY] * eProjectile[i][e_PROJECTILE_VY]));
-		if (speed > 0.0)
-		{
-		    eProjectile[i][e_PROJECTILE_RX] -= ((speed * (PROJECTILE_TIMER_INTERVAL / 1000.0)) * ((180.0 / 3.14159) / eProjectile[i][e_PROJECTILE_RADIUS]));
-			if (eProjectile[i][e_PROJECTILE_RX] < 0.0)
-			{
-				eProjectile[i][e_PROJECTILE_RX] += 360.0;
+		speed = floatsqroot((projectileData[i][PROJECTILE_VX] * projectileData[i][PROJECTILE_VX]) + (projectileData[i][PROJECTILE_VY] * projectileData[i][PROJECTILE_VY]));
+		if (speed > 0.0) {
+		    projectileData[i][PROJECTILE_RX] -= ((speed * (PROJECTILE_TIMER_INTERVAL / 1000.0)) * ((180.0 / 3.14159) / projectileData[i][PROJECTILE_OBJECT_COL_RADIUS]));
+			if (projectileData[i][PROJECTILE_RX] < 0.0) {
+				projectileData[i][PROJECTILE_RX] += 360.0;
 			}
-			eProjectile[i][e_PROJECTILE_RZ] = moveangle;
+			
+			projectileData[i][PROJECTILE_RZ] = moveangle;
 		}
 
 		// update position
-		eProjectile[i][e_PROJECTILE_X] = new_x;
-		eProjectile[i][e_PROJECTILE_Y] = new_y;
-		eProjectile[i][e_PROJECTILE_Z] = new_z;
+		projectileData[i][PROJECTILE_X] = new_x;
+		projectileData[i][PROJECTILE_Y] = new_y;
+		projectileData[i][PROJECTILE_Z] = new_z;
+		
 		#if defined OnProjectileUpdate
 			OnProjectileUpdate(i);
 		#endif
 
 		// if velocity is 0, stop simulation (KillTimer)
-		if (eProjectile[i][e_PROJECTILE_VX] == 0.0 && eProjectile[i][e_PROJECTILE_VY] == 0.0 && ((new_z == min_height && eProjectile[i][e_PROJECTILE_VZ] <= 0.0) || (new_z == max_height && eProjectile[i][e_PROJECTILE_VZ] >= 0.0)))
-		{
+		if (projectileData[i][PROJECTILE_VX] == 0.0 && projectileData[i][PROJECTILE_VY] == 0.0 && ((new_z == min_height && projectileData[i][PROJECTILE_VZ] <= 0.0) || (new_z == max_height && projectileData[i][PROJECTILE_VZ] >= 0.0))) {
 		    #if defined OnProjectileStop
 				OnProjectileStop(i);
 			#endif
+			
 		    StopProjectile(i);
-			return;
 		}
 	}
+	
+	return 1;
 }
