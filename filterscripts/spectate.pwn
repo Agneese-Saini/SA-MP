@@ -710,7 +710,7 @@ public OnPlayerStateChange(playerid, newstate, oldstate) {
 	else if (newstate == PLAYER_STATE_ONFOOT) {
 	    foreach (new i : Player) {
 			if (playerSpectateID[i] == playerid) {
-    			PlayerSpectatePlayer(playerid, playerid, SPECTATE_MODE_NORMAL);
+    			PlayerSpectatePlayer(i, playerid, SPECTATE_MODE_NORMAL);
 
 				HideVehicleInfo(i);
     			playerSpectateTypeVehicle[i] = false;
