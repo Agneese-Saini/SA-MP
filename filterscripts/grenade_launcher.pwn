@@ -3,7 +3,6 @@
 #define FILTERSCRIPT
 
 #include <streamer>
-#include <colandreas>
 #include <projectile>
 
 // Your grenade launcher configuration
@@ -13,10 +12,10 @@
 
 #define GRENADE_OBJECT \
     342
-    
+
 #define MAX_PLAYER_GRENADES \
 	100
-	
+
 //
 
 // Don't change these
@@ -67,11 +66,11 @@ public OnPlayerUpdate(playerid)
 	    {
 	        playerHasM4[playerid] = true;
     		playerGrenadesCount[playerid] = MAX_PLAYER_GRENADES;
-    		
+
     		GameTextForPlayer(playerid, "~y~Press \"~k~~SNEAK_ABOUT~\" to shoot a grenade from launcher", 5000, 3);
 	    }
 	}
-	
+
 	if (GetPlayerWeapon(playerid) == 31)
 	{
 	    new string[64];
@@ -131,17 +130,17 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 	        new Float:object_y = fPY + floatmul(fVY, fScale);
 	        new Float:object_z = fPZ + floatmul(fVZ, fScale);
 
-			new proj = Projectile(object_x, object_y, object_z, GRENADE_SPEED * fVX, GRENADE_SPEED * fVY, (GRENADE_SPEED * fVZ) + 5.0, .air_resistance = 1.0, .sphere_radius = 0.010, .gravity = 15.0);
-            if (proj == -1)
+			new proj = CreateProjectile(object_x, object_y, object_z, GRENADE_SPEED * fVX, GRENADE_SPEED * fVY, (GRENADE_SPEED * fVZ) + 5.0, .air_resistance = 1.0, .spherecol_radius = 0.010, .gravity = 15.0);
+            if (proj == INVALID_PROJECTILE_ID)
             {
 				GameTextForPlayer(playerid, "~r~Couldn't launch grenade~n~~r~Try again, launcher might be stuck!", 5000, 3);
 				return 1;
 			}
-			
+
 			new obj = CreateDynamicObject(GRENADE_OBJECT, object_x, object_y, object_z + 0.5, 0, 0, 0);
             if (obj == INVALID_OBJECT_ID)
             {
-				StopProjectile(proj);
+				DestroyProjectile(proj);
             	GameTextForPlayer(playerid, "~r~Couldn't launch grenade~n~~r~Try again, launcher might be stuck!", 5000, 3);
                 return 1;
 			}
@@ -152,7 +151,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 			{
 				Streamer_UpdateEx(i, object_x, object_y, object_z, .type = STREAMER_TYPE_OBJECT);
 			}
-			
+
             playerGrenadesCount[playerid]--;
         }
     }
@@ -185,13 +184,13 @@ public OnProjectileCollide(projid, type, Float:x, Float:y, Float:z, extraid)
 	{
 	    if (Streamer_GetIntData(STREAMER_TYPE_OBJECT, grenadesObject[i], E_STREAMER_EXTRA_ID) == projid)
 		{
-		    if (type == 4)
+		    if (type == PROJECTILE_COLLIDE_PLAYER)
 		    {
 		        GameTextForPlayer(extraid, "~r~You were hit by a grenade launcher!", 3000, 3);
 		    }
-		    
+
 	        CreateExplosion(x, y, z, 2, 10.0);
-			StopProjectile(projid);
+			DestroyProjectile(projid);
 			DestroyDynamicObject(grenadesObject[i]);
 
 			for (new a = i, b = --grenadesCount; a < b; a++)
