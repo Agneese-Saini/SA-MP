@@ -4,11 +4,10 @@
 #define previewmodel_dialog_included
 
 /**************************************/
-// PreviewModelDialog.inc - v4.7.1 - Last Updated: 8 August, 2018 - By Gammix
+// PreviewModelDialog.inc - v4.7.2 - Last Updated: 2 Oct, 2018 - By Gammix
 /***************************************/
 
-// by BigETI
-#include <memory.inc>
+#include <memory.inc> // by BigETI
 
 // definitions
 #if !defined MAX_DIALOG_PREVIEW_TEXTSIZE
@@ -926,7 +925,7 @@ public OnPlayerDisconnect(playerid, reason) {
     if (Prev@PlayerListitemPointer[playerid] != MEM_NULLPTR) {
 		Prev_DeletePointers(playerid);
 	}
-	
+
 	#if defined PDialog_OnPlayerDisconnect
 		return PDialog_OnPlayerDisconnect(playerid, reason);
 	#else
@@ -1222,9 +1221,10 @@ stock Prev_ShowPlayerDialog(playerid, dialogid, style, caption[], info[], button
 
 		if (count == MEM_get_size(Prev@PlayerListitemPointer[playerid])) {
 			new Pointer:tmpPointer = MEM_new(count + DEFAULT_DIALOG_INCREMENT_SIZE);
-			MEM_copy(tmpPointer, Prev@PlayerListitemPointer[playerid], MEM_get_size(tmpPointer));
+			MEM_copy(tmpPointer, Prev@PlayerListitemPointer[playerid], count);
 
 			MEM_delete(Prev@PlayerListitemPointer[playerid]);
+			
 			Prev@PlayerListitemPointer[playerid] = tmpPointer;
 		}
 
