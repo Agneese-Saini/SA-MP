@@ -3,6 +3,9 @@
 #include <sscanf2>
 #include <foreach>
 
+#define SPECTATE_TYPE_PLAYER 0
+#define SPECTATE_TYPE_VEHICLE 1
+
 static const VEHICLE_NAMES[][] = {
 	"Landstalker", "Bravura", "Buffalo", "Linerunner", "Perrenial", "Sentinel", "Dumper", "Firetruck", "Trashmaster", "Stretch",
 	"Manana", "Infernus", "Voodoo", "Pony", "Mule", "Cheetah", "Ambulance", "Leviathan", "Moonbeam", "Esperanto", "Taxi",
@@ -40,6 +43,9 @@ static const Float:VEHICLE_TOP_SPEEDS[] = {
 	151.0, 110.0, 169.0, 171.0, 148.0, 152.0, 0.0,   0.0,   0.0,   108.0, 0.0,   0.0
 };
 
+
+new Iterator:SpectatePlayers<MAX_PLAYERS>;
+
 new Text:playerInfoFrameTD[6];
 new Text:playerInfoTD[7];
 new Text:vehicleInfoFrameTD[2];
@@ -48,10 +54,9 @@ new Text:vehicleInfoTD[4];
 new PlayerText:playerInfoPTD[MAX_PLAYERS][8];
 new PlayerText:vehicleInfoPTD[MAX_PLAYERS][5];
 
-new playerSpectateID[MAX_PLAYERS];
-new bool:playerSpectateTypeVehicle[MAX_PLAYERS];
-
-new Iterator:SpectatePlayers<MAX_PLAYERS>;
+new spectateID[MAX_PLAYERS];
+new spectateType[MAX_PLAYERS];
+new bool:spectateCameraON[MAX_PLAYERS];
 
 new playerVirtualWorld[MAX_PLAYERS];
 
@@ -520,7 +525,7 @@ UpdatePlayerInfo(playerid, targetid) {
 	GetPlayerVelocity(targetid, vx, vy, vz);
 	format(string, sizeof(string), "SPEED: ~w~%0.1f MPH", (GetSpeed(vx, vy, vz) / 1.609344));
 	PlayerTextDrawSetString(playerid, playerInfoPTD[playerid][6], string);
-	
+
 	new index;
 	foreach (new i : SpectatePlayers) {
 		++index;
@@ -576,7 +581,7 @@ HideVehicleInfo(playerid) {
 UpdateVehicleInfo(playerid, vehicleid) {
 	new Float:amount;
 	GetVehicleHealth(vehicleid, amount);
-	
+
 	new string[128];
 	format(string, sizeof(string), "HEALTH: ~w~%i/1000", floatround(amount));
 	PlayerTextDrawSetString(playerid, vehicleInfoPTD[playerid][2], string);
@@ -641,8 +646,8 @@ StartSpectate(playerid, targetid) {
 		HideVehicleInfo(playerid);
 	}
 
-    playerSpectateID[playerid] = targetid;
-    playerSpectateTypeVehicle[playerid] = (vehicleid != 0);
+    spectateID[playerid] = targetid;
+    spectateType[playerid] = (vehicleid != 0) ? SPECTATE_TYPE_VEHICLE : SPECTATE_TYPE_PLAYER;
 
 	return SelectTextDraw(playerid, 0xAA0000FF);
 }
@@ -653,8 +658,7 @@ StopSpectate(playerid) {
     HidePlayerInfo(playerid);
     HideVehicleInfo(playerid);
 
-	playerSpectateID[playerid] = INVALID_PLAYER_ID;
-    playerSpectateTypeVehicle[playerid] = false;
+	spectateID[playerid] = INVALID_PLAYER_ID;
 
 	return CancelSelectTextDraw(playerid);
 }
@@ -686,8 +690,7 @@ public OnFilterScriptExit() {
 }
 
 public OnPlayerConnect(playerid) {
-    playerSpectateID[playerid] = INVALID_PLAYER_ID;
-    playerSpectateTypeVehicle[playerid] = false;
+    spectateID[playerid] = INVALID_PLAYER_ID;
 
     CreatePlayerTextDraws(playerid);
 
@@ -697,23 +700,23 @@ public OnPlayerConnect(playerid) {
 public OnPlayerStateChange(playerid, newstate, oldstate) {
 	if (newstate == PLAYER_STATE_DRIVER || newstate == PLAYER_STATE_PASSENGER) {
 	    new vehicleid = GetPlayerVehicleID(playerid);
-	    
+
 	    foreach (new i : Player) {
-			if (playerSpectateID[i] == playerid) {
+			if (spectateID[i] == playerid) {
     			PlayerSpectateVehicle(i, vehicleid, SPECTATE_MODE_NORMAL);
-    			
+
 				ShowVehicleInfo(i, vehicleid);
-    			playerSpectateTypeVehicle[i] = true;
+    			spectateType[i] = SPECTATE_TYPE_VEHICLE;
 			}
 		}
 	}
 	else if (newstate == PLAYER_STATE_ONFOOT) {
 	    foreach (new i : Player) {
-			if (playerSpectateID[i] == playerid) {
+			if (spectateID[i] == playerid) {
     			PlayerSpectatePlayer(i, playerid, SPECTATE_MODE_NORMAL);
 
 				HideVehicleInfo(i);
-    			playerSpectateTypeVehicle[i] = false;
+    			spectateType[i] = SPECTATE_TYPE_PLAYER;
 			}
 		}
 	}
@@ -722,14 +725,14 @@ public OnPlayerStateChange(playerid, newstate, oldstate) {
 
         if (prev == INVALID_PLAYER_ID) {
 		    foreach (new i : Player) {
-				if (playerSpectateID[i] == playerid) {
+				if (spectateID[i] == playerid) {
 					StopSpectate(i);
 				}
 			}
 		}
 		else {
 		    foreach (new i : Player) {
-				if (playerSpectateID[i] == playerid) {
+				if (spectateID[i] == playerid) {
 					StartSpectate(i, prev);
 				}
 			}
@@ -743,7 +746,7 @@ public OnPlayerStateChange(playerid, newstate, oldstate) {
 
 public OnPlayerInteriorChange(playerid, newinteriorid, oldinteriorid) {
 	foreach (new i : Player) {
-		if (playerSpectateID[i] == playerid) {
+		if (spectateID[i] == playerid) {
 			SetPlayerInterior(i, newinteriorid);
   		}
 	}
@@ -756,14 +759,14 @@ public OnPlayerDisconnect(playerid, reason) {
 
     if (prev == INVALID_PLAYER_ID) {
 	    foreach (new i : Player) {
-			if (playerSpectateID[i] == playerid) {
+			if (spectateID[i] == playerid) {
 				StopSpectate(i);
 			}
 		}
 	}
 	else {
 	    foreach (new i : Player) {
-			if (playerSpectateID[i] == playerid) {
+			if (spectateID[i] == playerid) {
 				StartSpectate(i, prev);
 			}
 		}
@@ -784,7 +787,7 @@ public OnPlayerDeath(playerid, killerid, reason) {
 	cz += !GetPlayerInterior(playerid) ? 5.0 : 0.5;
 
 	foreach (new i : Player) {
-		if (playerSpectateID[i] == playerid) {
+		if (spectateID[i] == playerid) {
 			SetPlayerCameraPos(i, cx, cy, cz);
 			SetPlayerCameraLookAt(i, x, y, z);
 		}
@@ -797,9 +800,9 @@ public OnPlayerDeath(playerid, killerid, reason) {
 
 public OnPlayerSpawn(playerid) {
 	Iter_Add(SpectatePlayers, playerid);
-	
+
 	foreach (new i : Player) {
-		if (playerSpectateID[i] == playerid) {
+		if (spectateID[i] == playerid) {
 			StartSpectate(i, playerid);
 		}
 	}
@@ -808,12 +811,14 @@ public OnPlayerSpawn(playerid) {
 }
 
 public OnPlayerClickTextDraw(playerid, Text:clickedid) {
-	if (playerSpectateID[playerid] != INVALID_PLAYER_ID) {
+	if (spectateID[playerid] != INVALID_PLAYER_ID) {
 		if (clickedid == Text:INVALID_TEXT_DRAW) {
-			return SelectTextDraw(playerid, 0xAA0000FF);
+        	spectateCameraON[playerid] = true;
+        	
+        	GameTextForPlayer(playerid, "~w~Spectate Camera Mode: ~g~ON~n~~w~You can rotate camera with your mouse~n~~w~Type ~y~/camera ~w~to switch to mouse", 5000, 3);
 		}
 		else if (clickedid == BUTTON_PREVIOUS) {
-		    new prev = GetPreviousPlayer(playerSpectateID[playerid]);
+		    new prev = GetPreviousPlayer(spectateID[playerid]);
 		    if (prev == INVALID_PLAYER_ID) {
 			    PlayerPlaySound(playerid, 1085, 0.0, 0.0, 0.0);
 			}
@@ -822,7 +827,7 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid) {
 			}
 		}
 		else if (clickedid == BUTTON_NEXT) {
-		    new next = GetNextPlayer(playerSpectateID[playerid]);
+		    new next = GetNextPlayer(spectateID[playerid]);
 		    if (next == INVALID_PLAYER_ID) {
 			    PlayerPlaySound(playerid, 1085, 0.0, 0.0, 0.0);
 			}
@@ -841,20 +846,41 @@ public OnPlayerUpdate(playerid) {
         playerVirtualWorld[playerid] = worldid;
 
 		foreach (new i : Player) {
-			if (playerSpectateID[i] == playerid) {
+			if (spectateID[i] == playerid) {
 				SetPlayerVirtualWorld(i, worldid);
 	  		}
 		}
 	}
 
-    if (playerSpectateID[playerid] != INVALID_PLAYER_ID) {
-		UpdatePlayerInfo(playerid, playerSpectateID[playerid]);
-		
-		if (playerSpectateTypeVehicle[playerid]) {
-			UpdateVehicleInfo(playerid, GetPlayerVehicleID(playerSpectateID[playerid]));
+	foreach (new i : Player) {
+	    if (spectateID[i] == playerid) {
+			UpdatePlayerInfo(i, playerid);
+
+			if (spectateType[i] == SPECTATE_TYPE_VEHICLE) {
+				UpdateVehicleInfo(i, GetPlayerVehicleID(playerid));
+			}
 		}
 	}
 
+	return 1;
+}
+
+CMD:camera(playerid, params[]) {
+	if (GetPlayerState(playerid) != PLAYER_STATE_SPECTATING) {
+		return SendClientMessage(playerid, 0xBB0000FF, "Error: You appear to be not spectating at the moment.");
+	}
+	
+	if (spectateCameraON[playerid] == false) {
+	    CancelSelectTextDraw(playerid);
+	}
+	else {
+        SelectTextDraw(playerid, 0xAA0000FF);
+        
+        GameTextForPlayer(playerid, "~w~Spectate Camera Mode: ~r~OFF~n~~w~You are now on spectate mouse mode", 5000, 3);
+        
+	    spectateCameraON[playerid] = false;
+	}
+	
 	return 1;
 }
 
@@ -880,6 +906,8 @@ CMD:spec(playerid, params[]) {
 	GetPlayerArmour(playerid, oldPlayerArmour[playerid]);
 
     StartSpectate(playerid, targetid);
+    
+    SendClientMessage(playerid, 0xAAAAAAFF, "You can switch to CAMERA mode on/off with command /camera.");
 	return 1;
 }
 
