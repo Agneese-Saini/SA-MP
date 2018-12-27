@@ -37,6 +37,7 @@ native Timestamp.SetSecond(Timestamp:object, second);
 native Timestamp.GetSecond(Timestamp:object);
 native Timestamp.Value(Timestamp:object);
 native bool:Timestamp.IsGreater(Timestamp:object, Timestamp:otherObject);
+native bool:Timestamp.IsEqual(Timestamp:object, Timestamp:otherObject);
 native Timestamp.AddTime(Timestamp:object, year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0);
 native Timestamp.SubstractTimee(Timestamp:object, year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0);
 native Timestamp.ToString(Timestamp:object);
@@ -452,6 +453,10 @@ stock Timestamp.Value(Timestamp:object) {
 
 stock bool:Timestamp.IsGreater(Timestamp:object, Timestamp:otherObject) {
 	return (timestampData[object][TIMESTAMP_VALUE] > timestampData[otherObject][TIMESTAMP_VALUE]);
+}
+
+stock bool:Timestamp.IsEqual(Timestamp:object, Timestamp:otherObject) {
+	return (timestampData[object][TIMESTAMP_VALUE] == timestampData[otherObject][TIMESTAMP_VALUE]);
 }
 
 stock Timestamp.AddTime(Timestamp:object, year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0) {
