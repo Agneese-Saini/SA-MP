@@ -1,7 +1,6 @@
 // Timestamp.inc by Gammix
 // Version: 1.0 - 2018-12-26 20:47:11
 // Special thanks: Crayder (his Time Conversion library was used as a reference)
-
 #if defined _inc_timestamp_
 	#endinput
 #endif
@@ -9,40 +8,61 @@
 
 #if defined _natives_timestamp_
 
-// functions for static use (no Timestamp: object required)
-native bool:TimestampStatic.IsLeapYear(year);
-native TimestampStatic.GetMonthDays(month, year);
-native TimestampStatic.GetMonthName(month, dest[], size = sizeof(dest));
-native TimestampStatic.ConvertToSeconds(E_TIMEUNIT_TYPES:type, amount);
-native TimestampStatic.ConvertFromSeconds(E_TIMEUNIT_TYPES:type, timestamp);
-native TimestampStatic.DateToTime(year, month, day, hour, minute, second, gmh = 0, gmm = 0);
-native TimestampStatic.TimeToDate(timestamp, &year, &month, &date, &hour, &minute, &second, gmh = 0, gmm = 0);
+// check if the year is leap year or not
+bool:TimestampStatic.IsLeapYear(year);
+// get number of days in entered month
+TimestampStatic.GetMonthDays(month, year);
+// get entered month name
+TimestampStatic.GetMonthName(month);
+// convert given unit to seconds
+TimestampStatic.ConvertToSeconds(E_TIMEUNIT_TYPES:type, amount);
+// convert seconds entered to given unit
+TimestampStatic.ConvertFromSeconds(E_TIMEUNIT_TYPES:type, timestamp);
+// convert date stamp to timestamp (returns timestamp)
+TimestampStatic.DateToTime(year, month, day, hour, minute, second, HourGMT = 0, MinuteGMT = 0);
+// convert timestamp to date stamp (stores in params)
+TimestampStatic.TimeToDate(timestamp, &year, &month, &date, &hour, &minute, &second, HourGMT = 0, MinuteGMT = );
 
-// functions for Timestamp: objects
-native Timestamp:TimestampFromDate(year, month, date, hour, minute, second);
-native Timestamp:TimestampFromTime(timestamp);
-native Timestamp:Timestamp();
-native bool:Timestamp.IsValid(Timestamp:object);
-native Timestamp.SetYear(Timestamp:object, year);
-native Timestamp.GetYear(Timestamp:object);
-native Timestamp.SetMonth(Timestamp:object, month);
-native Timestamp.GetMonth(Timestamp:object);
-native Timestamp.SetDate(Timestamp:object, date);
-native Timestamp.GetDate(Timestamp:object);
-native Timestamp.SetHour(Timestamp:object, hour);
-native Timestamp.GetHour(Timestamp:object);
-native Timestamp.SetMinute(Timestamp:object, minute);
-native Timestamp.GetMinute(Timestamp:object);
-native Timestamp.SetSecond(Timestamp:object, second);
-native Timestamp.GetSecond(Timestamp:object);
-native Timestamp.Value(Timestamp:object);
-native bool:Timestamp.IsGreater(Timestamp:object, Timestamp:otherObject);
-native bool:Timestamp.IsEqual(Timestamp:object, Timestamp:otherObject);
-native Timestamp.AddTime(Timestamp:object, year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0);
-native Timestamp.SubstractTimee(Timestamp:object, year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0);
-native Timestamp.ToString(Timestamp:object);
-native Timestamp.ConvertToUnit(Timestamp:object, E_TIMEUNIT_TYPES:type);
-native Timestamp.Destroy(Timestamp:object);
+
+// create a Timestamp object from date parameters
+Timestamp:TimestampFromDate(year, month, date, hour, minute, second);
+// create a Timestamp object from timestamp supplied
+Timestamp:TimestampFromTime(timestamp);
+// create a Timestamp object for current time
+Timestamp:Timestamp();
+// check if timestamp object is valid
+bool:Timestamp.IsValid(Timestamp:object);
+
+// getters and setters
+Timestamp.SetYear(Timestamp:object, year);
+Timestamp.GetYear(Timestamp:object);
+Timestamp.SetMonth(Timestamp:object, month);
+Timestamp.GetMonth(Timestamp:object);
+Timestamp.SetDate(Timestamp:object, date);
+Timestamp.GetDate(Timestamp:object);
+Timestamp.SetHour(Timestamp:object, hour);
+Timestamp.GetHour(Timestamp:object);
+Timestamp.SetMinute(Timestamp:object, minute);
+Timestamp.GetMinute(Timestamp:object);
+Timestamp.SetSecond(Timestamp:object, second);
+Timestamp.GetSecond(Timestamp:object);
+
+// returns timestamp value(seconds) in Timestamp object
+Timestamp.Value(Timestamp:object);
+// check if "object" is greater than "otherObject"
+bool:Timestamp.IsGreater(Timestamp:object, Timestamp:otherObject);
+// check if "object" is equal to "otherObject"
+bool:Timestamp.IsEqual(Timestamp:object, Timestamp:otherObject);
+// add time to Timestamp object (e.g. Timestamp.AddTime(object, .hour = 15); <-- adds 15 hours to object)
+Timestamp.AddTime(Timestamp:object, year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0);
+// subtract time from Timestamp object (e.g. Timestamp.SubtractTime(object, .hour = 15); <-- subtract 15 hours from object)
+Timestamp.SubtractTime(Timestamp:object, year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0);
+// return string format of timestamp (e.g. "2018-12-26 20:47:11")
+Timestamp.ToString(Timestamp:object);
+// return timestamp to some other units (e.g. Timestamp.ConvertToUnit(object, DAYS); <-- convert timestamp to number of days)
+Timestamp.ConvertToUnit(Timestamp:object, E_TIMEUNIT_TYPES:type);
+// destroy timestamp object
+Timestamp.Destroy(Timestamp:object);
 
 #endif
 
@@ -159,7 +179,7 @@ stock TimestampStatic.ConvertFromSeconds(E_TIMEUNIT_TYPES:type, timestamp) {
 	return 0;
 }
 
-stock TimestampStatic.DateToTime(year, month, day, hour, minute, second, gmh = 0, gmm = 0) {
+stock TimestampStatic.DateToTime(year, month, day, hour, minute, second, HourGMT = 0, MinuteGMT = ) {
     static const
 		SECONDS_PER_MINUTE = 60,
 		SECONDS_PER_HOUR = 3600,
@@ -177,14 +197,14 @@ stock TimestampStatic.DateToTime(year, month, day, hour, minute, second, gmh = 0
 	    day += 1;
 	
     timestamp += ((day - 1) * SECONDS_PER_DAY);
-    timestamp += ((hour + gmh) * SECONDS_PER_HOUR);
-    timestamp += ((minute + gmm) * SECONDS_PER_MINUTE);
+    timestamp += ((hour + HourGMT) * SECONDS_PER_HOUR);
+    timestamp += ((minute + MinuteGMT) * SECONDS_PER_MINUTE);
     timestamp += second;
 
 	return timestamp;
 }
 
-stock TimestampStatic.TimeToDate(timestamp, &year, &month, &date, &hour, &minute, &second, gmh = 0, gmm = 0) {
+stock TimestampStatic.TimeToDate(timestamp, &year, &month, &date, &hour, &minute, &second, HourGMT = 0, MinuteGMT = 0) {
     static const
 		SECONDS_PER_MINUTE = 60,
 		SECONDS_PER_HOUR = 3600,
@@ -215,10 +235,10 @@ stock TimestampStatic.TimeToDate(timestamp, &year, &month, &date, &hour, &minute
 	for (date = 1; timestamp >= SECONDS_PER_DAY; date++)
 		timestamp -= SECONDS_PER_DAY;
 
-	for (hour = gmh; timestamp >= SECONDS_PER_HOUR; hour++)
+	for (hour = HourGMT; timestamp >= SECONDS_PER_HOUR; hour++)
 		timestamp -= SECONDS_PER_HOUR;
 
-	for (minute = gmm; timestamp >= SECONDS_PER_MINUTE; minute++)
+	for (minute = MinuteGMT; timestamp >= SECONDS_PER_MINUTE; minute++)
 		timestamp -= SECONDS_PER_MINUTE;
 
 	second = timestamp;
