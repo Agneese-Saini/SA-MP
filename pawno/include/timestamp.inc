@@ -1,5 +1,5 @@
 // Timestamp.inc by Gammix
-// Version: 1.0 - 2018-12-26 20:47:11
+// Version: 1.0 - 2018-12-26 21:37:11
 // Special thanks: Crayder (his Time Conversion library was used as a reference)
 #if defined _inc_timestamp_
 	#endinput
@@ -67,7 +67,7 @@ Timestamp.Destroy(Timestamp:object);
 #endif
 
 #if !defined MAX_TIMESTAMPS
-	#define MAX_TIMESTAMPS 1000
+	#define MAX_TIMESTAMPS 10000
 #endif
 
 #if !defined MAX_TIMESTAMP_STRING
@@ -111,6 +111,8 @@ static const MONTH_NAMES[12][] = {
 };
 
 static timestampData[Timestamp:MAX_TIMESTAMPS][E_TIMESTAMP_DATA];
+
+static Timestamp:currentTime = INVALID_TIMESTAMP_ID;
 
 stock bool:TimestampStatic.IsLeapYear(year) {
     return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
@@ -179,7 +181,7 @@ stock TimestampStatic.ConvertFromSeconds(E_TIMEUNIT_TYPES:type, timestamp) {
 	return 0;
 }
 
-stock TimestampStatic.DateToTime(year, month, day, hour, minute, second, HourGMT = 0, MinuteGMT = ) {
+stock TimestampStatic.DateToTime(year, month, day, hour, minute, second, HourGMT = 0, MinuteGMT = 0) {
     static const
 		SECONDS_PER_MINUTE = 60,
 		SECONDS_PER_HOUR = 3600,
@@ -522,4 +524,25 @@ stock Timestamp.ToString(Timestamp:object) {
 
 stock Timestamp.Destroy(Timestamp:object) {
 	timestampData[object][TIMESTAMP_VALID] = false;
+}
+
+stock Timestamp:TimestampStatic.current() {
+	if (currentTime == INVALID_TIMESTAMP_ID) {
+        currentTime = Timestamp();
+        return currentTime;
+	}
+
+	new year, month, date, hour, minute, second;
+	getdate(year, month, date);
+	gettime(hour, minute, second);
+
+	timestampData[currentTime][TIMESTAMP_YEAR] = year;
+	timestampData[currentTime][TIMESTAMP_MONTH] = month;
+	timestampData[currentTime][TIMESTAMP_DATE] = date;
+	timestampData[currentTime][TIMESTAMP_HOUR] = hour;
+	timestampData[currentTime][TIMESTAMP_MINUTE] = minute;
+	timestampData[currentTime][TIMESTAMP_SECOND] = second;
+	timestampData[currentTime][TIMESTAMP_VALUE] = TimestampStatic.DateToTime(year, month, date, hour, minute, second);
+
+	return currentTime;
 }
