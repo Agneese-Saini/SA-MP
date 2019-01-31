@@ -247,23 +247,12 @@ public OnPlayerJoin(playerid)
 	}
 	SendClientMessage(playerid, COLOR_YELLOW, "You have connected to \"SA-MP 0.3.7 Server\"");
 	PlayerPlaySound(playerid, 1054, 0.0, 0.0, 0.0);
+	
+	new lClearData[e_USER];
+	eUser[playerid] = lClearData;
 
 	if (cache_num_rows() == 0)
 	{
-	    eUser[playerid][e_USER_SQLID] = -1;
-	    eUser[playerid][e_USER_PASSWORD][0] = EOS;
-	    eUser[playerid][e_USER_SALT][0] = EOS;
-		eUser[playerid][e_USER_KILLS] = 0;
-		eUser[playerid][e_USER_DEATHS] = 0;
-		eUser[playerid][e_USER_SCORE] = 0;
-		eUser[playerid][e_USER_MONEY] = 0;
-		eUser[playerid][e_USER_ADMIN_LEVEL] = 0;
-		eUser[playerid][e_USER_VIP_LEVEL] = 0;
-		eUser[playerid][e_USER_REGISTER_TIMESTAMP] = 0;
-		eUser[playerid][e_USER_LASTLOGIN_TIMESTAMP] = 0;
-		eUser[playerid][e_USER_SECURITY_QUESTION][0] = EOS;
-		eUser[playerid][e_USER_SECURITY_ANSWER][0] = EOS;
-
 		Dialog_Show(playerid, REGISTER, DIALOG_STYLE_PASSWORD, "Account Registeration... [Step: 1/3]", COL_WHITE "Welcome to our server. We will take you through "COL_GREEN"3 simple steps "COL_WHITE"to register your account with a backup option in case you forgot your password!\nPlease enter a password, "COL_TOMATO"case sensitivity"COL_WHITE" is on.", "Continue", "Options");
 		SendClientMessage(playerid, COLOR_WHITE, "[Step: 1/3] Enter your new account's password.");
 	}
