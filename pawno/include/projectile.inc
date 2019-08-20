@@ -18,7 +18,7 @@ native UpdateProjectileVel(projid, Float:vx, Float:vy, Float:vz);
 
 // Callbacks
 forward OnProjectileUpdate(projid);
-forward OnProjectileStop(projid);
+forward OnProjectileStop(projid, Float:x, Float:y, Float:z);
 forward OnProjectileCollide(projid, type, Float:x, Float:y, Float:z, extraid);
 
 ********************************************/
@@ -28,30 +28,27 @@ forward OnProjectileCollide(projid, type, Float:x, Float:y, Float:z, extraid);
 #endif
 #define projectile_included
 
-#include <colandreas>
+#tryinclude <colandreas>
 
 #if !defined MAX_PROJECTILES
 	#define MAX_PROJECTILES \
-		100
+		(100)
 #endif
 
 #if !defined PROJECTILE_TIMER_INTERVAL
 	#define PROJECTILE_TIMER_INTERVAL \
-		20
+		(20)
 #endif
 
-#if !defined FLOAT_INFINITY
-	#define FLOAT_INFINITY \
-		Float:0x7F800000
-#endif
+#define FLOAT_INFINITY (Float:0x7F800000)
 
-#define INVALID_PROJECTILE_ID -1
+#define INVALID_PROJECTILE_ID (-1)
 
-#define PROJECTILE_COLLIDE_GROUND 0
-#define PROJECTILE_COLLIDE_CIELING 1
-#define PROJECTILE_COLLIDE_SIMULATION 2
-#define PROJECTILE_COLLIDE_OBJECT 3
-#define PROJECTILE_COLLIDE_PLAYER 4
+#define PROJECTILE_COLLIDE_GROUND (0)
+#define PROJECTILE_COLLIDE_CIELING (1)
+#define PROJECTILE_COLLIDE_SIMULATION (2)
+#define PROJECTILE_COLLIDE_OBJECT (3)
+#define PROJECTILE_COLLIDE_PLAYER (4)
 
 enum E_PROJECTILE_DATA {
     Float:PROJECTILE_X,
@@ -83,7 +80,7 @@ static projectileData[MAX_PROJECTILES][E_PROJECTILE_DATA];
 #endif
 
 #if defined OnProjectileStop
-	forward OnProjectileStop(projid);
+	forward OnProjectileStop(projid, Float:x, Float:y, Float:z);
 #endif
 
 #if defined OnProjectileCollide
@@ -501,7 +498,7 @@ public Internal_OnProjectilesUpdate()
 		// if velocity is 0, stop simulation (KillTimer)
 		if (projectileData[i][PROJECTILE_VX] == 0.0 && projectileData[i][PROJECTILE_VY] == 0.0 && ((new_z == min_height && projectileData[i][PROJECTILE_VZ] <= 0.0) || (new_z == max_height && projectileData[i][PROJECTILE_VZ] >= 0.0))) {
 		    #if defined OnProjectileStop
-				OnProjectileStop(i);
+				OnProjectileStop(i, projectileData[i][PROJECTILE_X], projectileData[i][PROJECTILE_Y], projectileData[i][PROJECTILE_Z]);
 			#endif
 
 		    DestroyProjectile(i);
