@@ -325,7 +325,8 @@ stock PlayerTextDrawBoxFade(playerid, PlayerText:text, from_color, to_color, upd
 		PlayerTextDrawStopBoxFade(playerid, text);
 	}
 
-	new idx = textDrawFaderCount[playerid]++;
+	textDrawFaderCount[playerid]++;
+	new idx = textDrawFaderCount[playerid];
 	textDrawFader[playerid][idx][TEXTDRAW_FADE_VALID] = true;
 	textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_ID] = _:text;
 	textDrawFader[playerid][idx][TEXTDRAW_FADE_TEXTDRAW_TYPE] = TEXTDRAW_FADE_TYPE_PLAYER;
