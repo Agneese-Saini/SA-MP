@@ -191,8 +191,6 @@ public OnTextDrawFade(playerid, idx, update_rate, initial_color) {
 
  	HEX(textDrawFader[playerid][idx][TEXTDRAW_FADE_FROM_COLOR], new_color[0], new_color[1], new_color[2], new_color[3]);
 
-	printf("%x > %x", textDrawFader[playerid][idx][TEXTDRAW_FADE_FROM_COLOR], textDrawFader[playerid][idx][TEXTDRAW_FADE_TO_COLOR]);
-
 	if (textDrawFader[playerid][idx][TEXTDRAW_FADE_TYPE] == TEXT_FADE) {
 		TextDrawColor(Text:textDrawFader[playerid][idx][TEXTDRAW_FADE_ID], textDrawFader[playerid][idx][TEXTDRAW_FADE_FROM_COLOR]);
 	} else {
