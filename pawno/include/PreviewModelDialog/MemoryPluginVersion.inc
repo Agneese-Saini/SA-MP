@@ -4,7 +4,7 @@
 #define previewmodel_dialog_included
 
 /**************************************/
-// PreviewModelDialog.inc - v4.7.2 - Last Updated: 2 Oct, 2018 - By Gammix
+// PreviewModelDialog.inc - v4.7.2 - Last Updated: 14 Oct, 2019 - By Gammix
 /***************************************/
 
 #include <memory.inc> // by BigETI
@@ -922,8 +922,8 @@ public OnPlayerConnect(playerid) {
 #endif
 
 public OnPlayerDisconnect(playerid, reason) {
-    if (Prev@PlayerListitemPointer[playerid] != MEM_NULLPTR) {
-		Prev_DeletePointers(playerid);
+    if (Prev@PlayerDialogID[playerid] != -1) {
+		Prev_HidePlayerDialog(playerid);
 	}
 
 	#if defined PDialog_OnPlayerDisconnect
@@ -1224,7 +1224,7 @@ stock Prev_ShowPlayerDialog(playerid, dialogid, style, caption[], info[], button
 			MEM_copy(tmpPointer, Prev@PlayerListitemPointer[playerid], count);
 
 			MEM_delete(Prev@PlayerListitemPointer[playerid]);
-			
+
 			Prev@PlayerListitemPointer[playerid] = tmpPointer;
 		}
 
