@@ -387,7 +387,7 @@ CreatePlayerTextDraws(playerid) {
 	PlayerTextDrawSetProportional(playerid, vehicleInfoPTD[playerid][1], 1);
 	PlayerTextDrawTextSize(playerid, vehicleInfoPTD[playerid][1], 640.0000, 0.0000);
 
-	vehicleInfoPTD[playerid][2] = CreatePlayerTextDraw(playerid, 320.5000, 421.0000, "HELATH: ~w~1000/1000");
+	vehicleInfoPTD[playerid][2] = CreatePlayerTextDraw(playerid, 320.5000, 421.0000, "HEALTH: ~w~1000/1000");
 	PlayerTextDrawFont(playerid, vehicleInfoPTD[playerid][2], 1);
 	PlayerTextDrawLetterSize(playerid, vehicleInfoPTD[playerid][2], 0.1399, 0.7999);
 	PlayerTextDrawColor(playerid, vehicleInfoPTD[playerid][2], -1768515841);
