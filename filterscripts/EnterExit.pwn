@@ -1,6 +1,6 @@
 #include <a_samp>
 #include <streamer>
-#define MAX_TEXT_DRAW_FADES 1
+#define TEXTDRAW_FADER_POOL_SIZE 1
 #include <fader>
 
 #define MOVEMENT_SPEED 0.75
@@ -93,7 +93,7 @@ public OnPlayerPickUpDynamicPickup(playerid, pickupid) {
 		for (new i = 0; i < sizeof(ENTER_EXITS); i++) {
 		    if (pickupid == ENTER_EXITS[i][ENTER_EXIT_PICKUPID]) {
 		        if (bool:(OnPlayerEnterExit(playerid, i)) == true) {
-		            TextDrawBoxFadeForPlayer(playerid, enterExitTextDraw, 0x00000000, 0x000000FF, FADER_UPDATE_RATE, FADER_TIMER_INTERVAL);
+		            TextDrawFadeForPlayer(playerid, enterExitTextDraw, 0x00000000, 0x000000FF, fade_type_box, FADER_TIMER_INTERVAL, FADER_UPDATE_RATE);
 
 				    TogglePlayerControllable(playerid, false);
 
@@ -103,7 +103,7 @@ public OnPlayerPickUpDynamicPickup(playerid, pickupid) {
 		    }
 		}
 	}
-	
+
 	return 1;
 }
 
@@ -130,8 +130,8 @@ public OnDynamicObjectMoved(objectid) {
 	return 1;
 }
 
-public OnTextDrawFaded(playerid, Text:text, type, from_color, to_color) {
-	if (type == TEXTDRAW_FADE_BOX) {
+public OnTextDrawFaded(playerid, Text: text, fade_type: type, from_color, to_color, from_outline_color, to_outline_color) {
+	if (text == enterExitTextDraw) {
 		if (to_color == 0x000000FF) {
 		    new idx = playerEnterExitID[playerid];
 
@@ -141,7 +141,7 @@ public OnTextDrawFaded(playerid, Text:text, type, from_color, to_color) {
 
 			GameTextForPlayer(playerid, ENTER_EXITS[idx][ENTER_EXIT_NAME], 5000, 6);
 
-			TextDrawBoxFadeForPlayer(playerid, enterExitTextDraw, 0x000000FF, 0x00000000, FADER_UPDATE_RATE, FADER_TIMER_INTERVAL);
+   			TextDrawFadeForPlayer(playerid, enterExitTextDraw, 0x000000FF, 0x00000000, fade_type_box, FADER_TIMER_INTERVAL, FADER_UPDATE_RATE);
 		}
 		else if (to_color == 0x00000000) {
 			TogglePlayerControllable(playerid, true);
@@ -151,6 +151,6 @@ public OnTextDrawFaded(playerid, Text:text, type, from_color, to_color) {
 		    playerEnterExitID[playerid] = -1;
 		}
 	}
-	
+
 	return 1;
 }
