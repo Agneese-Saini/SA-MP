@@ -1,7 +1,7 @@
 //////////////////////////////////
 //
 // FADER.INC BY GAMMIX
-// VERSION: 2.0 (25 Feb, 2019)
+// VERSION: 3.0 (14 Sep, 2020)
 //
 //////////////////////////////////
 
@@ -22,18 +22,20 @@ enum fade_type {
 	fade_type_box
 };
 
-TextDrawFadeForPlayer(playerid, Text: text, from_color, to_color, fade_type: type = fade_type_box, timer_interval = 50, update_rate = 2);
-TextDrawStopFadeForPlayer(playerid, Text: text, fade_type: type = fade_type_box);
+#if defined fader_natives
+	native TextDrawFadeForPlayer(playerid, Text: text, from_color, to_color, fade_type: type = fade_type_box, timer_interval = 50, update_rate = 5, from_outline_color = 255, to_outline_color = 0x00);
+	native TextDrawStopFadeForPlayer(playerid, Text: text, fade_type: type = fade_type_box);
 
-PlayerTextDrawFade(playerid, PlayerText: playertext, from_color, to_color, fade_type: type = fade_type_box, timer_interval = 50, update_rate = 2);
-PlayerTextDrawStopFade(playerid, PlayerText: playertext, fade_type: type = fade_type_box);
+	native PlayerTextDrawFade(playerid, PlayerText: playertext, from_color, to_color, fade_type: type = fade_type_box, timer_interval = 50, update_rate = 5, from_outline_color = 255, to_outline_color = 0x00);
+	native PlayerTextDrawStopFade(playerid, PlayerText: playertext, fade_type: type = fade_type_box);
+#endif
 
 #if defined OnTextDrawFaded
-forward OnTextDrawFaded(playerid, Text: text, fade_type: type, from_color, to_color);
+forward OnTextDrawFaded(playerid, Text: text, fade_type: type, from_color, to_color, from_outline_color, to_outline_color);
 #endif
 
 #if defined OnPlayerTextDrawFaded
-forward OnPlayerTextDrawFaded(playerid, PlayerText: playertext, fade_type: type, from_color, to_color);
+forward OnPlayerTextDrawFaded(playerid, PlayerText: playertext, fade_type: type, from_color, to_color, from_outline_color, to_outline_color);
 #endif
 
 enum E_TEXTDRAW_FADER {
@@ -43,6 +45,8 @@ enum E_TEXTDRAW_FADER {
     fade_type: E_FADER_TYPE,
 	E_FADER_FROM_COLOR,
     E_FADER_TO_COLOR,
+	E_FADER_FROM_OUTLINE_COLOR,
+    E_FADER_TO_OUTLINE_COLOR,
     E_FADER_TIMER
 };
 
@@ -61,7 +65,37 @@ stock static HEX(&color, rr, gg, bb, aa) {
 	color = (aa & 0xFF) | ((bb & 0xFF) << 8) | ((gg & 0xFF) << 16) | (rr << 24);
 }
 
-stock TextDrawFadeForPlayer(playerid, Text: text, from_color, to_color, fade_type: type = fade_type_box, timer_interval = 50, update_rate = 2) {
+stock static ConvertColor(from_color, to_color, update_rate) {
+
+	new new_color[4];
+	new final_color[4];
+
+    RGBA(from_color, new_color[0], new_color[1], new_color[2], new_color[3]);
+	RGBA(to_color, final_color[0], final_color[1], final_color[2], final_color[3]);
+
+	for (new i; i < 4; i++) {
+		if (new_color[i] > final_color[i]) {
+		    new_color[i] -= update_rate;
+
+		    if (new_color[i] <= final_color[i]) {
+		    	new_color[i] = final_color[i];
+		    }
+		} else if (new_color[i] < final_color[i]) {
+		    new_color[i] += update_rate;
+
+		    if (new_color[i] >= final_color[i]) {
+		    	new_color[i] = final_color[i];
+		    }
+		}
+	}
+
+	new ret;
+	HEX(ret, new_color[0], new_color[1], new_color[2], new_color[3]);
+	
+	return ret;
+}
+
+stock TextDrawFadeForPlayer(playerid, Text: text, from_color, to_color, fade_type: type = fade_type_box, timer_interval = 50, update_rate = 5, from_outline_color = 255, to_outline_color = 0x00) {
 
 	if (playerid < 0 || playerid >= MAX_PLAYERS) {
 		return 0;
@@ -97,7 +131,9 @@ stock TextDrawFadeForPlayer(playerid, Text: text, from_color, to_color, fade_typ
 	_textDrawFader[playerid][idx][E_FADER_TYPE] = type;
 	_textDrawFader[playerid][idx][E_FADER_FROM_COLOR] = from_color;
 	_textDrawFader[playerid][idx][E_FADER_TO_COLOR] = to_color;
-	_textDrawFader[playerid][idx][E_FADER_TIMER] = SetTimerEx("_OnTextDrawFade", timer_interval, true, "iiii", playerid, idx, update_rate, from_color);
+	_textDrawFader[playerid][idx][E_FADER_FROM_OUTLINE_COLOR] = from_outline_color;
+	_textDrawFader[playerid][idx][E_FADER_TO_OUTLINE_COLOR] = to_outline_color;
+	_textDrawFader[playerid][idx][E_FADER_TIMER] = SetTimerEx("_OnTextDrawFade", timer_interval, true, "iiiii", playerid, idx, update_rate, from_color, from_outline_color);
 
 	return 1;
 }
@@ -124,7 +160,7 @@ stock TextDrawStopFadeForPlayer(playerid, Text: text, fade_type: type = fade_typ
 	return 0;
 }
 
-stock PlayerTextDrawFade(playerid, PlayerText: playertext, from_color, to_color, fade_type: type = fade_type_box, timer_interval = 50, update_rate = 2) {
+stock PlayerTextDrawFade(playerid, PlayerText: playertext, from_color, to_color, fade_type: type = fade_type_box, timer_interval = 50, update_rate = 5, from_outline_color = 255, to_outline_color = 0x00) {
 
 	if (playerid < 0 || playerid >= MAX_PLAYERS) {
 		return 0;
@@ -160,7 +196,9 @@ stock PlayerTextDrawFade(playerid, PlayerText: playertext, from_color, to_color,
 	_textDrawFader[playerid][idx][E_FADER_TYPE] = type;
 	_textDrawFader[playerid][idx][E_FADER_FROM_COLOR] = from_color;
 	_textDrawFader[playerid][idx][E_FADER_TO_COLOR] = to_color;
-	_textDrawFader[playerid][idx][E_FADER_TIMER] = SetTimerEx("_OnTextDrawFade", timer_interval, true, "iiii", playerid, idx, update_rate, from_color);
+	_textDrawFader[playerid][idx][E_FADER_FROM_OUTLINE_COLOR] = from_outline_color;
+	_textDrawFader[playerid][idx][E_FADER_TO_OUTLINE_COLOR] = to_outline_color;
+	_textDrawFader[playerid][idx][E_FADER_TIMER] = SetTimerEx("_OnTextDrawFade", timer_interval, true, "iiiii", playerid, idx, update_rate, from_color, from_outline_color);
 
 	return 1;
 }
@@ -187,69 +225,57 @@ stock PlayerTextDrawStopFade(playerid, PlayerText: playertext, fade_type: type =
 	return 0;
 }
 
-forward _OnTextDrawFade(playerid, idx, update_rate, initial_color);
-public	_OnTextDrawFade(playerid, idx, update_rate, initial_color) {
+forward _OnTextDrawFade(playerid, idx, update_rate, initial_color, initial_outline_color);
+public	_OnTextDrawFade(playerid, idx, update_rate, initial_color, initial_outline_color) {
 
-	new new_color[4];
-	new final_color[4];
-
-    RGBA(_textDrawFader[playerid][idx][E_FADER_FROM_COLOR], new_color[0], new_color[1], new_color[2], new_color[3]);
-	RGBA(_textDrawFader[playerid][idx][E_FADER_TO_COLOR], final_color[0], final_color[1], final_color[2], final_color[3]);
-
-	for (new i; i < 4; i++) {
-		if (new_color[i] > final_color[i]) {
-		    new_color[i] -= update_rate;
-
-		    if (new_color[i] <= final_color[i]) {
-		    	new_color[i] = final_color[i];
-		    }
-		} else if (new_color[i] < final_color[i]) {
-		    new_color[i] += update_rate;
-
-		    if (new_color[i] >= final_color[i]) {
-		    	new_color[i] = final_color[i];
-		    }
-		}
-	}
-
- 	HEX(_textDrawFader[playerid][idx][E_FADER_FROM_COLOR], new_color[0], new_color[1], new_color[2], new_color[3]);
+	_textDrawFader[playerid][idx][E_FADER_FROM_COLOR] = ConvertColor(_textDrawFader[playerid][idx][E_FADER_FROM_COLOR], _textDrawFader[playerid][idx][E_FADER_TO_COLOR], update_rate);
 
 	if (_textDrawFader[playerid][idx][E_FADER_TEXTDRAW_TAG] == TEXTDRAW_TAG) {
 
 		if (_textDrawFader[playerid][idx][E_FADER_TYPE] == fade_type_text) {
 			TextDrawColor(Text: _textDrawFader[playerid][idx][E_FADER_TEXTDRAW_ID], _textDrawFader[playerid][idx][E_FADER_FROM_COLOR]);
+
+			_textDrawFader[playerid][idx][E_FADER_FROM_OUTLINE_COLOR] = ConvertColor(_textDrawFader[playerid][idx][E_FADER_FROM_OUTLINE_COLOR], _textDrawFader[playerid][idx][E_FADER_TO_OUTLINE_COLOR], update_rate);
+			TextDrawBackgroundColor(Text: _textDrawFader[playerid][idx][E_FADER_TEXTDRAW_ID], _textDrawFader[playerid][idx][E_FADER_FROM_OUTLINE_COLOR]);
 		} else {
 			TextDrawBoxColor(Text: _textDrawFader[playerid][idx][E_FADER_TEXTDRAW_ID], _textDrawFader[playerid][idx][E_FADER_FROM_COLOR]);
 		}
-		
+
 		TextDrawShowForPlayer(playerid, Text: _textDrawFader[playerid][idx][E_FADER_TEXTDRAW_ID]);
 
 		if (_textDrawFader[playerid][idx][E_FADER_FROM_COLOR] == _textDrawFader[playerid][idx][E_FADER_TO_COLOR]) {
-			#if defined OnTextDrawFaded
-	  			OnTextDrawFaded(playerid, Text: _textDrawFader[playerid][idx][E_FADER_TEXTDRAW_ID], _textDrawFader[playerid][idx][E_FADER_TYPE], initial_color, _textDrawFader[playerid][idx][E_FADER_FROM_COLOR]);
-			#endif
-
-			KillTimer(_textDrawFader[playerid][idx][E_FADER_TIMER]);
-  			_textDrawFader[playerid][idx][E_FADER_SLOT_USED] = false;
+		    if (_textDrawFader[playerid][idx][E_FADER_TYPE] == fade_type_box || (_textDrawFader[playerid][idx][E_FADER_TYPE] == fade_type_text && _textDrawFader[playerid][idx][E_FADER_FROM_OUTLINE_COLOR] == _textDrawFader[playerid][idx][E_FADER_TO_OUTLINE_COLOR])) {
+				#if defined OnTextDrawFaded
+		  			OnTextDrawFaded(playerid, Text: _textDrawFader[playerid][idx][E_FADER_TEXTDRAW_ID], _textDrawFader[playerid][idx][E_FADER_TYPE], initial_color, _textDrawFader[playerid][idx][E_FADER_FROM_COLOR], initial_outline_color, _textDrawFader[playerid][idx][E_FADER_FROM_OUTLINE_COLOR]);
+				#endif
+			
+				KillTimer(_textDrawFader[playerid][idx][E_FADER_TIMER]);
+	  			_textDrawFader[playerid][idx][E_FADER_SLOT_USED] = false;
+			}
 		}
-		
+
 	} else {
-	
+
 		if (_textDrawFader[playerid][idx][E_FADER_TYPE] == fade_type_text) {
 			PlayerTextDrawColor(playerid, PlayerText: _textDrawFader[playerid][idx][E_FADER_TEXTDRAW_ID], _textDrawFader[playerid][idx][E_FADER_FROM_COLOR]);
+			
+			_textDrawFader[playerid][idx][E_FADER_FROM_OUTLINE_COLOR] = ConvertColor(_textDrawFader[playerid][idx][E_FADER_FROM_OUTLINE_COLOR], _textDrawFader[playerid][idx][E_FADER_TO_OUTLINE_COLOR], update_rate);
+			PlayerTextDrawBackgroundColor(playerid, PlayerText: _textDrawFader[playerid][idx][E_FADER_TEXTDRAW_ID], _textDrawFader[playerid][idx][E_FADER_FROM_OUTLINE_COLOR]);
 		} else {
 			PlayerTextDrawBoxColor(playerid, PlayerText: _textDrawFader[playerid][idx][E_FADER_TEXTDRAW_ID], _textDrawFader[playerid][idx][E_FADER_FROM_COLOR]);
 		}
 
 		PlayerTextDrawShow(playerid, PlayerText: _textDrawFader[playerid][idx][E_FADER_TEXTDRAW_ID]);
 
-		if (_textDrawFader[playerid][idx][E_FADER_FROM_COLOR] == _textDrawFader[playerid][idx][E_FADER_TO_COLOR]) {
-			#if defined OnPlayerTextDrawFaded
-	  			OnPlayerTextDrawFaded(playerid, PlayerText: _textDrawFader[playerid][idx][E_FADER_TEXTDRAW_ID], _textDrawFader[playerid][idx][E_FADER_TYPE], initial_color, _textDrawFader[playerid][idx][E_FADER_FROM_COLOR]);
-			#endif
+		if (_textDrawFader[playerid][idx][E_FADER_FROM_COLOR] == _textDrawFader[playerid][idx][E_FADER_TO_COLOR] && (_textDrawFader[playerid][idx][E_FADER_TYPE] == fade_type_text && _textDrawFader[playerid][idx][E_FADER_FROM_OUTLINE_COLOR] == _textDrawFader[playerid][idx][E_FADER_TO_OUTLINE_COLOR])) {
+            if (_textDrawFader[playerid][idx][E_FADER_TYPE] == fade_type_box || (_textDrawFader[playerid][idx][E_FADER_TYPE] == fade_type_text && _textDrawFader[playerid][idx][E_FADER_FROM_OUTLINE_COLOR] == _textDrawFader[playerid][idx][E_FADER_TO_OUTLINE_COLOR])) {
+				#if defined OnPlayerTextDrawFaded
+		  			OnPlayerTextDrawFaded(playerid, PlayerText: _textDrawFader[playerid][idx][E_FADER_TEXTDRAW_ID], _textDrawFader[playerid][idx][E_FADER_TYPE], initial_color, _textDrawFader[playerid][idx][E_FADER_FROM_COLOR], initial_outline_color, _textDrawFader[playerid][idx][E_FADER_FROM_OUTLINE_COLOR]);
+				#endif
 
-			KillTimer(_textDrawFader[playerid][idx][E_FADER_TIMER]);
-  			_textDrawFader[playerid][idx][E_FADER_SLOT_USED] = false;
+				KillTimer(_textDrawFader[playerid][idx][E_FADER_TIMER]);
+	  			_textDrawFader[playerid][idx][E_FADER_SLOT_USED] = false;
+			}
 		}
 	}
 }
