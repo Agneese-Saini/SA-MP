@@ -26,8 +26,6 @@ ___
 
 | FileName		| Information	| Thread   |
 | ------------- |:-------------:| --------:|
-| [base/mysql.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/gamemodes/base/mysql.pwn) | Starter MySQL login and register system with Security question addon for recovering/reseting password when user forgets! | http://forum.sa-mp.com/showthread.php?t=625195 |
-| [base/sqlite.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/gamemodes/base/sqlite.pwn) | Similar to above but in SQLite | http://forum.sa-mp.com/showthread.php?t=625195 |
 | [CopsAndTerrorists.pwn](https://github.com/Agneese-Saini/SA-MP/blob/master/gamemodes/CopsAndTerrorists.pwn) | A small los santos town is under war between Cops and Local Terrorists, there are 3 flags to capture for both teams! | N/A |
 | Los Santos - Gangwars | 5 gangs fight over turfs in los santos teritory | http://forum.sa-mp.com/showthread.php?t=590991 |
 | RedRex Freeroam | Fun freeroam gamemode with sub modes like: Team Deathmatch, Deathmatch, Race, Parkour and lot more... | http://forum.sa-mp.com/showthread.php?t=582050 |
