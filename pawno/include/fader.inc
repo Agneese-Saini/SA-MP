@@ -267,7 +267,7 @@ public	_OnTextDrawFade(playerid, idx, update_rate, initial_color, initial_outlin
 
 		PlayerTextDrawShow(playerid, PlayerText: _textDrawFader[playerid][idx][E_FADER_TEXTDRAW_ID]);
 
-		if (_textDrawFader[playerid][idx][E_FADER_FROM_COLOR] == _textDrawFader[playerid][idx][E_FADER_TO_COLOR] && (_textDrawFader[playerid][idx][E_FADER_TYPE] == fade_type_text && _textDrawFader[playerid][idx][E_FADER_FROM_OUTLINE_COLOR] == _textDrawFader[playerid][idx][E_FADER_TO_OUTLINE_COLOR])) {
+		if (_textDrawFader[playerid][idx][E_FADER_FROM_COLOR] == _textDrawFader[playerid][idx][E_FADER_TO_COLOR] || (_textDrawFader[playerid][idx][E_FADER_TYPE] == fade_type_text && _textDrawFader[playerid][idx][E_FADER_FROM_OUTLINE_COLOR] == _textDrawFader[playerid][idx][E_FADER_TO_OUTLINE_COLOR])) {
             if (_textDrawFader[playerid][idx][E_FADER_TYPE] == fade_type_box || (_textDrawFader[playerid][idx][E_FADER_TYPE] == fade_type_text && _textDrawFader[playerid][idx][E_FADER_FROM_OUTLINE_COLOR] == _textDrawFader[playerid][idx][E_FADER_TO_OUTLINE_COLOR])) {
 				#if defined OnPlayerTextDrawFaded
 		  			OnPlayerTextDrawFaded(playerid, PlayerText: _textDrawFader[playerid][idx][E_FADER_TEXTDRAW_ID], _textDrawFader[playerid][idx][E_FADER_TYPE], initial_color, _textDrawFader[playerid][idx][E_FADER_FROM_COLOR], initial_outline_color, _textDrawFader[playerid][idx][E_FADER_FROM_OUTLINE_COLOR]);
